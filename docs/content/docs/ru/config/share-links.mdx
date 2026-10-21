@@ -57,7 +57,7 @@ icon: Link
 | `{{INBOUND}}` | Примечание входящего соединения |
 | `{{HOST}}` | Примечание строки хоста (управляемые хосты) |
 | `{{ID}}` / `{{SHORT_ID}}` | UUID клиента / его первые 8 символов |
-| `{{TELEGRAM_ID}}` · `{{SUB_ID}}` · `{{COMMENT}}` | Telegram ID, ID подписки, комментарий |
+| `{{TELEGRAM_ID}}` · `{{SUB_ID}}` · `{{COMMENT}}` | Telegram ID, Sub ID, комментарий |
 | `{{STATUS}}` / `{{STATUS_EMOJI}}` | `active`/`expired`/`depleted`/`disabled` (или ✅⏳🚫) |
 | `{{DAYS_LEFT}}` / `{{TIME_LEFT}}` | Осталось дней или `Xd Xh Xm` (`∞`, если безлимит) |
 | `{{EXPIRE_DATE}}` / `{{JALALI_EXPIRE_DATE}}` / `{{EXPIRE_UNIX}}` | Срок действия в григорианской / джалали дате / секундах Unix |
@@ -69,7 +69,7 @@ icon: Link
 | `{{PROTOCOL}}` / `{{TRANSPORT}}` / `{{SECURITY}}` | например `VLESS` / `ws` / `REALITY` |
 
 <Callout type="info">
-  Токены использования (трафик, дни, статус) появляются в **теле** подписки, но
+  Токены использования (трафик, дни, статус) появляются в **примечании** share-ссылки, но
   удаляются из отображения/QR-вида, поэтому общий QR-код не раскрывает оставшуюся
   квоту клиента. Токены дат следуют настройке `datepicker` (григорианский или
   джалали календарь).
@@ -79,5 +79,4 @@ icon: Link
 
 <Cards>
   <Card title="REALITY" href="/docs/config/reality" description="Сгенерируйте конфигурацию и ссылку VLESS + REALITY." />
-  <Card title="Подписка" href="/docs/config/subscription" description="Отдавайте все ссылки клиента с одного URL." />
 </Cards>

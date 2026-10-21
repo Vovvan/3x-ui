@@ -21,6 +21,9 @@
 
 Construido como un fork mejorado del proyecto X-UI original, 3X-UI añade un soporte de protocolos más amplio, mayor estabilidad, contabilidad de tráfico por cliente y muchas funciones que mejoran la experiencia de uso.
 
+> [!NOTE]
+> Este fork elimina el servidor de suscripciones integrado, su interfaz web y formatos (Happ/Incy, Clash/JSON), los balanceadores de suscripciones, las suscripciones de salida y los bots de Telegram y Discord. La generación de enlaces de compartición y códigos QR por cliente se mantiene.
+
 > [!IMPORTANT]
 > Este proyecto está destinado únicamente al uso personal. Por favor, no lo uses para fines ilegales ni en un entorno de producción.
 
@@ -32,12 +35,10 @@ Construido como un fork mejorado del proyecto X-UI original, 3X-UI añade un sop
 - **TUIC v5 integrado** — Proxy de alto rendimiento basado en QUIC con medición de tráfico mediante retransmisión UDP nativa, handshakes 0-RTT y control de congestión BBR.
 - **Proxies MTProto** — secretos FakeTLS, ad-tags y cuotas por cliente, aplicados en caliente sin cortar las conexiones existentes.
 - **Fallbacks** — sirve varios protocolos en un solo puerto (p. ej. VLESS y Trojan en el 443) usando la función de fallback de Xray.
-- **Gestión por cliente** — cuotas de tráfico, fechas de caducidad, límites de IP con exenciones para direcciones de confianza, límites de dispositivos (HWID), ciclos de renovación programados, estado en línea en tiempo real y enlaces de compartición, códigos QR y suscripciones con un solo clic.
+- **Gestión por cliente** — cuotas de tráfico, fechas de caducidad, límites de IP con exenciones para direcciones de confianza, límites de dispositivos (HWID), ciclos de renovación programados, estado en línea en tiempo real y enlaces de compartición y códigos QR con un solo clic.
 - **Estadísticas de tráfico** — por entrada, por cliente y por salida, con controles de reinicio.
 - **Soporte multinodo** — gestiona y escala a través de varios servidores desde un único panel, incluida la clonación de entradas en otros nodos.
 - **Salida y enrutamiento** — WARP, NordVPN, PIA, reglas de enrutamiento personalizadas, balanceadores de carga con conmutación por error entre balanceadores y encadenamiento de proxy de salida. Las categorías geosite y geoip incluidas se pueden explorar directamente desde el editor de reglas.
-- **Servidor de suscripción integrado** — salida raw, JSON y Clash, seleccionada automáticamente según el User-Agent del cliente, además de [plantillas de página personalizables](docs/custom-subscription-templates.md).
-- **Bots de Telegram y Discord** para monitorización y gestión remotas.
 - **API RESTful** con tokens de alcance limitado y caducidad opcional, y una referencia de la API dentro del panel.
 - **Panel instalable (PWA)** — ancla 3X-UI al escritorio o a la pantalla de inicio del móvil.
 - **Almacenamiento flexible** — SQLite (predeterminado) o PostgreSQL.

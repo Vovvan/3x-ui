@@ -10,8 +10,6 @@ import { ProtocolWizard } from '@/components/tools/protocol-wizard';
 import { FirewallRulesGenerator } from '@/components/tools/firewall-rules-generator';
 import { OutboundGenerator } from '@/components/tools/outbound-generator';
 import { RoutingBuilder } from '@/components/tools/routing-builder';
-import { SubscriptionBuilder } from '@/components/tools/subscription-builder';
-import { TelegramSetupHelper } from '@/components/tools/telegram-setup-helper';
 import { ApiRequestBuilder } from '@/components/tools/api-request-builder';
 import { OpenAPIPage } from '@/components/openapi-page';
 import type { MDXComponents } from 'mdx/types';
@@ -32,8 +30,6 @@ export function getMDXComponents(components?: MDXComponents) {
     FirewallRulesGenerator,
     OutboundGenerator,
     RoutingBuilder,
-    SubscriptionBuilder,
-    TelegramSetupHelper,
     ApiRequestBuilder,
     OpenAPIPage,
     ...components,

@@ -21,7 +21,6 @@ interface Row {
 
 const DEFAULT_ROWS: Row[] = [
   { label: 'panel', port: '2053', protocol: 'tcp', enabled: true },
-  { label: 'subscription', port: '2096', protocol: 'tcp', enabled: false },
   { label: 'inbound (HTTPS)', port: '443', protocol: 'tcp', enabled: true },
   { label: 'inbound (UDP)', port: '443', protocol: 'udp', enabled: false },
 ];

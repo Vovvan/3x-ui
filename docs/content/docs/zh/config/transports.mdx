@@ -117,7 +117,7 @@ Session-ID 字段（`sessionIDPlacement`、`sessionIDKey`、`sessionIDTable`、
 ### XDRIVE — `xdriveSettings`
 
 XDRIVE 把数据流作为文件存放在双方都能访问的文件夹中：服务端轮询该文件夹，而不是在端口上接受连接。
-双方必须使用**相同**的服务、文件夹和密钥，因此 JSON 订阅会把它们下发给每个客户端；XDRIVE 入站不生成分享链接或 Clash 条目。
+双方必须使用**相同**的服务、文件夹和密钥。XDRIVE 入站不生成分享链接，请手动配置客户端。
 
 自 Xray 26.10.17 起，XDRIVE 只在 **VLESS 加密**内承载 **VLESS**，且不支持 flow：入站需要设置 `decryption`，
 出站需要 `encryption` 并启用 Mux。面板只为 VLESS 提供 XDRIVE，拒绝保存没有 `decryption` 的入站，并把升级前保存的此类入站排除在运行配置之外。
@@ -146,8 +146,7 @@ XDRIVE 没有自己的 TLS/REALITY 层——其流量就是存储 API 自身的 
   mKCP 的头部混淆；`udphop` 按时间间隔或按连接轮换远端端口——也可轮换远端 IP——以规避
   端口封锁。）
 - **QUIC 参数** — 拥塞控制（`reno`、`bbr`、`brutal`、`force-brutal`）、Brutal 上/下行
-  速率以及接收窗口调优。在入站上，**UDP Hop** 设置向客户端公布的端口范围（分享链接的
-  `mport` 和 JSON 订阅中的 `udphop` 掩码）；服务器本身仍只监听自己的端口。自 Xray
+  速率以及接收窗口调优。在入站上，**UDP Hop** 设置向客户端公布的端口范围（分享链接的 `mport`）；服务器本身仍只监听自己的端口。自 Xray
   26.9.9 起客户端只通过 `udphop` 掩码跳端口，因此面板会把客户端旧的
   `quicParams.udpHop` 转换为该掩码。
 

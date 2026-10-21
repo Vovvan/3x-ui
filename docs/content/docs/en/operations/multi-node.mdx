@@ -1,11 +1,11 @@
 ---
 title: Multi-node & Managed Hosts
-description: Manage multiple 3x-ui panels from one master, with API-token or mTLS trust, heartbeats, and per-inbound host overrides for subscriptions.
+description: Manage multiple 3x-ui panels from one master, with API-token or mTLS trust, heartbeats, and per-inbound host overrides for share links.
 icon: Boxes
 ---
 
 3x-ui can manage **multiple servers** from a single master panel, and override
-how each inbound is advertised in subscriptions with **managed hosts**.
+how each inbound is advertised in share links with **managed hosts**.
 
 ## Nodes
 
@@ -30,8 +30,7 @@ Provide the node's connection details:
 
 The master verifies reachability when you add or test a node. It then sends a
 **heartbeat** every few seconds, updating the node's status (`online` / `offline`)
-and emitting `node.up` / `node.down` events (see the
-[Telegram bot](/docs/operations/telegram-bot) and [Discord bot](/docs/operations/discord-bot)).
+and emitting `node.up` / `node.down` events.
 
 <Callout type="info">
   Nodes are identified by a stable per-panel GUID, so a node keeps its identity
@@ -71,7 +70,7 @@ certificate instead of an API token.
 ## Managed hosts
 
 A **managed host** is an override endpoint attached to an inbound. At
-subscription time, each enabled host renders an additional share link / proxy
+link-generation time, each enabled host renders an additional share link / proxy
 with its own address, port, TLS, SNI, host header, path, and more — superseding
 the older "external proxy" list. Use them to:
 
@@ -81,8 +80,7 @@ the older "external proxy" list. Use them to:
 
 Each host has a remark (which supports the same
 [template variables](/docs/config/share-links#remark-template-variables)), an
-enable toggle, a sort order, and can be **excluded from specific subscription
-formats** or **scoped to specific nodes**.
+enable toggle, a sort order, and can be **scoped to specific nodes**.
 
 <Callout type="info">
   Hosts whose address/port point at a CDN let you keep the real server address
@@ -92,6 +90,5 @@ formats** or **scoped to specific nodes**.
 ## Related
 
 <Cards>
-  <Card title="Outbounds & routing" href="/docs/operations/outbounds-routing" description="WARP, NordVPN, outbound subscriptions, and routing." />
-  <Card title="Subscription" href="/docs/config/subscription" description="How hosts shape subscription output." />
+  <Card title="Outbounds & routing" href="/docs/operations/outbounds-routing" description="WARP, NordVPN, and routing." />
 </Cards>

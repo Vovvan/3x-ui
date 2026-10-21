@@ -124,9 +124,7 @@ vless://<uuid>@<server>:443?security=reality&pbk=<public-key>&sid=<short-id>&sni
   clients even with correct keys. Check the running core version before changing
   this gate; lowering it also admits older fingerprints.
 - **Mihomo and ML-KEM.** Xray-core v26.9.8+ independently requires an
-  `X25519MLKEM768` key share before the optional `X25519` share. The Clash/Mihomo
-  YAML subscription enables `reality-opts.support-x25519mlkem768` for REALITY
-  nodes, including external links, and uses `chrome` when no fingerprint was set.
+  `X25519MLKEM768` key share before the optional `X25519` share.
   Explicit fingerprints are preserved: choose one that offers ML-KEM (`chrome`
   with Mihomo's uTLS v1.8.7); enabling the flag cannot upgrade an old fingerprint.
   Raw `vless://` links carry the equivalent `support-x25519mlkem768=true` hint;

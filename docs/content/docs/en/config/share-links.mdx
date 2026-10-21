@@ -57,7 +57,7 @@ don't show empty decorations.
 | `{{INBOUND}}` | Inbound remark |
 | `{{HOST}}` | Host-row remark (managed hosts) |
 | `{{ID}}` / `{{SHORT_ID}}` | Client UUID / its first 8 chars |
-| `{{TELEGRAM_ID}}` · `{{SUB_ID}}` · `{{COMMENT}}` | Telegram ID, subscription ID, comment |
+| `{{TELEGRAM_ID}}` · `{{SUB_ID}}` · `{{COMMENT}}` | Telegram ID, Sub ID, comment |
 | `{{STATUS}}` / `{{STATUS_EMOJI}}` | `active`/`expired`/`depleted`/`disabled` (or ✅⏳🚫) |
 | `{{DAYS_LEFT}}` / `{{TIME_LEFT}}` | Days, or `Xd Xh Xm`, remaining (`∞` if unlimited) |
 | `{{EXPIRE_DATE}}` / `{{JALALI_EXPIRE_DATE}}` / `{{EXPIRE_UNIX}}` | Expiry as Gregorian / Jalali date / Unix seconds |
@@ -69,7 +69,7 @@ don't show empty decorations.
 | `{{PROTOCOL}}` / `{{TRANSPORT}}` / `{{SECURITY}}` | e.g. `VLESS` / `ws` / `REALITY` |
 
 <Callout type="info">
-  Usage tokens (traffic, days, status) appear in the subscription **body** but
+  Usage tokens (traffic, days, status) appear in the share-link **remark** but
   are stripped from the display/QR view, so a shared QR doesn't leak a client's
   remaining quota. Date tokens follow the `datepicker` setting (Gregorian or
   Jalali).
@@ -79,5 +79,4 @@ don't show empty decorations.
 
 <Cards>
   <Card title="REALITY" href="/docs/config/reality" description="Generate a VLESS + REALITY config and link." />
-  <Card title="Subscription" href="/docs/config/subscription" description="Serve all of a client's links from one URL." />
 </Cards>

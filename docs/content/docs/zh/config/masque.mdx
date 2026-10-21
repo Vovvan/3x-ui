@@ -19,8 +19,8 @@ HTTPS 流量无异的完整三层隧道。xray-core 原生支持它；3x-ui 将�
 | **安全**     | 始终为 TLS。ALPN 决定监听方式：`h3` 在 UDP 上提供 HTTP/3，`h2` 在 TCP 上提供 HTTP/2，两者同时设置则都提供。 |
 
 <Callout type="info">
-  MASQUE 没有分享链接格式，因此 MASQUE 入站不生成链接、二维码或 Clash 条目。客户端通过 **JSON 订阅**获取可直接导入的配置：
-  一个使用该客户端邮箱和密码认证的 `masque` 出站。
+  MASQUE 没有分享链接格式，因此 MASQUE 入站不生成链接或二维码。
+  请使用该客户端的邮箱和密码手动配置 `masque` 出站。
 </Callout>
 
 ## 出站

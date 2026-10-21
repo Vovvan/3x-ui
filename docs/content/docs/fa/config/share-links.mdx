@@ -56,7 +56,7 @@ icon: Link
 | `{{INBOUND}}` | توضیحات اینباند |
 | `{{HOST}}` | توضیحات ردیف هاست (هاست‌های مدیریت‌شده) |
 | `{{ID}}` / `{{SHORT_ID}}` | UUID کلاینت / ۸ کاراکتر نخست آن |
-| `{{TELEGRAM_ID}}` · `{{SUB_ID}}` · `{{COMMENT}}` | شناسه Telegram، شناسه اشتراک، توضیح |
+| `{{TELEGRAM_ID}}` · `{{SUB_ID}}` · `{{COMMENT}}` | شناسه Telegram، Sub ID، توضیح |
 | `{{STATUS}}` / `{{STATUS_EMOJI}}` | `active`/`expired`/`depleted`/`disabled` (یا ✅⏳🚫) |
 | `{{DAYS_LEFT}}` / `{{TIME_LEFT}}` | روزهای باقی‌مانده، یا `Xd Xh Xm` (`∞` در صورت نامحدود بودن) |
 | `{{EXPIRE_DATE}}` / `{{JALALI_EXPIRE_DATE}}` / `{{EXPIRE_UNIX}}` | تاریخ انقضا به‌صورت میلادی / شمسی / ثانیه‌های Unix |
@@ -68,7 +68,7 @@ icon: Link
 | `{{PROTOCOL}}` / `{{TRANSPORT}}` / `{{SECURITY}}` | مثلاً `VLESS` / `ws` / `REALITY` |
 
 <Callout type="info">
-  توکن‌های مصرف (ترافیک، روزها، وضعیت) در **بدنه**ی اشتراک ظاهر می‌شوند اما
+  توکن‌های مصرف (ترافیک، روزها، وضعیت) در **توضیح** لینک اشتراک‌گذاری ظاهر می‌شوند اما
   از نمای نمایش/QR حذف می‌گردند، تا یک QR اشتراک‌گذاری‌شده سهمیه‌ی باقی‌مانده‌ی یک کلاینت
   را افشا نکند. توکن‌های تاریخ از تنظیم `datepicker` پیروی می‌کنند (میلادی یا شمسی).
 </Callout>
@@ -77,5 +77,4 @@ icon: Link
 
 <Cards>
   <Card title="REALITY" href="/docs/config/reality" description="یک پیکربندی و لینک VLESS + REALITY بسازید." />
-  <Card title="اشتراک" href="/docs/config/subscription" description="همه‌ی لینک‌های یک کلاینت را از یک URL ارائه دهید." />
 </Cards>

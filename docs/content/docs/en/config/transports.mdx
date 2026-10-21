@@ -122,8 +122,8 @@ Only valid when the protocol is **Hysteria2**.
 
 XDRIVE carries the stream as files in a folder both ends can reach: the server polls
 that folder instead of accepting connections on its port. Both sides must use the
-**same** service, folder and secrets, so the JSON subscription ships them to every
-client; XDRIVE inbounds get no share link or Clash entry.
+**same** service, folder and secrets. XDRIVE inbounds get no share link, so configure
+the client manually.
 
 Since Xray 26.10.17 XDRIVE carries only **VLESS** inside **VLESS encryption**, with
 no flow: an inbound needs a `decryption` value, an outbound its `encryption` and Mux
@@ -161,8 +161,8 @@ TLS. Masks are configured per direction:
   blocking.)
 - **QUIC params** — congestion control (`reno`, `bbr`, `brutal`, `force-brutal`),
   Brutal up/down rates, and receive-window tuning. On an inbound, **UDP Hop** sets
-  the port range advertised to clients (the share link's `mport` and the JSON
-  subscription's `udphop` mask); the server still listens on its own port. Since
+  the port range advertised to clients (the share link's `mport` mask); the server
+  still listens on its own port. Since
   Xray 26.9.9 a client hops only through the `udphop` mask, so the panel converts
   an older client `quicParams.udpHop` to it.
 

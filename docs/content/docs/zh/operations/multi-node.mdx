@@ -1,10 +1,10 @@
 ---
 title: 多节点与受管主机
-description: 通过 API 令牌或 mTLS 信任、心跳检测以及针对每个入站的主机覆盖，从一个主控面板统一管理多个 3x-ui 面板并定制订阅。
+description: 通过 API 令牌或 mTLS 信任、心跳检测以及针对每个入站的主机覆盖，从一个主控面板统一管理多个 3x-ui 面板并定制分享链接。
 icon: Boxes
 ---
 
-3x-ui 可以从单个主控面板管理**多台服务器**，并借助**受管主机**覆盖每个入站在订阅中的通告方式。
+3x-ui 可以从单个主控面板管理**多台服务器**，并借助**受管主机**覆盖每个入站在分享链接中的通告方式。
 
 ## 节点
 
@@ -25,7 +25,7 @@ icon: Boxes
 | **Inbound sync**  | `all` 入站，或按标签 `selected`。                                     |
 | **Outbound tag**  | 可选地**通过**指定的出站到达节点（出口桥接）。                        |
 
-当你添加或测试节点时，主控会验证其可达性。随后它每隔几秒发送一次**心跳**，更新节点的状态（`online` / `offline`）并发出 `node.up` / `node.down` 事件（参见 [Telegram 机器人](/docs/operations/telegram-bot) 与 [Discord 机器人](/docs/operations/discord-bot)）。
+当你添加或测试节点时，主控会验证其可达性。随后它每隔几秒发送一次**心跳**，更新节点的状态（`online` / `offline`）并发出 `node.up` / `node.down` 事件。
 
 <Callout type="info">
   节点通过每个面板稳定的 GUID 来标识，因此节点在重启后仍能保持其身份。节点本身也可以管理更多节点——主控会将这些以只读的**传递性**子节点形式呈现（Node 1 → Node 2 → Node 3）。
@@ -59,13 +59,13 @@ icon: Boxes
 
 ## 受管主机
 
-**受管主机**是附加到入站上的覆盖端点。在订阅时，每个启用的主机会以其自己的地址、端口、TLS、SNI、主机头、路径等渲染出一条额外的分享链接 / 代理——取代旧的“外部代理”列表。可用于：
+**受管主机**是附加到入站上的覆盖端点。生成链接时，每个启用的主机会以其自己的地址、端口、TLS、SNI、主机头、路径等渲染出一条额外的分享链接 / 代理——取代旧的“外部代理”列表。可用于：
 
 - 通过 **CDN**（Cloudflare）以不同的地址/SNI 为入站做前置，
 - 为单个入站通告**多个域名**或按地区划分的端点，
 - 为每个端点调整 ALPN、指纹、ECH 或 mux。
 
-每个主机都有一个备注（支持相同的[模板变量](/docs/config/share-links#remark-template-variables)）、一个启用开关、一个排序顺序，并且可以**从特定订阅格式中排除**或**限定到特定节点**。
+每个主机都有一个备注（支持相同的[模板变量](/docs/config/share-links#remark-template-variables)）、一个启用开关、一个排序顺序，并且可以**限定到特定节点**。
 
 <Callout type="info">
   将地址/端口指向 CDN 的主机让你能够在客户端通过 CDN 边缘连接的同时，保持真实服务器地址的私密性。
@@ -74,6 +74,5 @@ icon: Boxes
 ## 相关内容
 
 <Cards>
-  <Card title="出站与路由" href="/docs/operations/outbounds-routing" description="WARP、NordVPN、出站订阅以及路由。" />
-  <Card title="订阅" href="/docs/config/subscription" description="主机如何塑造订阅输出。" />
+  <Card title="出站与路由" href="/docs/operations/outbounds-routing" description="WARP、NordVPN 以及路由。" />
 </Cards>

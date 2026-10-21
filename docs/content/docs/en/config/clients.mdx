@@ -21,8 +21,8 @@ inbounds** at once, with per-client traffic accounting.
 | **Total (GB)** | all                   | Traffic quota; the client is disabled when exhausted.              |
 | **Expiry**     | all                   | Date after which the client stops working.                        |
 | **Auto renewal** | all                 | Disabled, fixed interval in days, calendar weekly, or calendar monthly. |
-| **Telegram ID**| all                   | Links the client to a Telegram user for self-service/notifications.|
-| **Sub ID**     | all                   | Subscription identifier grouping this client's links.             |
+| **Telegram ID**| all                   | Telegram user ID stored with the client (legacy field).           |
+| **Sub ID**     | all                   | Identifier grouping this client's links.                          |
 | **Group**      | all                   | Optional client group for organization and bulk filtering.        |
 | **Comment**    | all                   | Free-text note.                                                   |
 
@@ -70,8 +70,7 @@ renewal combined with a positive `reset` or `resetDay`.
 For a full calendar month, select **monthly, day 1** and set the initial cutoff
 to the next month's first midnight. For example, `2030-09-01 00:00:00` is valid
 through `2030-08-31 23:59:59`. Day 31 renews at the **start** of the 31st and is
-not the same schedule. The existing optional month-end subscription-header
-display remains a separate setting and is not enabled by this form.
+not the same schedule.
 
 The preview uses the panel's timezone and the same calendar/catch-up calculation
 as automatic renewal. It shows the cutoff, last valid second, next expiry, and
@@ -122,11 +121,10 @@ part of these modes.
 
 ## Share links and external links
 
-Every client has share links and a QR code for its inbounds, plus a combined
-[subscription](/docs/config/subscription). You can also attach **external
-links** to a client — extra `vless://`, `vmess://`, `trojan://`, `ss://`,
-`hysteria2://`, or `wireguard://` links, or a remote subscription URL — so they
-appear alongside the panel-generated ones in the client's subscription.
+Every client has share links and a QR code for its inbounds. You can also
+attach **external links** to a client — extra `vless://`, `vmess://`,
+`trojan://`, `ss://`, `hysteria2://`, or `wireguard://` links — so they appear
+alongside the panel-generated ones.
 
 To inspect exactly what a link contains, paste it into the
 [share-link inspector](/docs/config/share-links).

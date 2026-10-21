@@ -51,7 +51,7 @@ icon: Link
 | `{{INBOUND}}` | 入站备注 |
 | `{{HOST}}` | 主机行备注（受管主机） |
 | `{{ID}}` / `{{SHORT_ID}}` | 客户端 UUID / 其前 8 个字符 |
-| `{{TELEGRAM_ID}}` · `{{SUB_ID}}` · `{{COMMENT}}` | Telegram ID、订阅 ID、备注 |
+| `{{TELEGRAM_ID}}` · `{{SUB_ID}}` · `{{COMMENT}}` | Telegram ID、Sub ID、备注 |
 | `{{STATUS}}` / `{{STATUS_EMOJI}}` | `active`/`expired`/`depleted`/`disabled`（或 ✅⏳🚫） |
 | `{{DAYS_LEFT}}` / `{{TIME_LEFT}}` | 剩余天数，或 `Xd Xh Xm`（不限量时为 `∞`） |
 | `{{EXPIRE_DATE}}` / `{{JALALI_EXPIRE_DATE}}` / `{{EXPIRE_UNIX}}` | 到期时间，分别为公历 / 波斯历日期 / Unix 秒数 |
@@ -63,7 +63,7 @@ icon: Link
 | `{{PROTOCOL}}` / `{{TRANSPORT}}` / `{{SECURITY}}` | 例如 `VLESS` / `ws` / `REALITY` |
 
 <Callout type="info">
-  用量类占位符（流量、天数、状态）会出现在订阅**正文**中，但会从显示 / 二维码视图中剥离，
+  用量类占位符（流量、天数、状态）会出现在分享链接**备注**中，但会从显示 / 二维码视图中剥离，
   这样分享出去的二维码就不会泄露客户端的剩余配额。日期类占位符遵循 `datepicker` 设置（公历或波斯历）。
 </Callout>
 
@@ -71,5 +71,4 @@ icon: Link
 
 <Cards>
   <Card title="REALITY" href="/docs/config/reality" description="生成 VLESS + REALITY 配置和链接。" />
-  <Card title="订阅" href="/docs/config/subscription" description="通过一个 URL 提供某客户端的全部链接。" />
 </Cards>

@@ -19,8 +19,8 @@ browser in full.
 | `webBasePath`       | `/`                     | URL path the panel is served under (always normalized to `/…/`).        |
 | `webCertFile` / `webKeyFile` | _(none)_       | TLS certificate + key. When both are set, the panel serves **HTTPS**.   |
 | `sessionMaxAge`     | `360`                   | Session lifetime in **minutes** (default 6 hours).                      |
-| `trustedProxyCIDRs` | `127.0.0.1/32,::1/128`  | IPs/CIDRs whose forwarded headers (real client IP) are trusted. A custom value also controls forwarded host and scheme in subscription links; include the subscription proxy or set `subURI` to override those links. |
-| `panelOutbound`     | _(none)_                | Route the panel's own egress (update checks, Telegram, geo/sub fetches) through a named Xray outbound. |
+| `trustedProxyCIDRs` | `127.0.0.1/32,::1/128`  | IPs/CIDRs whose forwarded headers (real client IP) are trusted. Set this to your reverse proxy addresses. |
+| `panelOutbound`     | _(none)_                | Route the panel's own egress (update checks and geo downloads) through a named Xray outbound. |
 
 After changing the port or base path, the panel URL becomes
 `http(s)://<server>:<port><web-base-path>`. You can preset the base path on first
@@ -61,18 +61,13 @@ covered in [First login](/docs/guide/first-login) and
 - API access uses **API tokens** managed under Panel Settings (see the
   [API reference](/docs/reference/api/api-tokens)).
 
-## Notifications & subscription
-
-These have their own settings groups and pages:
+## Notifications
 
 <Cards>
-  <Card title="Telegram bot" href="/docs/operations/telegram-bot" description="Token, chat IDs, alerts, and reports." />
-  <Card title="Discord bot" href="/docs/operations/discord-bot" description="Token, channel ID, and event alerts." />
-  <Card title="Subscription" href="/docs/config/subscription" description="Subscription server, formats, and paths." />
   <Card title="Security" href="/docs/operations/security" description="2FA, IP limits, and hardening." />
 </Cards>
 
 <Callout type="info">
-  Email (SMTP) notifications are also configurable (host, port, encryption,
-  recipients) with the same event types as the Telegram bot.
+  Email (SMTP) notifications are configurable (host, port, encryption, and
+  recipients).
 </Callout>

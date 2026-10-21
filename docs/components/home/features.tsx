@@ -1,7 +1,7 @@
 import {
   Boxes,
   Network,
-  Send,
+  Waypoints,
   ShieldCheck,
   TerminalSquare,
   Users,
@@ -9,8 +9,8 @@ import {
 } from 'lucide-react';
 
 // Icons map by position to the localized feature items in lib/site-i18n.ts
-// (Every major protocol, REALITY, Clients, Multi-node, Telegram, Self-hosted).
-const ICONS: LucideIcon[] = [Boxes, ShieldCheck, Users, Network, Send, TerminalSquare];
+// (Every major protocol, REALITY, Clients, Multi-node, AmneziaWG/TUIC, Self-hosted).
+const ICONS: LucideIcon[] = [Boxes, ShieldCheck, Users, Network, Waypoints, TerminalSquare];
 
 export function Features({
   heading,

@@ -21,6 +21,9 @@
 
 Built as an enhanced fork of the original X-UI project, 3X-UI adds broader protocol support, improved stability, per-client traffic accounting, and many quality-of-life features.
 
+> [!NOTE]
+> This fork removes the built-in subscription server, its web UI and formats (Happ/Incy, Clash/JSON), subscription balancers, outbound subscriptions, and the Telegram/Discord bots. Per-client share links and QR codes remain.
+
 > [!IMPORTANT]
 > This project is intended for personal use only. Please do not use it for illegal purposes or in a production environment.
 
@@ -32,12 +35,10 @@ Built as an enhanced fork of the original X-UI project, 3X-UI adds broader proto
 - **Native TUIC v5 server** — In-process Go QUIC server with Xray routing and per-client traffic accounting; BBR and New Reno are available server-side. CUBIC is preserved in the client profile but currently falls back to New Reno on the server.
 - **MTProto proxies** — per-client FakeTLS secrets, ad-tags, and quotas, applied live without dropping existing connections.
 - **Fallbacks** — serve multiple protocols on a single port (e.g. VLESS and Trojan on 443) using Xray's fallback support.
-- **Per-client management** — traffic quotas, expiry dates, IP limits with trusted-address exemptions, HWID device limits, scheduled renewal cycles, live online status, and one-click share links, QR codes, and subscriptions.
+- **Per-client management** — traffic quotas, expiry dates, IP limits with trusted-address exemptions, HWID device limits, scheduled renewal cycles, live online status, and one-click share links and QR codes.
 - **Traffic statistics** — per inbound, per client, and per outbound, with reset controls.
 - **Multi-node support** — manage and scale across multiple servers from a single panel, including cloning inbounds onto other nodes.
 - **Outbound & routing** — WARP, NordVPN, PIA, custom routing rules, load balancers with balancer-to-balancer fallback, and outbound proxy chaining. Bundled geosite and geoip categories are browsable straight from the rule editor.
-- **Built-in subscription server** — raw, JSON, and Clash output, auto-selected from the client's User-Agent, plus [custom page templates](docs/custom-subscription-templates.md).
-- **Telegram and Discord bots** for remote monitoring and management.
 - **RESTful API** with scoped, optionally expiring tokens and an in-panel API reference.
 - **Installable panel (PWA)** — pin 3X-UI to a desktop or phone home screen.
 - **Flexible storage** — SQLite (default) or PostgreSQL.

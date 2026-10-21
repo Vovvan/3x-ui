@@ -1,6 +1,6 @@
 ---
 title: Meet 3x-ui
-description: A web panel for Xray-core — manage inbounds, protocols, clients, and subscriptions from your browser instead of editing JSON by hand.
+description: A web panel for Xray-core — manage inbounds, protocols, clients, and share links from your browser instead of editing JSON by hand.
 icon: Info
 ---
 
@@ -8,7 +8,7 @@ icon: Info
 [Xray-core](https://github.com/XTLS/Xray-core), the proxy engine that actually
 moves your traffic. Instead of writing and reloading Xray's JSON configuration
 by hand, you manage everything — inbounds, protocols, clients, certificates,
-subscriptions — from a browser dashboard.
+share links — from a browser dashboard.
 
 ## How the pieces fit together
 
@@ -29,7 +29,7 @@ flowchart LR
 - **Xray-core** is the data plane: it terminates client connections on your
   **inbounds** and forwards traffic to its destination.
 - **Client apps** (such as v2rayNG, Clash/Mihomo, Hiddify, and others) connect
-  using a share link or a subscription that the panel generates for each client.
+  using a share link that the panel generates for each client.
 
 ## What it gives you
 
@@ -39,8 +39,8 @@ flowchart LR
   transports.
 - **Per-client** traffic quotas, expiry dates, IP limits, online status, and
   one-click share links / QR codes.
-- **Subscriptions** in VLESS, Clash/Mihomo, and JSON formats.
-- Operational tooling: **multi-node** management, **Telegram and Discord bots**, backups,
+- **Custom link remarks** — template names with expiry, traffic, and status tokens.
+- Operational tooling: **multi-node** management, backups,
   Fail2ban-based IP limiting, and a documented REST API.
 
 ## Under the hood

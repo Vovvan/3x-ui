@@ -20,9 +20,8 @@ matching `masque` transport they both ride on.
 | **Security**     | Always TLS. The ALPN picks the listeners: `h3` serves HTTP/3 on UDP, `h2` serves HTTP/2 on TCP, and both together serve both. |
 
 <Callout type="info">
-  MASQUE has no share-link format, so MASQUE inbounds get no link, QR code or Clash
-  entry. Clients get a ready-to-import config from the **JSON subscription**: a `masque`
-  outbound that authenticates with the client's email and password.
+  MASQUE has no share-link format, so MASQUE inbounds get no link or QR code.
+  Configure a `masque` outbound manually with the client's email and password.
 </Callout>
 
 ## Outbound

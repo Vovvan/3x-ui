@@ -60,14 +60,14 @@ const en: SiteMessages = {
         'Per-client traffic quotas, expiry dates, IP limits and live online status, with one-click share links and QR codes.',
     },
     {
-      title: 'Multi-node & subscriptions',
+      title: 'Multi-node & share links',
       description:
-        'Coordinate multiple servers, managed hosts and external proxies, and serve VLESS / Clash / JSON subscriptions.',
+        'Coordinate multiple servers, managed hosts and external proxies, with share-link and QR export for every client.',
     },
     {
-      title: 'Telegram & Discord bots',
+      title: 'AmneziaWG & TUIC',
       description:
-        'Built-in Telegram and Discord notifications for traffic caps, expiry warnings and system load, plus admin actions.',
+        'DPI-resistant WireGuard and a native QUIC server run inside the panel with per-client traffic accounting.',
     },
     {
       title: 'Self-hosted & scriptable',
@@ -111,14 +111,14 @@ const fa: SiteMessages = {
         'سهمیه‌ی ترافیک برای هر کلاینت، تاریخ انقضا، محدودیت IP و وضعیت آنلاینِ زنده، همراه با لینک‌های اشتراک‌گذاری و کدهای QR تنها با یک کلیک.',
     },
     {
-      title: 'چندنودی و سابسکریپشن‌ها',
+      title: 'چندنودی و لینک‌های اشتراک‌گذاری',
       description:
-        'هماهنگ‌سازی چند سرور، هاست‌های مدیریت‌شده و پروکسی‌های خارجی، و ارائه‌ی سابسکریپشن‌های VLESS / Clash / JSON.',
+        'هماهنگ‌سازی چند سرور، هاست‌های مدیریت‌شده و پروکسی‌های خارجی، همراه با خروجی لینک اشتراک‌گذاری و QR برای هر کلاینت.',
     },
     {
-      title: 'ربات‌های Telegram و Discord',
+      title: 'AmneziaWG و TUIC',
       description:
-        'اعلان‌های داخلیِ Telegram و Discord برای سقف ترافیک، هشدار انقضا و بار سیستم، به‌علاوه‌ی کنش‌های مدیریتی.',
+        'WireGuard مقاوم در برابر DPI و یک سرور بومی QUIC درون پنل، با حسابداری ترافیک به‌ازای هر کلاینت.',
     },
     {
       title: 'خودمیزبان و قابل‌اسکریپت',
@@ -159,17 +159,17 @@ const ru: SiteMessages = {
     {
       title: 'Клиенты и контроль трафика',
       description:
-        'Квоты трафика по клиентам, даты окончания, лимиты IP и статус «онлайн» в реальном времени, плюс ссылки-подписки и QR-коды в один клик.',
+        'Квоты трафика по клиентам, даты окончания, лимиты IP и статус «онлайн» в реальном времени, плюс share-ссылки и QR-коды в один клик.',
     },
     {
-      title: 'Мультинода и подписки',
+      title: 'Мультинода и share-ссылки',
       description:
-        'Координация нескольких серверов, управляемых хостов и внешних прокси, а также выдача подписок VLESS / Clash / JSON.',
+        'Координация нескольких серверов, управляемых хостов и внешних прокси, а также экспорт share-ссылок и QR-кодов для каждого клиента.',
     },
     {
-      title: 'Telegram- и Discord-боты',
+      title: 'AmneziaWG и TUIC',
       description:
-        'Встроенные уведомления Telegram и Discord о лимитах трафика, истечении срока и нагрузке системы, а также действия администратора.',
+        'Устойчивый к DPI WireGuard и нативный QUIC-сервер работают внутри панели с учётом трафика по клиентам.',
     },
     {
       title: 'Свой хостинг и скрипты',
@@ -213,13 +213,12 @@ const zh: SiteMessages = {
         '为每个客户端设置流量配额、到期日期、IP 限制和实时在线状态，并支持一键分享链接和二维码。',
     },
     {
-      title: '多节点与订阅',
-      description: '协调多台服务器、托管主机和外部代理，并提供 VLESS / Clash / JSON 订阅。',
+      title: '多节点与分享链接',
+      description: '协调多台服务器、托管主机和外部代理，并为每个客户端导出分享链接和二维码。',
     },
     {
-      title: 'Telegram 与 Discord 机器人',
-      description:
-        '内置 Telegram 和 Discord 通知，覆盖流量上限、到期提醒和系统负载，并支持管理员操作。',
+      title: 'AmneziaWG 与 TUIC',
+      description: '抗 DPI 的 WireGuard 和原生 QUIC 服务器在面板内运行，并按客户端统计流量。',
     },
     {
       title: '自托管且可脚本化',

@@ -15,8 +15,8 @@ icon: SlidersHorizontal
 | `webBasePath`       | `/`                     | 面板对外提供服务所使用的 URL 路径（始终规范化为 `/…/`）。               |
 | `webCertFile` / `webKeyFile` | _（无）_       | TLS 证书 + 密钥。两者都设置后，面板将以 **HTTPS** 提供服务。           |
 | `sessionMaxAge`     | `360`                   | 会话有效期，单位为**分钟**（默认 6 小时）。                              |
-| `trustedProxyCIDRs` | `127.0.0.1/32,::1/128`  | 其转发头（真实客户端 IP）受信任的 IP/CIDR。自定义值还会控制订阅链接中转发的主机和协议；请将订阅代理加入列表，或设置 `subURI` 覆盖这些链接。 |
-| `panelOutbound`     | _（无）_                | 通过一个命名的 Xray 出站来路由面板自身的出口流量（更新检查、Telegram、地理/订阅拉取）。 |
+| `trustedProxyCIDRs` | `127.0.0.1/32,::1/128`  | 其转发头（真实客户端 IP）受信任的 IP/CIDR。请将此处设置为你的反向代理地址。 |
+| `panelOutbound`     | _（无）_                | 通过一个命名的 Xray 出站来路由面板自身的出口流量（更新检查和地理数据下载）。 |
 
 更改端口或基础路径后，面板 URL 将变为
 `http(s)://<server>:<port><web-base-path>`。你可以在首次启动时通过
@@ -57,18 +57,12 @@ icon: SlidersHorizontal
 - API 访问使用在面板设置下管理的 **API 令牌**（参见
   [API 参考](/docs/reference/api/api-tokens)）。
 
-## 通知与订阅
-
-它们各自拥有独立的设置分组和页面：
+## 通知
 
 <Cards>
-  <Card title="Telegram 机器人" href="/docs/operations/telegram-bot" description="令牌、聊天 ID、告警与报告。" />
-  <Card title="Discord 机器人" href="/docs/operations/discord-bot" description="令牌、频道 ID 与事件告警。" />
-  <Card title="订阅" href="/docs/config/subscription" description="订阅服务器、格式与路径。" />
   <Card title="安全" href="/docs/operations/security" description="2FA、IP 限制与加固。" />
 </Cards>
 
 <Callout type="info">
-  电子邮件（SMTP）通知同样可配置（主机、端口、加密、收件人），并与 Telegram
-  机器人使用相同的事件类型。
+  电子邮件（SMTP）通知可配置主机、端口、加密方式和收件人。
 </Callout>
