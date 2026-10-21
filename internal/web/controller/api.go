@@ -7,7 +7,6 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/middleware"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/panel"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/service/tgbot"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/session"
 
 	"github.com/gin-gonic/gin"
@@ -24,7 +23,6 @@ type APIController struct {
 	xraySettingController *XraySettingController
 	userService           panel.UserService
 	apiTokenService       panel.ApiTokenService
-	Tgbot                 tgbot.Tgbot
 }
 
 // NewAPIController creates a new APIController instance and initializes its routes.
@@ -102,7 +100,6 @@ var nodeSyncScopeAllow = map[string]map[string]struct{}{
 	"/inbounds/add":                {http.MethodPost: {}},
 	"/inbounds/del/:id":            {http.MethodPost: {}},
 	"/inbounds/update/:id":         {http.MethodPost: {}},
-	"/inbounds/:id/subSortIndex":   {http.MethodPost: {}},
 	"/clients/add":                 {http.MethodPost: {}},
 	"/clients/del/:email":          {http.MethodPost: {}},
 	"/clients/:email/detach":       {http.MethodPost: {}},
@@ -228,14 +225,4 @@ func (a *APIController) initRouter(g *gin.RouterGroup) {
 	a.settingController = NewSettingController(api)
 	a.xraySettingController = NewXraySettingController(api)
 
-	// Subscription balancers — client-side balancers for the JSON sub output
-	NewSubBalancerController(api)
-
-	// Extra routes
-	api.POST("/backuptotgbot", a.BackuptoTgbot)
-}
-
-// BackuptoTgbot sends a backup of the panel data to Telegram bot admins.
-func (a *APIController) BackuptoTgbot(c *gin.Context) {
-	a.Tgbot.SendBackupToAdmins()
 }

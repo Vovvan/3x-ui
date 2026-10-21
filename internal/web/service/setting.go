@@ -28,28 +28,17 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/util/totp"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
-	"github.com/mhsanaei/3x-ui/v3/internal/xray/dnsconf"
 )
 
 //go:embed config.json
 var xrayTemplateConfig string
 
 const (
-	DefaultSubClashUserAgentRegex     = `(?i)(clash|mihomo)`
-	DefaultExternalSubUserAgent       = "v2rayNG/1.8.5"
-	DefaultSubJsonUserAgentRegex      = ``
 	DefaultRemarkTemplate             = "{{INBOUND}}-{{EMAIL}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D"
 	DefaultSubExpiredTemplate         = "⛔ {{EMAIL}} | Expired: {{EXPIRE_DATE}}"
 	DefaultSubTrafficDepletedTemplate = "🚫 {{EMAIL}} | Traffic Depleted | {{TRAFFIC_USED}}/{{TRAFFIC_TOTAL}}"
 	DefaultTrustedProxyCIDRs          = "127.0.0.1/32,::1/128"
 	maxRegexLength                    = 2048
-)
-
-// Built-in profile links expose the subscription URL and require an explicit opt-in.
-const (
-	SubProfileModeNone    = "none"
-	SubProfileModeBuiltin = "builtin"
-	SubProfileModeCustom  = "custom"
 )
 
 var defaultValueMap = map[string]string{
@@ -88,113 +77,9 @@ var defaultValueMap = map[string]string{
 	"subExpiredTemplate":          DefaultSubExpiredTemplate,
 	"subTrafficDepletedTemplate":  DefaultSubTrafficDepletedTemplate,
 	"timeLocation":                "Local",
-	"tgBotEnable":                 "false",
-	"tgBotToken":                  "",
-	"tgBotProxy":                  "",
-	"tgBotAPIServer":              "",
-	"tgBotChatId":                 "",
-	"tgRunTime":                   "@daily",
-	"tgBotBackup":                 "false",
-	"tgCpu":                       "80",
-	"tgMemory":                    "80",
-	"tgLang":                      "en-US",
 	"twoFactorEnable":             "false",
 	"twoFactorToken":              "",
-	"happLinkEnable":              "false",
-	"subEnable":                   "true",
-	"subJsonEnable":               "false",
-	"subJsonAutoDetect":           "false",
-	"subJsonAlwaysArray":          "false",
-	"subJsonUserAgentRegex":       "",
-	"subClashAutoDetect":          "false",
-	"subClashUserAgentRegex":      "",
-	"subTitle":                    "",
-	"subSupportUrl":               "",
-	"subProfileMode":              SubProfileModeNone,
-	"subProfileUrl":               "",
-	"subAnnounce":                 "",
-	"subEnableRouting":            "false",
-	"subRoutingRules":             "",
-	"subHideSettings":             "false",
-	"subHappAutoDetect":           "false",
-	"subHappProviderId":           "",
-	"subHappNewUrl":               "",
-	"subHappFallbackUrl":          "",
-	"subHappSubInfoColor":         "blue",
-	"subHappSubInfoText":          "",
-	"subHappSubInfoButtonText":    "",
-	"subHappSubInfoButtonLink":    "",
-	"subHappSubExpire":            "false",
-	"subHappSubExpireButtonLink":  "",
-	"subHappNotificationExpire":   "false",
-	"subHappNoLimit":              "false",
-	"subHappAlwaysHwid":           "false",
-	"subHappTunMode":              "",
-	"subHappTunType":              "",
-	"subHappExcludeRoutes":        "",
-	"subHappExcludeApns":          "false",
-	"subHappColorProfile":         "",
-	"subHappPingType":             "",
-	"subHappAutoConnect":          "false",
-	"subHappAutoConnectType":      "lowestdelay",
-	"subHappPerAppMode":           "off",
-	"subHappPerAppList":           "",
-	"subHappLocalProxyAuth":       "auto",
-	"subIncyEnableRouting":        "false",
-	"subIncyRoutingRules":         "",
-	"subIncyAppAutoDetect":        "false",
-	"subIncyProfileDescription":   "",
-	"subIncySortOrder":            "",
-	"subIncySupportEmail":         "",
-	"subIncyAnnounceUrl":          "",
-	"subIncyPremiumUrl":           "",
-	"subIncyBannerText":           "",
-	"subIncyBannerButtonText":     "",
-	"subIncyBannerButtonUrl":      "",
-	"subIncyBannerBgColor":        "",
-	"subIncyBannerButtonColor":    "",
-	"subIncyHideUrl":              "",
-	"subIncyHideCheck":            "",
-	"subIncyNoLimitEnabled":       "",
-	"subIncyPerAppEnable":         "",
-	"subIncyPerAppMode":           "",
-	"subIncyPerAppList":           "",
-	"subIncyFragmentationEnable":  "",
-	"subIncyFragmentLength":       "",
-	"subIncyFragmentInterval":     "",
-	"subIncyFragmentPackets":      "",
-	"subIncyNoisesEnable":         "",
-	"subIncyNoisesType":           "",
-	"subIncyNoisesPacket":         "",
-	"subIncyNoisesDelay":          "",
-	"subIncyResolveEnable":        "",
-	"subIncyResolveDnsDomain":     "",
-	"subIncyResolveDnsIp":         "",
-	"subListen":                   "",
-	"subPort":                     "2096",
-	"subPath":                     "/sub/",
 	"subDomain":                   "",
-	"subCertFile":                 "",
-	"subKeyFile":                  "",
-	"externalSubUserAgent":        DefaultExternalSubUserAgent,
-	"subUpdates":                  "12",
-	"subEncrypt":                  "true",
-	"subURI":                      "",
-	"subJsonPath":                 "/json/",
-	"subJsonURI":                  "",
-	"subClashEnable":              "false",
-	"subClashPath":                "/clash/",
-	"subClashURI":                 "",
-	"subClashEnableRouting":       "false",
-	"subClashRules":               "",
-	"subClashRemoteDNS":           "false",
-	"subJsonMux":                  "",
-	"subJsonRules":                "",
-	"subJsonRoutingRules":         "",
-	"subJsonDns":                  "",
-	"subJsonFinalMask":            "",
-	"subJsonObservatory":          "",
-	"subThemeDir":                 "",
 	"datepicker":                  "gregorian",
 	"warp":                        "",
 	"warpUpdateInterval":          "0",
@@ -231,7 +116,6 @@ var defaultValueMap = map[string]string{
 	"ldapDefaultLimitIP":     "0",
 
 	// Event bus — per-subscriber event filtering (empty = all disabled)
-	"tgEnabledEvents":   "login.attempt,cpu.high",
 	"smtpEnabledEvents": "login.attempt,cpu.high",
 	"smtpCpu":           "80",
 	"smtpMemory":        "80",
@@ -252,17 +136,6 @@ var defaultValueMap = map[string]string{
 	"smtpTo":             "",
 	"smtpEncryptionType": "starttls", // no, starttls, tls
 
-	// Discord bot notifications
-	"discordBotEnable":     "false",
-	"discordBotToken":      "",
-	"discordChannelId":     "",
-	"discordAdminIds":      "",
-	"discordRunTime":       "@daily",
-	"discordBotBackup":     "false",
-	"discordCpu":           "80",
-	"discordMemory":        "80",
-	"discordLang":          "en-US",
-	"discordEnabledEvents": "login.attempt,cpu.high",
 }
 
 // SettingService provides business logic for application settings management.
@@ -341,11 +214,6 @@ func (s *SettingService) GetAllSetting() (*entity.AllSetting, error) {
 		}
 	}
 
-	// A missing mode must still preserve URLs configured before modes existed.
-	if !keyMap["subProfileMode"] {
-		allSetting.SubProfileMode = ""
-	}
-	allSetting.SubProfileMode = effectiveSubProfileMode(allSetting.SubProfileMode, allSetting.SubProfileUrl)
 	return allSetting, nil
 }
 
@@ -355,22 +223,18 @@ func (s *SettingService) GetAllSettingView() (*entity.AllSettingView, error) {
 		return nil, err
 	}
 	view := &entity.AllSettingView{AllSetting: *allSetting}
-	view.HasTgBotToken = secretConfigured(allSetting.TgBotToken)
 	view.HasTwoFactorToken = secretConfigured(allSetting.TwoFactorToken)
 	view.HasLdapPassword = secretConfigured(allSetting.LdapPassword)
 	view.HasWarpSecret = secretConfigured(mustString(s.GetWarp()))
 	view.HasNordSecret = secretConfigured(mustString(s.GetNord()))
 	view.HasSmtpPassword = secretConfigured(allSetting.SmtpPassword)
-	view.HasDiscordBotToken = secretConfigured(allSetting.DiscordBotToken)
 	var apiTokenCount int64
 	if err := database.GetDB().Model(model.ApiToken{}).Where("enabled = ?", true).Count(&apiTokenCount).Error; err == nil {
 		view.HasApiToken = apiTokenCount > 0
 	}
-	view.TgBotToken = ""
 	view.TwoFactorToken = ""
 	view.LdapPassword = ""
 	view.SmtpPassword = ""
-	view.DiscordBotToken = ""
 	return view, nil
 }
 
@@ -400,12 +264,7 @@ func (s *SettingService) ResetSettings() error {
 		if err := tx.Where("1 = 1").Delete(model.Setting{}).Error; err != nil {
 			return err
 		}
-		paths := []model.Setting{
-			{Key: "subPath", Value: "/" + random.NumLower(16) + "/"},
-			{Key: "subJsonPath", Value: "/" + random.NumLower(16) + "/"},
-			{Key: "subClashPath", Value: "/" + random.NumLower(16) + "/"},
-		}
-		return tx.Create(&paths).Error
+		return nil
 	})
 }
 
@@ -536,22 +395,6 @@ func (s *SettingService) GetWebDomain() (string, error) {
 	return s.getString("webDomain")
 }
 
-func (s *SettingService) GetTgBotToken() (string, error) {
-	return s.getString("tgBotToken")
-}
-
-func (s *SettingService) SetTgBotToken(token string) error {
-	return s.setString("tgBotToken", token)
-}
-
-func (s *SettingService) GetTgBotProxy() (string, error) {
-	return s.getString("tgBotProxy")
-}
-
-func (s *SettingService) SetTgBotProxy(token string) error {
-	return s.setString("tgBotProxy", token)
-}
-
 // GetPanelOutbound returns the Xray outbound tag the panel's own outbound
 // requests (version checks, Telegram, subscription fetches) are routed through.
 func (s *SettingService) GetPanelOutbound() (string, error) {
@@ -621,58 +464,6 @@ func (s *SettingService) NewProxiedHTTPClient(timeout time.Duration) *http.Clien
 		return &http.Client{Timeout: timeout}
 	}
 	return client
-}
-
-func (s *SettingService) GetTgBotAPIServer() (string, error) {
-	return s.getString("tgBotAPIServer")
-}
-
-func (s *SettingService) SetTgBotAPIServer(token string) error {
-	return s.setString("tgBotAPIServer", token)
-}
-
-func (s *SettingService) GetTgBotChatId() (string, error) {
-	return s.getString("tgBotChatId")
-}
-
-func (s *SettingService) SetTgBotChatId(chatIds string) error {
-	return s.setString("tgBotChatId", chatIds)
-}
-
-func (s *SettingService) GetTgbotEnabled() (bool, error) {
-	return s.getBool("tgBotEnable")
-}
-
-func (s *SettingService) SetTgbotEnabled(value bool) error {
-	return s.setBool("tgBotEnable", value)
-}
-
-func (s *SettingService) GetTgbotRuntime() (string, error) {
-	return s.getString("tgRunTime")
-}
-
-func (s *SettingService) SetTgbotRuntime(time string) error {
-	return s.setString("tgRunTime", time)
-}
-
-func (s *SettingService) GetTgBotBackup() (bool, error) {
-	return s.getBool("tgBotBackup")
-}
-
-func (s *SettingService) GetTgCpu() (int, error) {
-	return s.getInt("tgCpu")
-}
-
-func (s *SettingService) GetTgMemory() (int, error) {
-	return s.getInt("tgMemory")
-}
-
-func (s *SettingService) SetTgMemory(value int) error {
-	return s.setInt("tgMemory", value)
-}
-
-func (s *SettingService) GetTgLang() (string, error) {
-	return s.getString("tgLang")
 }
 
 func (s *SettingService) GetTwoFactorEnable() (bool, error) {
@@ -856,429 +647,12 @@ func (s *SettingService) GetTimeLocation() (*time.Location, error) {
 	return location, nil
 }
 
-func (s *SettingService) GetSubEnable() (bool, error) {
-	return s.getBool("subEnable")
-}
-
-func (s *SettingService) GetHappLinkEnable() (bool, error) {
-	return s.getBool("happLinkEnable")
-}
-
-func (s *SettingService) GetSubJsonEnable() (bool, error) {
-	return s.getBool("subJsonEnable")
-}
-
-func (s *SettingService) GetSubJsonAutoDetect() (bool, error) {
-	return s.getBool("subJsonAutoDetect")
-}
-
-func (s *SettingService) GetSubJsonAlwaysArray() (bool, error) {
-	return s.getBool("subJsonAlwaysArray")
-}
-
-func (s *SettingService) GetSubJsonUserAgentRegex() (string, error) {
-	return s.getString("subJsonUserAgentRegex")
-}
-
-func (s *SettingService) GetSubClashAutoDetect() (bool, error) {
-	return s.getBool("subClashAutoDetect")
-}
-
-func (s *SettingService) GetSubClashUserAgentRegex() (string, error) {
-	return s.getString("subClashUserAgentRegex")
-}
-
-func (s *SettingService) GetSubTitle() (string, error) {
-	return s.getString("subTitle")
-}
-
-func (s *SettingService) GetSubSupportUrl() (string, error) {
-	value, err := s.getString("subSupportUrl")
-	return common.EnsureURLScheme(value), err
-}
-
-func (s *SettingService) GetSubProfileUrl() (string, error) {
-	value, err := s.getString("subProfileUrl")
-	return common.EnsureURLScheme(value), err
-}
-
-func (s *SettingService) GetSubProfileMode() (string, error) {
-	setting, err := s.getSetting("subProfileMode")
-	if err != nil && !database.IsNotFound(err) {
-		return SubProfileModeNone, err
-	}
-	if err == nil && setting.Value != "" {
-		return effectiveSubProfileMode(setting.Value, ""), nil
-	}
-	profileURL, err := s.getString("subProfileUrl")
-	if err != nil {
-		return SubProfileModeNone, err
-	}
-	return effectiveSubProfileMode("", profileURL), nil
-}
-
-func effectiveSubProfileMode(mode, profileURL string) string {
-	switch mode {
-	case SubProfileModeNone, SubProfileModeBuiltin, SubProfileModeCustom:
-		return mode
-	case "":
-		// Older settings have no mode; only an existing custom URL opts them in.
-		if strings.TrimSpace(profileURL) != "" {
-			return SubProfileModeCustom
-		}
-	}
-	return SubProfileModeNone
-}
-
-func (s *SettingService) GetSubAnnounce() (string, error) {
-	return s.getString("subAnnounce")
-}
-
-func (s *SettingService) GetSubEnableRouting() (bool, error) {
-	return s.getBool("subEnableRouting")
-}
-
-func (s *SettingService) GetSubRoutingRules() (string, error) {
-	return s.getString("subRoutingRules")
-}
-
-func (s *SettingService) GetSubHideSettings() (bool, error) {
-	return s.getBool("subHideSettings")
-}
-
-func (s *SettingService) GetSubHappAutoDetect() (bool, error) {
-	return s.getBool("subHappAutoDetect")
-}
-
-func (s *SettingService) GetSubHappProviderId() (string, error) {
-	return s.getString("subHappProviderId")
-}
-
-func (s *SettingService) GetSubHappNewUrl() (string, error) {
-	return s.getString("subHappNewUrl")
-}
-
-func (s *SettingService) GetSubHappFallbackUrl() (string, error) {
-	return s.getString("subHappFallbackUrl")
-}
-
-func (s *SettingService) GetSubHappSubInfoColor() (string, error) {
-	return s.getString("subHappSubInfoColor")
-}
-
-func (s *SettingService) GetSubHappSubInfoText() (string, error) {
-	return s.getString("subHappSubInfoText")
-}
-
-func (s *SettingService) GetSubHappSubInfoButtonText() (string, error) {
-	return s.getString("subHappSubInfoButtonText")
-}
-
-func (s *SettingService) GetSubHappSubInfoButtonLink() (string, error) {
-	return s.getString("subHappSubInfoButtonLink")
-}
-
-func (s *SettingService) GetSubHappSubExpire() (bool, error) {
-	return s.getBool("subHappSubExpire")
-}
-
-func (s *SettingService) GetSubHappSubExpireButtonLink() (string, error) {
-	return s.getString("subHappSubExpireButtonLink")
-}
-
-func (s *SettingService) GetSubHappNotificationExpire() (bool, error) {
-	return s.getBool("subHappNotificationExpire")
-}
-
-func (s *SettingService) GetSubHappNoLimit() (bool, error) {
-	return s.getBool("subHappNoLimit")
-}
-
-func (s *SettingService) GetSubHappAlwaysHwid() (bool, error) {
-	return s.getBool("subHappAlwaysHwid")
-}
-
-func (s *SettingService) GetSubHappTunMode() (string, error) {
-	return s.getString("subHappTunMode")
-}
-
-func (s *SettingService) GetSubHappTunType() (string, error) {
-	return s.getString("subHappTunType")
-}
-
-func (s *SettingService) GetSubHappExcludeRoutes() (string, error) {
-	return s.getString("subHappExcludeRoutes")
-}
-
-func (s *SettingService) GetSubHappExcludeApns() (bool, error) {
-	return s.getBool("subHappExcludeApns")
-}
-
-func (s *SettingService) GetSubHappColorProfile() (string, error) {
-	return s.getString("subHappColorProfile")
-}
-
-func (s *SettingService) GetSubHappPingType() (string, error) {
-	return s.getString("subHappPingType")
-}
-
-func (s *SettingService) GetSubHappAutoConnect() (bool, error) {
-	return s.getBool("subHappAutoConnect")
-}
-
-func (s *SettingService) GetSubHappAutoConnectType() (string, error) {
-	return s.getString("subHappAutoConnectType")
-}
-
-func (s *SettingService) GetSubHappPerAppMode() (string, error) {
-	return s.getString("subHappPerAppMode")
-}
-
-func (s *SettingService) GetSubHappPerAppList() (string, error) {
-	return s.getString("subHappPerAppList")
-}
-
-func (s *SettingService) GetSubHappLocalProxyAuth() (string, error) {
-	return s.getString("subHappLocalProxyAuth")
-}
-
-func (s *SettingService) GetSubIncyEnableRouting() (bool, error) {
-	return s.getBool("subIncyEnableRouting")
-}
-
-func (s *SettingService) GetSubIncyRoutingRules() (string, error) {
-	return s.getString("subIncyRoutingRules")
-}
-
-func (s *SettingService) GetSubIncyAppAutoDetect() (bool, error) {
-	return s.getBool("subIncyAppAutoDetect")
-}
-
-func (s *SettingService) GetSubIncyProfileDescription() (string, error) {
-	return s.getString("subIncyProfileDescription")
-}
-
-func (s *SettingService) GetSubIncySortOrder() (string, error) {
-	return s.getString("subIncySortOrder")
-}
-
-func (s *SettingService) GetSubIncySupportEmail() (string, error) {
-	return s.getString("subIncySupportEmail")
-}
-
-func (s *SettingService) GetSubIncyAnnounceUrl() (string, error) {
-	return s.getString("subIncyAnnounceUrl")
-}
-
-func (s *SettingService) GetSubIncyPremiumUrl() (string, error) {
-	return s.getString("subIncyPremiumUrl")
-}
-
-func (s *SettingService) GetSubIncyBannerText() (string, error) {
-	return s.getString("subIncyBannerText")
-}
-
-func (s *SettingService) GetSubIncyBannerButtonText() (string, error) {
-	return s.getString("subIncyBannerButtonText")
-}
-
-func (s *SettingService) GetSubIncyBannerButtonUrl() (string, error) {
-	return s.getString("subIncyBannerButtonUrl")
-}
-
-func (s *SettingService) GetSubIncyBannerBgColor() (string, error) {
-	return s.getString("subIncyBannerBgColor")
-}
-
-func (s *SettingService) GetSubIncyBannerButtonColor() (string, error) {
-	return s.getString("subIncyBannerButtonColor")
-}
-
-func (s *SettingService) GetSubIncyHideUrl() (string, error) {
-	return s.getString("subIncyHideUrl")
-}
-
-func (s *SettingService) GetSubIncyHideCheck() (string, error) {
-	return s.getString("subIncyHideCheck")
-}
-
-func (s *SettingService) GetSubIncyNoLimitEnabled() (string, error) {
-	return s.getString("subIncyNoLimitEnabled")
-}
-
-func (s *SettingService) GetSubIncyPerAppEnable() (string, error) {
-	return s.getString("subIncyPerAppEnable")
-}
-
-func (s *SettingService) GetSubIncyPerAppMode() (string, error) {
-	return s.getString("subIncyPerAppMode")
-}
-
-func (s *SettingService) GetSubIncyPerAppList() (string, error) {
-	return s.getString("subIncyPerAppList")
-}
-
-func (s *SettingService) GetSubIncyFragmentationEnable() (string, error) {
-	return s.getString("subIncyFragmentationEnable")
-}
-
-func (s *SettingService) GetSubIncyFragmentLength() (string, error) {
-	return s.getString("subIncyFragmentLength")
-}
-
-func (s *SettingService) GetSubIncyFragmentInterval() (string, error) {
-	return s.getString("subIncyFragmentInterval")
-}
-
-func (s *SettingService) GetSubIncyFragmentPackets() (string, error) {
-	return s.getString("subIncyFragmentPackets")
-}
-
-func (s *SettingService) GetSubIncyNoisesEnable() (string, error) {
-	return s.getString("subIncyNoisesEnable")
-}
-
-func (s *SettingService) GetSubIncyNoisesType() (string, error) {
-	return s.getString("subIncyNoisesType")
-}
-
-func (s *SettingService) GetSubIncyNoisesPacket() (string, error) {
-	return s.getString("subIncyNoisesPacket")
-}
-
-func (s *SettingService) GetSubIncyNoisesDelay() (string, error) {
-	return s.getString("subIncyNoisesDelay")
-}
-
-func (s *SettingService) GetSubIncyResolveEnable() (string, error) {
-	return s.getString("subIncyResolveEnable")
-}
-
-func (s *SettingService) GetSubIncyResolveDnsDomain() (string, error) {
-	return s.getString("subIncyResolveDnsDomain")
-}
-
-func (s *SettingService) GetSubIncyResolveDnsIp() (string, error) {
-	return s.getString("subIncyResolveDnsIp")
-}
-
-func (s *SettingService) GetSubListen() (string, error) {
-	return s.getString("subListen")
-}
-
-func (s *SettingService) GetSubPort() (int, error) {
-	return s.getInt("subPort")
-}
-
-func (s *SettingService) GetSubPath() (string, error) {
-	return s.getString("subPath")
-}
-
-func (s *SettingService) GetSubJsonPath() (string, error) {
-	return s.getString("subJsonPath")
-}
-
 func (s *SettingService) GetSubDomain() (string, error) {
 	return s.getString("subDomain")
 }
 
-func (s *SettingService) SetSubCertFile(subCertFile string) error {
-	return s.setString("subCertFile", subCertFile)
-}
-
-func (s *SettingService) GetSubCertFile() (string, error) {
-	return s.getString("subCertFile")
-}
-
-func (s *SettingService) SetSubKeyFile(subKeyFile string) error {
-	return s.setString("subKeyFile", subKeyFile)
-}
-
-func (s *SettingService) GetSubKeyFile() (string, error) {
-	return s.getString("subKeyFile")
-}
-
-func (s *SettingService) GetSubUpdates() (string, error) {
-	return s.getString("subUpdates")
-}
-
-func (s *SettingService) GetExternalSubUserAgent() (string, error) {
-	value, err := s.getString("externalSubUserAgent")
-	if err != nil {
-		return DefaultExternalSubUserAgent, err
-	}
-	if value = strings.TrimSpace(value); value == "" {
-		return DefaultExternalSubUserAgent, nil
-	}
-	return value, nil
-}
-
-func (s *SettingService) GetSubEncrypt() (bool, error) {
-	return s.getBool("subEncrypt")
-}
-
 func (s *SettingService) GetPageSize() (int, error) {
 	return s.getInt("pageSize")
-}
-
-func (s *SettingService) GetSubURI() (string, error) {
-	return s.getString("subURI")
-}
-
-func (s *SettingService) GetSubJsonURI() (string, error) {
-	return s.getString("subJsonURI")
-}
-
-func (s *SettingService) GetSubClashEnable() (bool, error) {
-	return s.getBool("subClashEnable")
-}
-
-func (s *SettingService) GetSubClashPath() (string, error) {
-	return s.getString("subClashPath")
-}
-
-func (s *SettingService) GetSubClashURI() (string, error) {
-	return s.getString("subClashURI")
-}
-
-func (s *SettingService) GetSubClashEnableRouting() (bool, error) {
-	return s.getBool("subClashEnableRouting")
-}
-
-func (s *SettingService) GetSubClashRules() (string, error) {
-	return s.getString("subClashRules")
-}
-
-func (s *SettingService) GetSubClashRemoteDNS() (bool, error) {
-	return s.getBool("subClashRemoteDNS")
-}
-
-func (s *SettingService) GetSubJsonMux() (string, error) {
-	return s.getString("subJsonMux")
-}
-
-func (s *SettingService) GetSubJsonRules() (string, error) {
-	return s.getString("subJsonRules")
-}
-
-func (s *SettingService) GetSubJsonRoutingRules() (string, error) {
-	return s.getString("subJsonRoutingRules")
-}
-
-func (s *SettingService) GetSubJsonDns() (string, error) {
-	return s.getString("subJsonDns")
-}
-
-func (s *SettingService) GetSubJsonFinalMask() (string, error) {
-	return s.getString("subJsonFinalMask")
-}
-
-func (s *SettingService) GetSubJsonObservatory() (string, error) {
-	return s.getString("subJsonObservatory")
-}
-
-func (s *SettingService) GetSubThemeDir() (string, error) {
-	return s.getString("subThemeDir")
 }
 
 func (s *SettingService) GetDatepicker() (string, error) {
@@ -1449,14 +823,6 @@ func (s *SettingService) GetLdapDefaultLimitIP() (int, error) {
 
 // Event bus — per-subscriber event filtering
 
-func (s *SettingService) GetTgEnabledEvents() (string, error) {
-	return s.getString("tgEnabledEvents")
-}
-
-func (s *SettingService) SetTgEnabledEvents(events string) error {
-	return s.setString("tgEnabledEvents", events)
-}
-
 func (s *SettingService) GetSmtpEnabledEvents() (string, error) {
 	return s.getString("smtpEnabledEvents")
 }
@@ -1555,88 +921,6 @@ func (s *SettingService) SetSmtpMemory(value int) error {
 	return s.setInt("smtpMemory", value)
 }
 
-// Discord bot settings
-
-func (s *SettingService) GetDiscordBotEnable() (bool, error) {
-	return s.getBool("discordBotEnable")
-}
-
-func (s *SettingService) SetDiscordBotEnable(value bool) error {
-	return s.setBool("discordBotEnable", value)
-}
-
-func (s *SettingService) GetDiscordBotToken() (string, error) {
-	return s.getString("discordBotToken")
-}
-
-func (s *SettingService) SetDiscordBotToken(value string) error {
-	return s.setString("discordBotToken", value)
-}
-
-func (s *SettingService) GetDiscordChannelId() (string, error) {
-	return s.getString("discordChannelId")
-}
-
-func (s *SettingService) SetDiscordChannelId(value string) error {
-	return s.setString("discordChannelId", value)
-}
-
-func (s *SettingService) GetDiscordAdminIds() (string, error) {
-	return s.getString("discordAdminIds")
-}
-
-func (s *SettingService) SetDiscordAdminIds(value string) error {
-	return s.setString("discordAdminIds", value)
-}
-
-func (s *SettingService) GetDiscordEnabledEvents() (string, error) {
-	return s.getString("discordEnabledEvents")
-}
-
-func (s *SettingService) SetDiscordEnabledEvents(events string) error {
-	return s.setString("discordEnabledEvents", events)
-}
-
-func (s *SettingService) GetDiscordCpu() (int, error) {
-	return s.getInt("discordCpu")
-}
-
-func (s *SettingService) SetDiscordCpu(value int) error {
-	return s.setInt("discordCpu", value)
-}
-
-func (s *SettingService) GetDiscordMemory() (int, error) {
-	return s.getInt("discordMemory")
-}
-
-func (s *SettingService) SetDiscordMemory(value int) error {
-	return s.setInt("discordMemory", value)
-}
-
-func (s *SettingService) GetDiscordRunTime() (string, error) {
-	return s.getString("discordRunTime")
-}
-
-func (s *SettingService) SetDiscordRunTime(value string) error {
-	return s.setString("discordRunTime", value)
-}
-
-func (s *SettingService) GetDiscordBotBackup() (bool, error) {
-	return s.getBool("discordBotBackup")
-}
-
-func (s *SettingService) SetDiscordBotBackup(value bool) error {
-	return s.setBool("discordBotBackup", value)
-}
-
-func (s *SettingService) GetDiscordLang() (string, error) {
-	return s.getString("discordLang")
-}
-
-func (s *SettingService) SetDiscordLang(value string) error {
-	return s.setString("discordLang", value)
-}
-
 // GetOutboundDownThreshold returns how many consecutive failed observatory
 // probes an outbound must accumulate before an outbound.down notification is
 // emitted. 1 preserves the legacy "notify on the first failed probe" behaviour.
@@ -1660,39 +944,15 @@ func (s *SettingService) SetNodeDownThreshold(value int) error {
 // flag, a blank submitted secret means "unchanged" (the field is always served
 // blank to the browser) and the stored value is preserved.
 type SecretClears struct {
-	TgBotToken      bool
-	LdapPassword    bool
-	SmtpPassword    bool
-	DiscordBotToken bool
+	LdapPassword bool
+	SmtpPassword bool
 }
 
 func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting, clears SecretClears) error {
-	switch allSetting.SubHostSortMode {
-	case "":
-		allSetting.SubHostSortMode = "inbound-first"
-	case "inbound-first", "hosts-first":
-	default:
-		return errors.New("subscription host sort mode must be inbound-first or hosts-first")
-	}
-	switch allSetting.SubProfileMode {
-	case "", SubProfileModeNone, SubProfileModeBuiltin, SubProfileModeCustom:
-		allSetting.SubProfileMode = effectiveSubProfileMode(allSetting.SubProfileMode, allSetting.SubProfileUrl)
-	default:
-		return errors.New("subscription profile mode must be none, builtin, or custom")
-	}
 	if err := s.preserveRedactedSecrets(allSetting, clears); err != nil {
 		return err
 	}
 	if err := validateSettingsURLs(allSetting); err != nil {
-		return err
-	}
-	if err := validateSubUserAgentRegexes(allSetting); err != nil {
-		return err
-	}
-	if err := validateSubJsonDnsSetting(allSetting); err != nil {
-		return err
-	}
-	if err := validateFinalMaskJSONSalamander(allSetting.SubJsonFinalMask); err != nil {
 		return err
 	}
 	if err := allSetting.CheckValid(); err != nil {
@@ -1735,38 +995,6 @@ func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting, clears 
 	})
 }
 
-func validateSubUserAgentRegexes(allSetting *entity.AllSetting) error {
-	jsonPattern, err := validateSubUserAgentRegex("Xray JSON", allSetting.SubJsonUserAgentRegex, DefaultSubJsonUserAgentRegex)
-	if err != nil {
-		return err
-	}
-	clashPattern, err := validateSubUserAgentRegex("Clash/Mihomo", allSetting.SubClashUserAgentRegex, DefaultSubClashUserAgentRegex)
-	if err != nil {
-		return err
-	}
-	allSetting.SubJsonUserAgentRegex = jsonPattern
-	allSetting.SubClashUserAgentRegex = clashPattern
-	return nil
-}
-
-func validateSubUserAgentRegex(name, pattern, defaultPattern string) (string, error) {
-	pattern = strings.TrimSpace(pattern)
-	effectivePattern := pattern
-	if effectivePattern == "" {
-		effectivePattern = defaultPattern
-	}
-	if len(effectivePattern) > maxRegexLength {
-		return "", common.NewErrorf("%s User-Agent regex must not exceed %d characters", name, maxRegexLength)
-	}
-	if _, err := regexp.Compile(effectivePattern); err != nil {
-		return "", common.NewErrorf("%s User-Agent regex is invalid: %v", name, err)
-	}
-	// Return the original pattern (empty string if cleared) so the caller
-	// can distinguish "user explicitly set empty" from "user set a value".
-	// The empty value is stored in the DB and inherited as runtime default.
-	return pattern, nil
-}
-
 func ValidateRegex(pattern string) error {
 	if len(pattern) > maxRegexLength {
 		return common.NewErrorf("Regular expression must not exceed %d characters", maxRegexLength)
@@ -1778,13 +1006,6 @@ func ValidateRegex(pattern string) error {
 }
 
 func (s *SettingService) preserveRedactedSecrets(allSetting *entity.AllSetting, clears SecretClears) error {
-	if !clears.TgBotToken && strings.TrimSpace(allSetting.TgBotToken) == "" {
-		value, err := s.GetTgBotToken()
-		if err != nil {
-			return err
-		}
-		allSetting.TgBotToken = value
-	}
 	if !clears.LdapPassword && strings.TrimSpace(allSetting.LdapPassword) == "" {
 		value, err := s.GetLdapPassword()
 		if err != nil {
@@ -1806,13 +1027,6 @@ func (s *SettingService) preserveRedactedSecrets(allSetting *entity.AllSetting, 
 		}
 		allSetting.SmtpPassword = value
 	}
-	if !clears.DiscordBotToken && strings.TrimSpace(allSetting.DiscordBotToken) == "" {
-		value, err := s.GetDiscordBotToken()
-		if err != nil {
-			return err
-		}
-		allSetting.DiscordBotToken = value
-	}
 	return nil
 }
 
@@ -1823,43 +1037,6 @@ func validateSettingsURLs(allSetting *entity.AllSetting) error {
 			return common.NewError("external traffic inform URI is invalid:", err)
 		}
 		allSetting.ExternalTrafficInformURI = u
-	}
-	if allSetting.TgBotAPIServer != "" {
-		u, err := SanitizeHTTPURL(allSetting.TgBotAPIServer)
-		if err != nil {
-			return common.NewError("telegram API server URL is invalid:", err)
-		}
-		allSetting.TgBotAPIServer = u
-	}
-	// Support/profile links land in subscription headers and page data, where
-	// client apps resolve a scheme-less value against the panel's own domain.
-	// Non-http schemes (tg://, mailto:) are legitimate here, so only default
-	// the scheme instead of forcing SanitizeHTTPURL's http(s)-only rule.
-	allSetting.SubSupportUrl = common.EnsureURLScheme(allSetting.SubSupportUrl)
-	allSetting.SubProfileUrl = common.EnsureURLScheme(allSetting.SubProfileUrl)
-	for _, ptr := range []*string{
-		&allSetting.SubHappNewUrl,
-		&allSetting.SubHappFallbackUrl,
-		&allSetting.SubHappSubInfoButtonLink,
-		&allSetting.SubHappSubExpireButtonLink,
-		&allSetting.SubIncyAnnounceUrl,
-		&allSetting.SubIncyPremiumUrl,
-		&allSetting.SubIncyBannerButtonUrl,
-		&allSetting.SubIncyResolveDnsDomain,
-	} {
-		if strings.TrimSpace(*ptr) != "" {
-			*ptr = common.EnsureURLScheme(strings.TrimSpace(*ptr))
-		}
-	}
-	for name, value := range map[string]*string{
-		"Happ routing source":              &allSetting.SubRoutingRules,
-		"Clash/Mihomo routing source":      &allSetting.SubClashRules,
-		"Incy routing source":              &allSetting.SubIncyRoutingRules,
-		"JSON subscription routing source": &allSetting.SubJsonRoutingRules,
-	} {
-		if err := validateRemoteRoutingURLSetting(name, value); err != nil {
-			return err
-		}
 	}
 	return nil
 }
@@ -1877,20 +1054,9 @@ func validateRemoteRoutingURLSetting(name string, value *string) error {
 
 // The same parser the sub server uses, so a value can never be saved as valid
 // and then silently ignored at request time.
-func validateSubJsonDnsSetting(allSetting *entity.AllSetting) error {
-	value := strings.TrimSpace(allSetting.SubJsonDns)
-	if value != "" {
-		if _, err := dnsconf.Parse(value); err != nil {
-			return common.NewError("JSON subscription DNS is invalid:", err.Error())
-		}
-	}
-	allSetting.SubJsonDns = value
-	return nil
-}
-
 func (s *SettingService) UpdateSecret(key string, value string) error {
 	switch key {
-	case "tgBotToken", "ldapPassword", "twoFactorToken":
+	case "ldapPassword", "twoFactorToken":
 		return s.saveSetting(key, strings.TrimSpace(value))
 	default:
 		return common.NewError("secret key is not replaceable:", key)
@@ -1928,29 +1094,7 @@ func extractHostname(host string) string {
 	return "[" + h + "]"
 }
 
-// BuildSubURIBase is shared by GetDefaultSettings (the panel's Client
-// Information page) and the subscription page so both render subscription
-// URLs identically.
-func (s *SettingService) BuildSubURIBase(host string) string {
-	subPort, _ := s.GetSubPort()
-	subDomain, _ := s.GetSubDomain()
-	subKeyFile, _ := s.GetSubKeyFile()
-	subCertFile, _ := s.GetSubCertFile()
-	subTLS := subKeyFile != "" && subCertFile != ""
-	if subDomain == "" {
-		subDomain = extractHostname(host)
-	}
-	scheme := "http"
-	if subTLS {
-		scheme = "https"
-	}
-	if (subPort == 443 && subTLS) || (subPort == 80 && !subTLS) {
-		return scheme + "://" + subDomain
-	}
-	return fmt.Sprintf("%s://%s:%d", scheme, subDomain, subPort)
-}
-
-func (s *SettingService) GetDefaultSettings(host string) (any, error) {
+func (s *SettingService) GetDefaultSettings(_ string) (any, error) {
 	type settingFunc func() (any, error)
 	settings := map[string]settingFunc{
 		"expireDiff":       func() (any, error) { return s.GetExpireDiff() },
@@ -1958,16 +1102,6 @@ func (s *SettingService) GetDefaultSettings(host string) (any, error) {
 		"pageSize":         func() (any, error) { return s.GetPageSize() },
 		"defaultCert":      func() (any, error) { return s.GetCertFile() },
 		"defaultKey":       func() (any, error) { return s.GetKeyFile() },
-		"tgBotEnable":      func() (any, error) { return s.GetTgbotEnabled() },
-		"subThemeDir":      func() (any, error) { return s.GetSubThemeDir() },
-		"happLinkEnable":   func() (any, error) { return s.GetHappLinkEnable() },
-		"subEnable":        func() (any, error) { return s.GetSubEnable() },
-		"subJsonEnable":    func() (any, error) { return s.GetSubJsonEnable() },
-		"subClashEnable":   func() (any, error) { return s.GetSubClashEnable() },
-		"subTitle":         func() (any, error) { return s.GetSubTitle() },
-		"subURI":           func() (any, error) { return s.GetSubURI() },
-		"subJsonURI":       func() (any, error) { return s.GetSubJsonURI() },
-		"subClashURI":      func() (any, error) { return s.GetSubClashURI() },
 		"datepicker":       func() (any, error) { return s.GetDatepicker() },
 		"ipLimitEnable":    func() (any, error) { return s.GetIpLimitEnable() },
 		"accessLogEnable":  func() (any, error) { return s.GetAccessLogEnable() },
@@ -1987,48 +1121,13 @@ func (s *SettingService) GetDefaultSettings(host string) (any, error) {
 		result[key] = value
 	}
 
-	subEnable := result["subEnable"].(bool)
-	subJsonEnable := false
-	if v, ok := result["subJsonEnable"]; ok {
-		if b, ok2 := v.(bool); ok2 {
-			subJsonEnable = b
-		}
-	}
-	subClashEnable := false
-	if v, ok := result["subClashEnable"]; ok {
-		if b, ok2 := v.(bool); ok2 {
-			subClashEnable = b
-		}
-	}
-	if (subEnable && result["subURI"].(string) == "") || (subJsonEnable && result["subJsonURI"].(string) == "") || (subClashEnable && result["subClashURI"].(string) == "") {
-		subURI := s.BuildSubURIBase(host)
-		subTitle, _ := s.GetSubTitle()
-		subPath, _ := s.GetSubPath()
-		subJsonPath, _ := s.GetSubJsonPath()
-		subClashPath, _ := s.GetSubClashPath()
-		if subEnable && result["subURI"].(string) == "" {
-			result["subURI"] = subURI + subPath
-		}
-		if result["subTitle"].(string) == "" {
-			result["subTitle"] = subTitle
-		}
-		if subJsonEnable && result["subJsonURI"].(string) == "" {
-			result["subJsonURI"] = subURI + subJsonPath
-		}
-		if subClashEnable && result["subClashURI"].(string) == "" {
-			result["subClashURI"] = subURI + subClashPath
-		}
-	}
-
 	return result, nil
 }
 
 var factoryDefaultSecretKeys = map[string]bool{
-	"tgBotToken":      true,
-	"twoFactorToken":  true,
-	"ldapPassword":    true,
-	"smtpPassword":    true,
-	"discordBotToken": true,
+	"twoFactorToken": true,
+	"ldapPassword":   true,
+	"smtpPassword":   true,
 }
 
 /*

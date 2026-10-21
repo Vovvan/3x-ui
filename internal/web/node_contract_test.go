@@ -208,13 +208,6 @@ func TestMasterNodeContract(t *testing.T) {
 						t.Fatalf("node clients = %v, want c0,c1,c2", got)
 					}
 				}},
-				{"SetInboundSubSortIndex reaches the node", []string{"SetInboundSubSortIndex"}, func() error {
-					return master.SetInboundSubSortIndex(ctx, masterInbound("updated", false), 7)
-				}, func(t *testing.T) {
-					if ib, _ := nodeRow(t, contractTag); ib.SubSortIndex != 7 {
-						t.Fatalf("node subSortIndex = %d, want 7", ib.SubSortIndex)
-					}
-				}},
 				{"AddClient attaches one client", []string{"AddClient"}, func() error {
 					return master.AddClient(ctx, masterInbound("updated", false), model.Client{
 						Email: "c3", ID: "0b6d5c2e-7c1a-4f4e-9d3b-000000000003", SubID: "s-c3", Enable: true,

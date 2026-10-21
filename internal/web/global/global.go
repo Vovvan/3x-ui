@@ -11,7 +11,6 @@ import (
 
 var (
 	webServer WebServer
-	subServer SubServer
 
 	restartHookMu sync.RWMutex
 	restartHook   func()
@@ -24,11 +23,6 @@ type WebServer interface {
 	GetWSHub() any           // Get the WebSocket hub (using any to avoid circular dependency)
 }
 
-// SubServer interface defines methods for accessing the subscription server instance.
-type SubServer interface {
-	GetCtx() context.Context // Get the server context
-}
-
 // SetWebServer sets the global web server instance.
 func SetWebServer(s WebServer) {
 	webServer = s
@@ -37,16 +31,6 @@ func SetWebServer(s WebServer) {
 // GetWebServer returns the global web server instance.
 func GetWebServer() WebServer {
 	return webServer
-}
-
-// SetSubServer sets the global subscription server instance.
-func SetSubServer(s SubServer) {
-	subServer = s
-}
-
-// GetSubServer returns the global subscription server instance.
-func GetSubServer() SubServer {
-	return subServer
 }
 
 // SetRestartHook registers a callback that triggers an in-process panel

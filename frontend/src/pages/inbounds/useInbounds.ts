@@ -16,14 +16,8 @@ import type { InboundSpeedEntry } from './list/types';
 import { TRAFFIC_POLL_INTERVAL_S } from '@/lib/traffic/poll-interval';
 
 export interface SubSettings {
-  enable: boolean;
-  subTitle: string;
-  subURI: string;
-  subJsonURI: string;
-  subJsonEnable: boolean;
   // Configured public host (Sub Domain, else Web Domain) used as the share/QR
-  // link host when the panel is reached on a loopback address. Empty if neither
-  // is set.
+  // link host when the panel is reached on a loopback address.
   publicHost: string;
 }
 
@@ -196,22 +190,9 @@ export function useInbounds() {
 
   const subSettings: SubSettings = useMemo(
     () => ({
-      enable: !!defaults.subEnable,
-      subTitle: defaults.subTitle || '',
-      subURI: defaults.subURI || '',
-      subJsonURI: defaults.subJsonURI || '',
-      subJsonEnable: !!defaults.subJsonEnable,
       publicHost: defaults.subDomain || defaults.webDomain || '',
     }),
-    [
-      defaults.subEnable,
-      defaults.subTitle,
-      defaults.subURI,
-      defaults.subJsonURI,
-      defaults.subJsonEnable,
-      defaults.subDomain,
-      defaults.webDomain,
-    ],
+    [defaults.subDomain, defaults.webDomain],
   );
 
   useEffect(() => {

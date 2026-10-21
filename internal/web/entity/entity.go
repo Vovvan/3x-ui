@@ -44,18 +44,6 @@ type AllSetting struct {
 	SubTrafficDepletedTemplate string `json:"subTrafficDepletedTemplate" form:"subTrafficDepletedTemplate"`
 	Datepicker                 string `json:"datepicker" form:"datepicker"`
 
-	TgBotEnable     bool   `json:"tgBotEnable" form:"tgBotEnable"`
-	TgBotToken      string `json:"tgBotToken" form:"tgBotToken"`
-	TgBotProxy      string `json:"tgBotProxy" form:"tgBotProxy"`
-	TgBotAPIServer  string `json:"tgBotAPIServer" form:"tgBotAPIServer"`
-	TgBotChatId     string `json:"tgBotChatId" form:"tgBotChatId"`
-	TgRunTime       string `json:"tgRunTime" form:"tgRunTime"`
-	TgBotBackup     bool   `json:"tgBotBackup" form:"tgBotBackup"`
-	TgCpu           int    `json:"tgCpu" form:"tgCpu" validate:"gte=0,lte=100"`
-	TgMemory        int    `json:"tgMemory" form:"tgMemory" validate:"gte=0,lte=100"`
-	TgLang          string `json:"tgLang" form:"tgLang"`
-	TgEnabledEvents string `json:"tgEnabledEvents" form:"tgEnabledEvents"`
-
 	SmtpEnable         bool   `json:"smtpEnable" form:"smtpEnable"`
 	SmtpHost           string `json:"smtpHost" form:"smtpHost"`
 	SmtpPort           int    `json:"smtpPort" form:"smtpPort" validate:"gte=1,lte=65535"`
@@ -69,17 +57,6 @@ type AllSetting struct {
 	SmtpCpu            int    `json:"smtpCpu" form:"smtpCpu" validate:"gte=0,lte=100"`
 	SmtpMemory         int    `json:"smtpMemory" form:"smtpMemory" validate:"gte=0,lte=100"`
 
-	DiscordBotEnable     bool   `json:"discordBotEnable" form:"discordBotEnable"`
-	DiscordBotToken      string `json:"discordBotToken" form:"discordBotToken"`
-	DiscordChannelId     string `json:"discordChannelId" form:"discordChannelId"`
-	DiscordAdminIds      string `json:"discordAdminIds" form:"discordAdminIds"`
-	DiscordRunTime       string `json:"discordRunTime" form:"discordRunTime"`
-	DiscordBotBackup     bool   `json:"discordBotBackup" form:"discordBotBackup"`
-	DiscordCpu           int    `json:"discordCpu" form:"discordCpu" validate:"gte=0,lte=100"`
-	DiscordMemory        int    `json:"discordMemory" form:"discordMemory" validate:"gte=0,lte=100"`
-	DiscordLang          string `json:"discordLang" form:"discordLang"`
-	DiscordEnabledEvents string `json:"discordEnabledEvents" form:"discordEnabledEvents"`
-
 	OutboundDownThreshold int `json:"outboundDownThreshold" form:"outboundDownThreshold" validate:"gte=1,lte=100"`
 	NodeDownThreshold     int `json:"nodeDownThreshold" form:"nodeDownThreshold" validate:"gte=1,lte=100"`
 
@@ -87,109 +64,10 @@ type AllSetting struct {
 	TwoFactorEnable bool   `json:"twoFactorEnable" form:"twoFactorEnable"`
 	TwoFactorToken  string `json:"twoFactorToken" form:"twoFactorToken"`
 
-	HappLinkEnable              bool   `json:"happLinkEnable" form:"happLinkEnable"`
-	SubEnable                   bool   `json:"subEnable" form:"subEnable"`
-	SubJsonEnable               bool   `json:"subJsonEnable" form:"subJsonEnable"`
-	SubJsonAutoDetect           bool   `json:"subJsonAutoDetect" form:"subJsonAutoDetect"`
-	SubJsonAlwaysArray          bool   `json:"subJsonAlwaysArray" form:"subJsonAlwaysArray"`
-	SubJsonUserAgentRegex       string `json:"subJsonUserAgentRegex" form:"subJsonUserAgentRegex"`
-	SubClashAutoDetect          bool   `json:"subClashAutoDetect" form:"subClashAutoDetect"`
-	SubClashUserAgentRegex      string `json:"subClashUserAgentRegex" form:"subClashUserAgentRegex"`
-	SubTitle                    string `json:"subTitle" form:"subTitle"`
-	SubSupportUrl               string `json:"subSupportUrl" form:"subSupportUrl"`
-	SubProfileMode              string `json:"subProfileMode" form:"subProfileMode"`
-	SubProfileUrl               string `json:"subProfileUrl" form:"subProfileUrl"`
-	SubAnnounce                 string `json:"subAnnounce" form:"subAnnounce"`
-	SubEnableRouting            bool   `json:"subEnableRouting" form:"subEnableRouting"`
-	SubRoutingRules             string `json:"subRoutingRules" form:"subRoutingRules"`
-	SubIncyEnableRouting        bool   `json:"subIncyEnableRouting" form:"subIncyEnableRouting"`
-	SubIncyRoutingRules         string `json:"subIncyRoutingRules" form:"subIncyRoutingRules"`
-	SubListen                   string `json:"subListen" form:"subListen"`
-	SubPort                     int    `json:"subPort" form:"subPort" validate:"gte=1,lte=65535"`
-	SubPath                     string `json:"subPath" form:"subPath"`
 	SubDomain                   string `json:"subDomain" form:"subDomain"`
-	SubCertFile                 string `json:"subCertFile" form:"subCertFile"`
-	SubKeyFile                  string `json:"subKeyFile" form:"subKeyFile"`
-	ExternalSubUserAgent        string `json:"externalSubUserAgent" form:"externalSubUserAgent"`
-	SubUpdates                  int    `json:"subUpdates" form:"subUpdates" validate:"gte=0,lte=525600"`
 	ExternalTrafficInformEnable bool   `json:"externalTrafficInformEnable" form:"externalTrafficInformEnable"`
 	ExternalTrafficInformURI    string `json:"externalTrafficInformURI" form:"externalTrafficInformURI"`
 	RestartXrayOnClientDisable  bool   `json:"restartXrayOnClientDisable" form:"restartXrayOnClientDisable"`
-	SubEncrypt                  bool   `json:"subEncrypt" form:"subEncrypt"`
-	SubURI                      string `json:"subURI" form:"subURI"`
-	SubJsonPath                 string `json:"subJsonPath" form:"subJsonPath"`
-	SubJsonURI                  string `json:"subJsonURI" form:"subJsonURI"`
-	SubClashEnable              bool   `json:"subClashEnable" form:"subClashEnable"`
-	SubClashPath                string `json:"subClashPath" form:"subClashPath"`
-	SubClashURI                 string `json:"subClashURI" form:"subClashURI"`
-	SubClashEnableRouting       bool   `json:"subClashEnableRouting" form:"subClashEnableRouting"`
-	SubClashRules               string `json:"subClashRules" form:"subClashRules"`
-	SubClashRemoteDNS           bool   `json:"subClashRemoteDNS" form:"subClashRemoteDNS"`
-	SubJsonMux                  string `json:"subJsonMux" form:"subJsonMux"`
-	SubJsonRules                string `json:"subJsonRules" form:"subJsonRules"`
-	SubJsonRoutingRules         string `json:"subJsonRoutingRules" form:"subJsonRoutingRules"`
-	SubJsonDns                  string `json:"subJsonDns" form:"subJsonDns"`
-	SubJsonFinalMask            string `json:"subJsonFinalMask" form:"subJsonFinalMask"`
-	SubJsonObservatory          string `json:"subJsonObservatory" form:"subJsonObservatory"`
-	SubThemeDir                 string `json:"subThemeDir" form:"subThemeDir"`
-	SubHideSettings             bool   `json:"subHideSettings" form:"subHideSettings"`
-
-	// Happ client customization settings (app-management / routing / UX).
-	SubHappAutoDetect          bool   `json:"subHappAutoDetect" form:"subHappAutoDetect"`
-	SubHappProviderId          string `json:"subHappProviderId" form:"subHappProviderId"`
-	SubHappNewUrl              string `json:"subHappNewUrl" form:"subHappNewUrl"`
-	SubHappFallbackUrl         string `json:"subHappFallbackUrl" form:"subHappFallbackUrl"`
-	SubHappSubInfoColor        string `json:"subHappSubInfoColor" form:"subHappSubInfoColor"`
-	SubHappSubInfoText         string `json:"subHappSubInfoText" form:"subHappSubInfoText"`
-	SubHappSubInfoButtonText   string `json:"subHappSubInfoButtonText" form:"subHappSubInfoButtonText"`
-	SubHappSubInfoButtonLink   string `json:"subHappSubInfoButtonLink" form:"subHappSubInfoButtonLink"`
-	SubHappSubExpire           bool   `json:"subHappSubExpire" form:"subHappSubExpire"`
-	SubHappSubExpireButtonLink string `json:"subHappSubExpireButtonLink" form:"subHappSubExpireButtonLink"`
-	SubHappNotificationExpire  bool   `json:"subHappNotificationExpire" form:"subHappNotificationExpire"`
-	SubHappNoLimit             bool   `json:"subHappNoLimit" form:"subHappNoLimit"`
-	SubHappAlwaysHwid          bool   `json:"subHappAlwaysHwid" form:"subHappAlwaysHwid"`
-	SubHappTunMode             string `json:"subHappTunMode" form:"subHappTunMode"`
-	SubHappTunType             string `json:"subHappTunType" form:"subHappTunType"`
-	SubHappExcludeRoutes       string `json:"subHappExcludeRoutes" form:"subHappExcludeRoutes"`
-	SubHappExcludeApns         bool   `json:"subHappExcludeApns" form:"subHappExcludeApns"`
-	SubHappColorProfile        string `json:"subHappColorProfile" form:"subHappColorProfile"`
-	SubHappPingType            string `json:"subHappPingType" form:"subHappPingType"`
-	SubHappAutoConnect         bool   `json:"subHappAutoConnect" form:"subHappAutoConnect"`
-	SubHappAutoConnectType     string `json:"subHappAutoConnectType" form:"subHappAutoConnectType"`
-	SubHappPerAppMode          string `json:"subHappPerAppMode" form:"subHappPerAppMode"`
-	SubHappPerAppList          string `json:"subHappPerAppList" form:"subHappPerAppList"`
-	SubHappLocalProxyAuth      string `json:"subHappLocalProxyAuth" form:"subHappLocalProxyAuth"`
-
-	// Incy client customization settings (app-management). A "" value omits
-	// the header so the subscriber's own app setting is left alone.
-	SubIncyAppAutoDetect       bool   `json:"subIncyAppAutoDetect" form:"subIncyAppAutoDetect"`
-	SubIncyProfileDescription  string `json:"subIncyProfileDescription" form:"subIncyProfileDescription"`
-	SubIncySortOrder           string `json:"subIncySortOrder" form:"subIncySortOrder"`
-	SubIncySupportEmail        string `json:"subIncySupportEmail" form:"subIncySupportEmail"`
-	SubIncyAnnounceUrl         string `json:"subIncyAnnounceUrl" form:"subIncyAnnounceUrl"`
-	SubIncyPremiumUrl          string `json:"subIncyPremiumUrl" form:"subIncyPremiumUrl"`
-	SubIncyBannerText          string `json:"subIncyBannerText" form:"subIncyBannerText"`
-	SubIncyBannerButtonText    string `json:"subIncyBannerButtonText" form:"subIncyBannerButtonText"`
-	SubIncyBannerButtonUrl     string `json:"subIncyBannerButtonUrl" form:"subIncyBannerButtonUrl"`
-	SubIncyBannerBgColor       string `json:"subIncyBannerBgColor" form:"subIncyBannerBgColor"`
-	SubIncyBannerButtonColor   string `json:"subIncyBannerButtonColor" form:"subIncyBannerButtonColor"`
-	SubIncyHideUrl             string `json:"subIncyHideUrl" form:"subIncyHideUrl"`
-	SubIncyHideCheck           string `json:"subIncyHideCheck" form:"subIncyHideCheck"`
-	SubIncyNoLimitEnabled      string `json:"subIncyNoLimitEnabled" form:"subIncyNoLimitEnabled"`
-	SubIncyPerAppEnable        string `json:"subIncyPerAppEnable" form:"subIncyPerAppEnable"`
-	SubIncyPerAppMode          string `json:"subIncyPerAppMode" form:"subIncyPerAppMode"`
-	SubIncyPerAppList          string `json:"subIncyPerAppList" form:"subIncyPerAppList"`
-	SubIncyFragmentationEnable string `json:"subIncyFragmentationEnable" form:"subIncyFragmentationEnable"`
-	SubIncyFragmentLength      string `json:"subIncyFragmentLength" form:"subIncyFragmentLength"`
-	SubIncyFragmentInterval    string `json:"subIncyFragmentInterval" form:"subIncyFragmentInterval"`
-	SubIncyFragmentPackets     string `json:"subIncyFragmentPackets" form:"subIncyFragmentPackets"`
-	SubIncyNoisesEnable        string `json:"subIncyNoisesEnable" form:"subIncyNoisesEnable"`
-	SubIncyNoisesType          string `json:"subIncyNoisesType" form:"subIncyNoisesType"`
-	SubIncyNoisesPacket        string `json:"subIncyNoisesPacket" form:"subIncyNoisesPacket"`
-	SubIncyNoisesDelay         string `json:"subIncyNoisesDelay" form:"subIncyNoisesDelay"`
-	SubIncyResolveEnable       string `json:"subIncyResolveEnable" form:"subIncyResolveEnable"`
-	SubIncyResolveDnsDomain    string `json:"subIncyResolveDnsDomain" form:"subIncyResolveDnsDomain"`
-	SubIncyResolveDnsIp        string `json:"subIncyResolveDnsIp" form:"subIncyResolveDnsIp"`
 
 	LdapEnable             bool   `json:"ldapEnable" form:"ldapEnable"`
 	LdapHost               string `json:"ldapHost" form:"ldapHost"`
@@ -219,14 +97,12 @@ type AllSetting struct {
 type AllSettingView struct {
 	AllSetting
 
-	HasTgBotToken      bool `json:"hasTgBotToken"`
-	HasTwoFactorToken  bool `json:"hasTwoFactorToken"`
-	HasLdapPassword    bool `json:"hasLdapPassword"`
-	HasApiToken        bool `json:"hasApiToken"`
-	HasWarpSecret      bool `json:"hasWarpSecret"`
-	HasNordSecret      bool `json:"hasNordSecret"`
-	HasSmtpPassword    bool `json:"hasSmtpPassword"`
-	HasDiscordBotToken bool `json:"hasDiscordBotToken"`
+	HasTwoFactorToken bool `json:"hasTwoFactorToken"`
+	HasLdapPassword   bool `json:"hasLdapPassword"`
+	HasApiToken       bool `json:"hasApiToken"`
+	HasWarpSecret     bool `json:"hasWarpSecret"`
+	HasNordSecret     bool `json:"hasNordSecret"`
+	HasSmtpPassword   bool `json:"hasSmtpPassword"`
 }
 
 func pathHasForbiddenChar(s string) bool {
@@ -282,23 +158,8 @@ func (s *AllSetting) CheckValid() error {
 		}
 	}
 
-	if s.SubListen != "" {
-		ip := net.ParseIP(s.SubListen)
-		if ip == nil {
-			return common.NewError("Sub listen is not valid ip:", s.SubListen)
-		}
-	}
-
 	if s.WebPort <= 0 || s.WebPort > math.MaxUint16 {
 		return common.NewError("web port is not a valid port:", s.WebPort)
-	}
-
-	if s.SubPort <= 0 || s.SubPort > math.MaxUint16 {
-		return common.NewError("Sub port is not a valid port:", s.SubPort)
-	}
-
-	if (s.SubPort == s.WebPort) && listenAddressesConflict(s.WebListen, s.SubListen) {
-		return common.NewError("Sub and Web could not use same ip:port, ", s.SubListen, ":", s.SubPort, " & ", s.WebListen, ":", s.WebPort)
 	}
 
 	if s.WebCertFile != "" || s.WebKeyFile != "" {
@@ -308,21 +169,11 @@ func (s *AllSetting) CheckValid() error {
 		}
 	}
 
-	if s.SubCertFile != "" || s.SubKeyFile != "" {
-		_, err := tls.LoadX509KeyPair(s.SubCertFile, s.SubKeyFile)
-		if err != nil {
-			return common.NewErrorf("cert file <%v> or key file <%v> invalid: %v", s.SubCertFile, s.SubKeyFile, err)
-		}
-	}
-
 	for _, p := range []struct {
 		name  string
 		value string
 	}{
 		{"web base path", s.WebBasePath},
-		{"subscription path", s.SubPath},
-		{"subscription JSON path", s.SubJsonPath},
-		{"subscription Clash path", s.SubClashPath},
 	} {
 		if pathHasForbiddenChar(p.value) {
 			return common.NewError("URI path contains an invalid character:", p.name)
@@ -335,30 +186,7 @@ func (s *AllSetting) CheckValid() error {
 	if !strings.HasSuffix(s.WebBasePath, "/") {
 		s.WebBasePath += "/"
 	}
-	if !strings.HasPrefix(s.SubPath, "/") {
-		s.SubPath = "/" + s.SubPath
-	}
-	if !strings.HasSuffix(s.SubPath, "/") {
-		s.SubPath += "/"
-	}
-
-	if !strings.HasPrefix(s.SubJsonPath, "/") {
-		s.SubJsonPath = "/" + s.SubJsonPath
-	}
-	if !strings.HasSuffix(s.SubJsonPath, "/") {
-		s.SubJsonPath += "/"
-	}
-
-	if !strings.HasPrefix(s.SubClashPath, "/") {
-		s.SubClashPath = "/" + s.SubClashPath
-	}
-	if !strings.HasSuffix(s.SubClashPath, "/") {
-		s.SubClashPath += "/"
-	}
-
 	for _, sched := range []struct{ name, spec string }{
-		{"tgRunTime", s.TgRunTime},
-		{"discordRunTime", s.DiscordRunTime},
 		{"ldapSyncCron", s.LdapSyncCron},
 	} {
 		if strings.TrimSpace(sched.spec) == "" {

@@ -1,20 +1,14 @@
-import { useCallback, useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Button,
   Col,
   Dropdown,
-  Form,
-  Input,
-  InputNumber,
   Modal,
   Popconfirm,
   Radio,
   Row,
   Space,
-  Switch,
   Table,
-  Tag,
   Tooltip,
   message,
 } from 'antd';
@@ -25,21 +19,11 @@ import {
   MoreOutlined,
   RetweetOutlined,
   PlayCircleOutlined,
-  ReloadOutlined,
-  DeleteOutlined,
-  EditOutlined,
-  EyeOutlined,
-  ArrowUpOutlined,
-  ArrowDownOutlined,
-  CheckCircleOutlined,
-  WarningOutlined,
   ExportOutlined,
   ImportOutlined,
 } from '@ant-design/icons';
 
 import { isOutboundProtocol } from '@/schemas/primitives';
-import { HttpUtil } from '@/utils';
-import { onNumber } from '@/utils/onNumber';
 import PromptModal from '@/components/feedback/PromptModal';
 import TextModal from '@/components/feedback/TextModal';
 
@@ -61,46 +45,23 @@ import type { OutboundRow } from './outbounds-tab-types';
 import { originalOutboundIndex } from './outbounds-tab-helpers';
 import { useOutboundColumns } from './useOutboundColumns';
 import OutboundCardList from './OutboundCardList';
-import SubscriptionOutbounds from './SubscriptionOutbounds';
 
-const defaultOutboundSubscriptionUserAgent = '3x-ui-outbound-sub/1.0';
 
-interface OutboundSub {
-  id: number;
-  remark?: string;
-  url?: string;
-  enabled?: boolean;
-  allowPrivate?: boolean;
-  allowInsecure?: boolean;
-  userAgent?: string;
-  prepend?: boolean;
-  priority?: number;
-  tagPrefix?: string;
-  updateInterval?: number;
-  lastUpdated?: number;
-  lastError?: string;
-  outboundCount?: number;
-}
 
 interface OutboundsTabProps {
   templateSettings: XraySettingsValue | null;
   setTemplateSettings: SetTemplate;
   outboundsTraffic: OutboundTrafficRow[];
   outboundTestStates: Record<number, OutboundTestState>;
-  subscriptionTestStates: Record<string, OutboundTestState>;
   testingAll: boolean;
   inboundTags: string[];
-  subscriptionOutbounds?: unknown[];
-  subscriptionOutboundTags?: string[];
   isMobile: boolean;
   onResetTraffic: (tag: string) => void;
   onTest: (index: number, mode: string) => void;
-  onTestSubscription: (outbound: Record<string, unknown>, mode: string) => void;
   onTestAll: (mode: string) => void;
   onShowWarp: () => void;
   onShowNord: () => void;
   onShowPia: () => void;
-  onRefreshXrayData?: () => void;
 }
 
 export default function OutboundsTab({
@@ -108,20 +69,15 @@ export default function OutboundsTab({
   setTemplateSettings,
   outboundsTraffic,
   outboundTestStates,
-  subscriptionTestStates,
   testingAll,
   inboundTags: _inboundTags,
-  subscriptionOutbounds,
-  subscriptionOutboundTags,
   isMobile,
   onResetTraffic,
   onTest,
-  onTestSubscription,
   onTestAll,
   onShowWarp,
   onShowNord,
   onShowPia,
-  onRefreshXrayData,
 }: OutboundsTabProps) {
   const { t } = useTranslation();
   const uid = useId();
@@ -132,39 +88,6 @@ export default function OutboundsTab({
   const [editingOutbound, setEditingOutbound] = useState<Record<string, unknown> | null>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [existingTags, setExistingTags] = useState<string[]>([]);
-
-  // Subscription manager (CRUD + reorder + refresh + preview)
-  const [subDrawerOpen, setSubDrawerOpen] = useState(false);
-  const [subs, setSubs] = useState<OutboundSub[]>([]);
-  const [subsLoading, setSubsLoading] = useState(false);
-  const [newSub, setNewSub] = useState({
-    remark: '',
-    url: '',
-    tagPrefix: '',
-    userAgent: '',
-    updateInterval: 600,
-    enabled: true,
-    allowPrivate: false,
-    allowInsecure: false,
-    prepend: false,
-  });
-  const [editingSubId, setEditingSubId] = useState<number | null>(null);
-  const [savingSub, setSavingSub] = useState(false);
-  const [refreshingId, setRefreshingId] = useState<number | null>(null);
-  const [refreshingAll, setRefreshingAll] = useState(false);
-  const [busyId, setBusyId] = useState<number | null>(null);
-  const [previewing, setPreviewing] = useState(false);
-  const [previewData, setPreviewData] = useState<{ tag?: string; protocol?: string }[] | null>(
-    null,
-  );
-
-  // Convenience: expose hours/minutes for the interval input
-  const intervalHours = Math.floor((newSub.updateInterval || 600) / 3600);
-  const intervalMinutes = Math.floor(((newSub.updateInterval || 600) % 3600) / 60);
-  function setIntervalHM(h: number, m: number) {
-    const secs = Math.max(60, (h || 0) * 3600 + (m || 0) * 60);
-    setNewSub((prev) => ({ ...prev, updateInterval: secs }));
-  }
 
   const outbounds = useMemo(
     () => (templateSettings?.outbounds || []) as unknown as OutboundRow[],
@@ -179,7 +102,9 @@ export default function OutboundsTab({
     [outbounds],
   );
   const rowsRef = useRef<OutboundRow[]>([]);
-  rowsRef.current = rows;
+  useEffect(() => {
+    rowsRef.current = rows;
+  }, [rows]);
 
   const dialerProxyTags = useMemo(() => {
     const tags = new Set<string>();
@@ -188,11 +113,8 @@ export default function OutboundsTab({
       if (isOutboundProtocol(o, 'blackhole')) return;
       if (o?.tag) tags.add(o.tag);
     });
-    for (const tag of subscriptionOutboundTags || []) {
-      if (tag) tags.add(tag);
-    }
     return [...tags];
-  }, [templateSettings?.outbounds, editingIndex, subscriptionOutboundTags]);
+  }, [templateSettings?.outbounds, editingIndex]);
 
   const mutate = useCallback(
     (mutator: (next: XraySettingsValue) => void) => {
@@ -215,10 +137,6 @@ export default function OutboundsTab({
     setModalOpen(true);
   }
 
-  function openSubManager() {
-    setSubDrawerOpen(true);
-    loadSubs();
-  }
   function openEdit(idx: number) {
     const target = originalOutboundIndex(rowsRef.current, idx);
     setEditingOutbound((templateSettings?.outbounds || [])[target] as Record<string, unknown>);
@@ -324,215 +242,6 @@ export default function OutboundsTab({
     setImportOpen(false);
   }
 
-  // --- Subscription management (minimal inline UI) ---
-  async function loadSubs() {
-    setSubsLoading(true);
-    try {
-      const r = await HttpUtil.get('/panel/api/xray/outbound-subs');
-      if (r?.success) setSubs(Array.isArray(r.obj) ? r.obj : []);
-    } catch {
-      messageApi.error(t('pages.xray.outboundSub.toastLoadFailed'));
-    } finally {
-      setSubsLoading(false);
-    }
-  }
-  function subBody(src: {
-    remark?: string;
-    url?: string;
-    tagPrefix?: string;
-    userAgent?: string;
-    updateInterval?: number;
-    enabled?: boolean;
-    allowPrivate?: boolean;
-    allowInsecure?: boolean;
-    prepend?: boolean;
-  }) {
-    return {
-      remark: src.remark ?? '',
-      url: src.url ?? '',
-      tagPrefix: src.tagPrefix ?? '',
-      userAgent: src.userAgent ?? '',
-      updateInterval: src.updateInterval ?? 600,
-      enabled: src.enabled ?? true,
-      allowPrivate: src.allowPrivate ?? false,
-      allowInsecure: src.allowInsecure ?? false,
-      prepend: src.prepend ?? false,
-    };
-  }
-  function resetSubForm() {
-    setNewSub({
-      remark: '',
-      url: '',
-      tagPrefix: '',
-      userAgent: '',
-      updateInterval: 600,
-      enabled: true,
-      allowPrivate: false,
-      allowInsecure: false,
-      prepend: false,
-    });
-    setEditingSubId(null);
-    setPreviewData(null);
-  }
-  function openEditSub(sub: OutboundSub) {
-    setNewSub({
-      remark: sub.remark ?? '',
-      url: sub.url ?? '',
-      tagPrefix: sub.tagPrefix ?? '',
-      userAgent: sub.userAgent ?? '',
-      updateInterval: sub.updateInterval ?? 600,
-      enabled: sub.enabled ?? true,
-      allowPrivate: sub.allowPrivate ?? false,
-      allowInsecure: sub.allowInsecure ?? false,
-      prepend: sub.prepend ?? false,
-    });
-    setEditingSubId(sub.id);
-    setPreviewData(null);
-  }
-  async function saveSub() {
-    if (!newSub.url.trim()) {
-      messageApi.warning(t('pages.xray.outboundSub.toastUrlRequired'));
-      return;
-    }
-    setSavingSub(true);
-    try {
-      const url =
-        editingSubId != null
-          ? `/panel/api/xray/outbound-subs/${editingSubId}`
-          : '/panel/api/xray/outbound-subs';
-      const r = await HttpUtil.post<OutboundSub>(url, subBody(newSub));
-      if (r?.success) {
-        messageApi.success(
-          t(
-            editingSubId != null
-              ? 'pages.xray.outboundSub.toastUpdated'
-              : 'pages.xray.outboundSub.toastAdded',
-          ),
-        );
-        const createdId = editingSubId == null ? r.obj?.id : undefined;
-        resetSubForm();
-        await loadSubs();
-        if (createdId) await refreshOne(createdId);
-        onRefreshXrayData?.();
-      } else {
-        messageApi.error(r?.msg || t('pages.xray.outboundSub.toastAddFailed'));
-      }
-    } catch {
-      messageApi.error(t('pages.xray.outboundSub.toastAddFailed'));
-    } finally {
-      setSavingSub(false);
-    }
-  }
-  async function previewSub() {
-    if (!newSub.url.trim()) {
-      messageApi.warning(t('pages.xray.outboundSub.toastUrlRequired'));
-      return;
-    }
-    setPreviewing(true);
-    setPreviewData(null);
-    try {
-      const r = await HttpUtil.post<{ tag?: string; protocol?: string }[]>(
-        '/panel/api/xray/outbound-subs/parse',
-        {
-          url: newSub.url,
-          userAgent: newSub.userAgent,
-          allowPrivate: newSub.allowPrivate,
-          allowInsecure: newSub.allowInsecure,
-        },
-      );
-      if (r?.success && Array.isArray(r.obj)) {
-        setPreviewData(r.obj);
-        if (r.obj.length === 0) messageApi.info(t('pages.xray.outboundSub.previewEmpty'));
-      } else {
-        messageApi.error(r?.msg || t('pages.xray.outboundSub.previewEmpty'));
-      }
-    } catch {
-      messageApi.error(t('pages.xray.outboundSub.previewEmpty'));
-    } finally {
-      setPreviewing(false);
-    }
-  }
-  async function toggleEnabled(sub: OutboundSub) {
-    setBusyId(sub.id);
-    try {
-      const r = await HttpUtil.post(
-        `/panel/api/xray/outbound-subs/${sub.id}`,
-        subBody({ ...sub, enabled: !sub.enabled }),
-      );
-      if (r?.success) {
-        await loadSubs();
-        onRefreshXrayData?.();
-      } else {
-        messageApi.error(r?.msg || t('pages.xray.outboundSub.toastAddFailed'));
-      }
-    } catch {
-      messageApi.error(t('pages.xray.outboundSub.toastAddFailed'));
-    } finally {
-      setBusyId(null);
-    }
-  }
-  async function moveSub(id: number, dir: 'up' | 'down') {
-    setBusyId(id);
-    try {
-      const r = await HttpUtil.post(`/panel/api/xray/outbound-subs/${id}/move`, { dir });
-      if (r?.success) {
-        await loadSubs();
-        onRefreshXrayData?.();
-      }
-    } catch {
-      /* ignore */
-    } finally {
-      setBusyId(null);
-    }
-  }
-  async function refreshOne(id: number) {
-    setRefreshingId(id);
-    try {
-      const r = await HttpUtil.post(`/panel/api/xray/outbound-subs/${id}/refresh`);
-      if (r?.success) {
-        messageApi.success(t('pages.xray.outboundSub.toastRefreshed'));
-        await loadSubs();
-        onRefreshXrayData?.();
-      } else {
-        messageApi.error(r?.msg || t('pages.xray.outboundSub.toastRefreshFailed'));
-      }
-    } catch {
-      messageApi.error(t('pages.xray.outboundSub.toastRefreshFailed'));
-    } finally {
-      setRefreshingId(null);
-    }
-  }
-  async function refreshAllSubs() {
-    if (subs.length === 0) return;
-    setRefreshingAll(true);
-    try {
-      for (const s of subs) {
-        try {
-          await HttpUtil.post(`/panel/api/xray/outbound-subs/${s.id}/refresh`);
-        } catch {
-          /* continue */
-        }
-      }
-      messageApi.success(t('pages.xray.outboundSub.toastRefreshed'));
-      await loadSubs();
-      onRefreshXrayData?.();
-    } finally {
-      setRefreshingAll(false);
-    }
-  }
-  async function deleteOne(id: number) {
-    try {
-      const r = await HttpUtil.post(`/panel/api/xray/outbound-subs/${id}/del`);
-      if (r?.success) {
-        messageApi.success(t('pages.xray.outboundSub.toastDeleted'));
-        await loadSubs();
-        onRefreshXrayData?.();
-      }
-    } catch {
-      messageApi.error(t('pages.xray.outboundSub.toastDeleteFailed'));
-    }
-  }
-
   const columns = useOutboundColumns({
     testMode,
     rows,
@@ -557,9 +266,6 @@ export default function OutboundsTab({
             <Space size="small" wrap>
               <Button type="primary" icon={<PlusOutlined aria-hidden />} onClick={openAdd}>
                 {!isMobile && t('pages.xray.Outbounds')}
-              </Button>
-              <Button icon={<CloudOutlined aria-hidden />} onClick={openSubManager}>
-                {t('pages.xray.outboundSub.manage')}
               </Button>
               <Dropdown
                 trigger={['click']}
@@ -698,353 +404,8 @@ export default function OutboundsTab({
           json
         />
 
-        {/* Subscription outbounds (read-only, merged at runtime) */}
-        {Array.isArray(subscriptionOutbounds) && subscriptionOutbounds.length > 0 && (
-          <SubscriptionOutbounds
-            subscriptionOutbounds={subscriptionOutbounds}
-            outboundsTraffic={outboundsTraffic}
-            subscriptionTestStates={subscriptionTestStates}
-            testMode={testMode}
-            isMobile={isMobile}
-            onTestSubscription={onTestSubscription}
-          />
-        )}
       </Space>
 
-      <Modal
-        title={t('pages.xray.outboundSub.title')}
-        open={subDrawerOpen}
-        onCancel={() => setSubDrawerOpen(false)}
-        footer={null}
-        width={isMobile ? '100%' : 640}
-        destroyOnHidden
-      >
-        <Space orientation="vertical" style={{ width: '100%' }} size="large">
-          <div>
-            {editingSubId != null && (
-              <div style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Tag color="blue">{t('edit')}</Tag>
-                <span style={{ fontWeight: 600 }}>{newSub.remark || newSub.url}</span>
-              </div>
-            )}
-            <Form layout="vertical" size="small">
-              <Form.Item label={t('pages.xray.outboundSub.remark')} htmlFor={`${uid}-remark`}>
-                <Input
-                  id={`${uid}-remark`}
-                  value={newSub.remark}
-                  onChange={(e) => setNewSub({ ...newSub, remark: e.target.value })}
-                  placeholder={t('pages.xray.outboundSub.remarkPlaceholder')}
-                />
-              </Form.Item>
-              <Form.Item label={t('pages.xray.outboundSub.url')} htmlFor={`${uid}-url`} required>
-                <Input
-                  id={`${uid}-url`}
-                  value={newSub.url}
-                  onChange={(e) => setNewSub({ ...newSub, url: e.target.value })}
-                  placeholder={t('pages.xray.outboundSub.urlPlaceholder')}
-                />
-              </Form.Item>
-              <Form.Item label={t('pages.xray.outboundSub.tagPrefix')} htmlFor={`${uid}-tagPrefix`}>
-                <Input
-                  id={`${uid}-tagPrefix`}
-                  value={newSub.tagPrefix}
-                  onChange={(e) => setNewSub({ ...newSub, tagPrefix: e.target.value })}
-                  placeholder={t('pages.xray.outboundSub.tagPrefixPlaceholder')}
-                />
-              </Form.Item>
-              <Form.Item label={t('pages.xray.outboundSub.userAgent')} htmlFor={`${uid}-userAgent`}>
-                <Input
-                  id={`${uid}-userAgent`}
-                  value={newSub.userAgent}
-                  onChange={(e) => setNewSub({ ...newSub, userAgent: e.target.value })}
-                  placeholder={defaultOutboundSubscriptionUserAgent}
-                />
-              </Form.Item>
-              <Form.Item label={t('pages.xray.outboundSub.interval')} htmlFor={`${uid}-interval`}>
-                <Space>
-                  <InputNumber
-                    id={`${uid}-interval`}
-                    min={0}
-                    value={intervalHours}
-                    onChange={onNumber((v) => setIntervalHM(v, intervalMinutes))}
-                    style={{ width: 80 }}
-                  />{' '}
-                  {t('pages.xray.outboundSub.hours')}
-                  <InputNumber
-                    aria-label={t('pages.xray.outboundSub.minutes')}
-                    min={0}
-                    max={59}
-                    value={intervalMinutes}
-                    onChange={onNumber((v) => setIntervalHM(intervalHours, v))}
-                    style={{ width: 80 }}
-                  />{' '}
-                  {t('pages.xray.outboundSub.minutes')}
-                </Space>
-                <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>
-                  {t('pages.xray.outboundSub.intervalHint')}
-                </div>
-              </Form.Item>
-              <Form.Item label={t('pages.xray.outboundSub.enabled')} htmlFor={`${uid}-enabled`}>
-                <Switch
-                  id={`${uid}-enabled`}
-                  checked={newSub.enabled}
-                  onChange={(v) => setNewSub({ ...newSub, enabled: v })}
-                />
-              </Form.Item>
-              <Form.Item
-                label={t('pages.xray.outboundSub.allowPrivate')}
-                htmlFor={`${uid}-allowPrivate`}
-              >
-                <Switch
-                  id={`${uid}-allowPrivate`}
-                  checked={newSub.allowPrivate}
-                  onChange={(v) => setNewSub({ ...newSub, allowPrivate: v })}
-                />
-                <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>
-                  {t('pages.xray.outboundSub.allowPrivateHint')}
-                </div>
-              </Form.Item>
-              <Form.Item
-                label={t('pages.hosts.fields.allowInsecure')}
-                htmlFor={`${uid}-allowInsecure`}
-              >
-                <Switch
-                  id={`${uid}-allowInsecure`}
-                  checked={newSub.allowInsecure}
-                  onChange={(v) => setNewSub({ ...newSub, allowInsecure: v })}
-                />
-                <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>
-                  {t('pages.hosts.hints.allowInsecure')}
-                </div>
-              </Form.Item>
-              <Form.Item label={t('pages.xray.outboundSub.prepend')} htmlFor={`${uid}-prepend`}>
-                <Switch
-                  id={`${uid}-prepend`}
-                  checked={newSub.prepend}
-                  onChange={(v) => setNewSub({ ...newSub, prepend: v })}
-                />
-                <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>
-                  {t('pages.xray.outboundSub.prependHint')}
-                </div>
-              </Form.Item>
-              <Space wrap>
-                <Button
-                  type="primary"
-                  onClick={saveSub}
-                  loading={savingSub}
-                  icon={
-                    editingSubId != null ? (
-                      <EditOutlined aria-hidden />
-                    ) : (
-                      <PlusOutlined aria-hidden />
-                    )
-                  }
-                >
-                  {editingSubId != null ? t('save') : t('pages.xray.outboundSub.addButton')}
-                </Button>
-                <Button
-                  onClick={previewSub}
-                  loading={previewing}
-                  icon={<EyeOutlined aria-hidden />}
-                >
-                  {t('pages.xray.outboundSub.preview')}
-                </Button>
-                {editingSubId != null && <Button onClick={resetSubForm}>{t('cancel')}</Button>}
-              </Space>
-              {previewData && previewData.length > 0 && (
-                <div style={{ marginTop: 8 }}>
-                  <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>
-                    {previewData.length} · {t('pages.xray.Outbounds')}
-                  </div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexWrap: 'wrap',
-                      gap: 4,
-                      maxHeight: 120,
-                      overflow: 'auto',
-                    }}
-                  >
-                    {previewData.map((o, i) => (
-                      <Tag key={i}>
-                        {o?.tag || '—'}
-                        {o?.protocol ? ` · ${o.protocol}` : ''}
-                      </Tag>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </Form>
-          </div>
-
-          <div>
-            <div
-              style={{
-                fontWeight: 600,
-                marginBottom: 8,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-              }}
-            >
-              {t('pages.xray.outboundSub.active')}
-              <Button
-                aria-label={t('refresh')}
-                size="small"
-                icon={<ReloadOutlined aria-hidden />}
-                onClick={loadSubs}
-                loading={subsLoading}
-              />
-              {subs.length > 0 && (
-                <Button
-                  size="small"
-                  type="primary"
-                  icon={<ReloadOutlined aria-hidden />}
-                  onClick={refreshAllSubs}
-                  loading={refreshingAll}
-                >
-                  {t('pages.xray.outboundSub.refreshAll')}
-                </Button>
-              )}
-            </div>
-            {subs.length === 0 ? (
-              <div style={{ color: '#888' }}>{t('pages.xray.outboundSub.empty')}</div>
-            ) : (
-              <Table
-                size="small"
-                dataSource={subs}
-                rowKey={(r) => r.id}
-                pagination={false}
-                scroll={{ x: true }}
-                columns={[
-                  {
-                    title: '',
-                    key: 'order',
-                    width: 56,
-                    render: (_: unknown, r: OutboundSub, index: number) => (
-                      <Space size={0}>
-                        <Button
-                          aria-label={t('pages.inbounds.form.moveUp')}
-                          type="text"
-                          size="small"
-                          icon={<ArrowUpOutlined aria-hidden />}
-                          disabled={index === 0 || busyId === r.id}
-                          onClick={() => moveSub(r.id, 'up')}
-                        />
-                        <Button
-                          aria-label={t('pages.inbounds.form.moveDown')}
-                          type="text"
-                          size="small"
-                          icon={<ArrowDownOutlined aria-hidden />}
-                          disabled={index === subs.length - 1 || busyId === r.id}
-                          onClick={() => moveSub(r.id, 'down')}
-                        />
-                      </Space>
-                    ),
-                  },
-                  {
-                    title: t('pages.xray.outboundSub.colRemark'),
-                    key: 'remark',
-                    render: (_: unknown, r: OutboundSub) => (
-                      <div>
-                        <div>{r.remark || <em>{t('pages.xray.outboundSub.auto')}</em>}</div>
-                        {r.tagPrefix && (
-                          <div style={{ fontSize: 11, color: '#888' }}>{r.tagPrefix}</div>
-                        )}
-                      </div>
-                    ),
-                  },
-                  {
-                    title: t('pages.xray.Outbounds'),
-                    dataIndex: 'outboundCount',
-                    key: 'outboundCount',
-                    align: 'center',
-                    render: (v) => v ?? 0,
-                  },
-                  {
-                    title: t('status'),
-                    key: 'status',
-                    align: 'center',
-                    render: (_: unknown, r: OutboundSub) =>
-                      r.lastError ? (
-                        <Tooltip title={r.lastError}>
-                          <WarningOutlined style={{ color: '#e04141' }} aria-label={r.lastError} />
-                        </Tooltip>
-                      ) : (
-                        <Tooltip title={t('pages.xray.outboundSub.statusOk')}>
-                          <CheckCircleOutlined
-                            style={{ color: '#008771' }}
-                            aria-label={t('pages.xray.outboundSub.statusOk')}
-                          />
-                        </Tooltip>
-                      ),
-                  },
-                  {
-                    title: t('pages.xray.outboundSub.colLastFetch'),
-                    dataIndex: 'lastUpdated',
-                    key: 'lastUpdated',
-                    render: (v: number) =>
-                      v ? new Date(v * 1000).toLocaleString() : t('pages.xray.outboundSub.never'),
-                  },
-                  {
-                    title: t('pages.xray.outboundSub.colEnabled'),
-                    key: 'enabled',
-                    align: 'center',
-                    render: (_: unknown, r: OutboundSub) => (
-                      <Switch
-                        size="small"
-                        aria-label={t('pages.xray.outboundSub.colEnabled')}
-                        checked={!!r.enabled}
-                        loading={busyId === r.id}
-                        onChange={() => toggleEnabled(r)}
-                      />
-                    ),
-                  },
-                  {
-                    title: '',
-                    key: 'actions',
-                    render: (_: unknown, r: OutboundSub) => (
-                      <Space>
-                        <Button
-                          aria-label={t('edit')}
-                          size="small"
-                          icon={<EditOutlined aria-hidden />}
-                          onClick={() => openEditSub(r)}
-                          title={t('edit')}
-                        />
-                        <Button
-                          aria-label={t('pages.xray.outboundSub.refreshNow')}
-                          size="small"
-                          icon={<ReloadOutlined aria-hidden />}
-                          loading={refreshingId === r.id}
-                          onClick={() => refreshOne(r.id)}
-                          title={t('pages.xray.outboundSub.refreshNow')}
-                        />
-                        <Popconfirm
-                          title={t('pages.xray.outboundSub.deleteConfirm')}
-                          okText={t('delete')}
-                          cancelText={t('cancel')}
-                          onConfirm={() => deleteOne(r.id)}
-                        >
-                          <Button
-                            aria-label={t('delete')}
-                            size="small"
-                            danger
-                            icon={<DeleteOutlined aria-hidden />}
-                          />
-                        </Popconfirm>
-                      </Space>
-                    ),
-                  },
-                ]}
-              />
-            )}
-            <div style={{ marginTop: 8, fontSize: 12, color: '#666' }}>
-              {t('pages.xray.outboundSub.restartHint')}
-            </div>
-          </div>
-        </Space>
-      </Modal>
     </>
   );
 }

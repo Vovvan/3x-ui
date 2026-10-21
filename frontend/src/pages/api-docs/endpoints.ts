@@ -69,133 +69,6 @@ export interface Section {
 const inboundBody =
   '{\n  "enable": true,\n  "remark": "VLESS-443",\n  "listen": "",\n  "port": 443,\n  "protocol": "vless",\n  "expiryTime": 0,\n  "total": 0,\n  "settings": {\n    "clients": [{ "id": "...", "email": "user1" }],\n    "decryption": "none",\n    "fallbacks": []\n  },\n  "streamSettings": {\n    "network": "tcp",\n    "security": "reality",\n    "realitySettings": { "show": false, "dest": "..." }\n  },\n  "sniffing": {\n    "enabled": true,\n    "destOverride": ["http", "tls"]\n  }\n}';
 
-const outboundSubscriptionBodyParams: EndpointParam[] = [
-  {
-    name: 'remark',
-    in: 'body (form)',
-    type: 'string',
-    desc: 'Optional display label.',
-    optional: true,
-  },
-  {
-    name: 'url',
-    in: 'body (form)',
-    type: 'string',
-    desc: 'Subscription URL (required). Must be a public http(s) address; private/internal targets are blocked unless allowPrivate is true.',
-  },
-  {
-    name: 'tagPrefix',
-    in: 'body (form)',
-    type: 'string',
-    desc: 'Prefix for generated outbound tags. Defaults to the lowest free "sub<N>-" prefix.',
-    optional: true,
-  },
-  {
-    name: 'userAgent',
-    in: 'body (form)',
-    type: 'string',
-    desc: 'Custom User-Agent sent when fetching this subscription. Defaults to "3x-ui-outbound-sub/1.0".',
-    optional: true,
-    defaultValue: '3x-ui-outbound-sub/1.0',
-  },
-  {
-    name: 'updateInterval',
-    in: 'body (form)',
-    type: 'integer',
-    desc: 'Seconds between auto-refreshes. Default 600.',
-    optional: true,
-    defaultValue: 600,
-  },
-  {
-    name: 'enabled',
-    in: 'body (form)',
-    type: 'boolean',
-    desc: 'Whether the subscription is active. Default true.',
-    optional: true,
-    defaultValue: true,
-  },
-  {
-    name: 'allowPrivate',
-    in: 'body (form)',
-    type: 'boolean',
-    desc: 'Allow the URL to point at a private/internal/loopback address. Default false.',
-    optional: true,
-    defaultValue: false,
-  },
-  {
-    name: 'allowInsecure',
-    in: 'body (form)',
-    type: 'boolean',
-    desc: "Skip TLS certificate verification when fetching the subscription's URL. Default false.",
-    optional: true,
-    defaultValue: false,
-  },
-  {
-    name: 'prepend',
-    in: 'body (form)',
-    type: 'boolean',
-    desc: "Place this subscription's outbounds before the manual template outbounds. Default false.",
-    optional: true,
-    defaultValue: false,
-  },
-];
-
-const subBalancerBodyParams: EndpointParam[] = [
-  {
-    name: 'remark',
-    in: 'body (form)',
-    type: 'string',
-    desc: 'Display label, used as the config remarks (required).',
-  },
-  {
-    name: 'strategy',
-    in: 'body (form)',
-    type: 'string',
-    desc: 'Balancer strategy: "leastLoad", "leastPing", "roundRobin" or "random". Default "random".',
-    optional: true,
-    defaultValue: 'random',
-  },
-  {
-    name: 'inboundIds',
-    in: 'body (form)',
-    type: 'integer[]',
-    desc: 'Repeated form keys selecting the member inbounds (required, at least one).',
-  },
-  {
-    name: 'memberWeights',
-    in: 'body (form)',
-    type: 'object',
-    desc: 'leastLoad only: JSON object mapping inbound id to a static weight > 0, e.g. {"3":0.2}. Lower weight = picked more often; absent ids weigh 1. Rejected for other strategies; entries for unselected inbounds are dropped.',
-    optional: true,
-  },
-  {
-    name: 'sortOrder',
-    in: 'body (form)',
-    type: 'integer',
-    desc: '1-based position in the subscription list. Default 1.',
-    optional: true,
-    defaultValue: 1,
-  },
-  {
-    name: 'enabled',
-    in: 'body (form)',
-    type: 'boolean',
-    desc: 'Whether the balancer is emitted. Default true on create; unchanged when omitted on update.',
-    optional: true,
-  },
-];
-
-const subscriptionHeadResponses = {
-  '200': { description: 'Subscription is available. Headers match GET; no response body.' },
-  '404': { description: 'No enabled client matches the subscription ID.' },
-  '500': { description: 'Subscription generation failed.' },
-};
-
-const hwidStatusErrorResponses = {
-  '404': { description: 'No enabled client matches the subscription ID. Empty body.' },
-  '500': { description: 'Database lookup failed. Empty body.' },
-};
-
 export const sections: readonly Section[] = [
   {
     id: 'authentication',
@@ -343,14 +216,6 @@ export const sections: readonly Section[] = [
           'Toggle only the enable flag without serialising the whole settings JSON. Recommended for UI switches on large inbounds.',
         params: [{ name: 'id', in: 'path', type: 'number', desc: 'Inbound ID.' }],
         body: '{\n  "enable": false\n}',
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/inbounds/:id/subSortIndex',
-        summary:
-          'Set only the subscription sort order. Reads the stored inbound, so a reorder cannot carry a stale client list over a concurrent edit.',
-        params: [{ name: 'id', in: 'path', type: 'number', desc: 'Inbound ID.' }],
-        body: '{\n  "subSortIndex": 2\n}',
       },
       {
         method: 'POST',
@@ -1657,30 +1522,6 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'GET',
-        path: '/panel/api/clients/subLinks/:subId',
-        summary:
-          'Return every protocol URL (vless://, vmess://, trojan://, ss://, hysteria://, hy2://) for clients matching the subscription ID. Same result set as the configured subPath endpoint, but as a JSON array — no base64. When an inbound has streamSettings.externalProxy set, one URL is emitted per external proxy. Empty array when the subId has no enabled clients.',
-        params: [
-          {
-            name: 'subId',
-            in: 'path',
-            type: 'string',
-            desc: "Subscription ID, taken from the client's subId field.",
-          },
-        ],
-        response:
-          '{\n  "success": true,\n  "obj": [\n    "vless://uuid@host:443?security=reality&...#user1",\n    "vmess://eyJ2IjoyLC..."\n  ]\n}',
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/clients/happLink/:id',
-        summary:
-          'Generate a fresh Happ crypt5 link locally from the current client subscription URL when Happ link generation is enabled. The panel applies a resource limit of 8192 UTF-8 bytes to the source URL; this is not a Happ client maximum. Longer sources return success: false with msg: happ_source_too_long and obj: null. The source URL is not sent to a generation provider, and the result is not stored or reused.',
-        params: [{ name: 'id', in: 'path', type: 'integer', desc: 'Stable client record ID.' }],
-        responseSchema: 'HappLinkResult',
-      },
-      {
-        method: 'GET',
         path: '/panel/api/clients/links/:email',
         summary:
           'Return every URL for one client across all attached inbounds, one per advertised endpoint: the managed hosts of the inbound, else its streamSettings.externalProxy entries, else its own address. Supported protocols: vmess, vless, trojan, shadowsocks, hysteria, mtproto. Protocols without a URL form (socks, http, mixed, wireguard, dokodemo, tunnel) contribute nothing.',
@@ -1935,19 +1776,6 @@ export const sections: readonly Section[] = [
     ],
   },
 
-  {
-    id: 'backup',
-    title: 'Backup',
-    description: 'Operations that interact with the configured Telegram bot.',
-    endpoints: [
-      {
-        method: 'POST',
-        path: '/panel/api/backuptotgbot',
-        summary:
-          'Send a fresh DB backup to every Telegram chat configured as an admin recipient. No body, no params.',
-      },
-    ],
-  },
 
   {
     id: 'settings',
@@ -1959,9 +1787,9 @@ export const sections: readonly Section[] = [
         method: 'POST',
         path: '/panel/api/setting/all',
         summary:
-          'Return every panel setting: web server, Telegram bot, subscription, security, LDAP. The full JSON blob that the Settings page edits.',
+          'Return every panel setting: web server, security, LDAP, notifications. The full JSON blob that the Settings page edits.',
         response:
-          '{\n  "success": true,\n  "obj": {\n    "webPort": 2053,\n    "webCertFile": "",\n    "webKeyFile": "",\n    "webBasePath": "/",\n    "subPort": 10882,\n    "subPath": "/sub/",\n    "subClashAutoDetect": false,\n    "subClashUserAgentRegex": "",\n    "subJsonEnable": false,\n    "subJsonAutoDetect": false,\n    "subJsonAlwaysArray": false,\n    "subJsonUserAgentRegex": "",\n    "subJsonPath": "/json/",\n    "subJsonURI": "https://sub.example.com/json/",\n    "subClashEnable": true,\n    "subClashPath": "/clash/",\n    "subClashURI": "https://sub.example.com/clash/",\n    "tgBotEnable": false,\n    "tgBotToken": "",\n    ...\n  }\n}',
+          '{\n  "success": true,\n  "obj": {\n    "webPort": 2053,\n    "webCertFile": "",\n    "webKeyFile": "",\n    "webBasePath": "/",\n    "webDomain": "",\n    "subDomain": "",\n    "remarkTemplate": "{{INBOUND}}-{{EMAIL}}",\n    ...\n  }\n}',
       },
       {
         method: 'POST',
@@ -1980,7 +1808,7 @@ export const sections: readonly Section[] = [
         path: '/panel/api/setting/update',
         summary:
           'Persist every setting at once. The body mirrors the shape returned by /all. Invalid values (bad ports, missing cert pairs, etc.) are rejected before write.',
-        body: '{\n  "webPort": 2053,\n  "webBasePath": "/",\n  "subPort": 10882,\n  "subPath": "/sub/",\n  "subClashAutoDetect": false,\n  "subClashUserAgentRegex": "",\n  "subJsonEnable": false,\n  "subJsonAutoDetect": false,\n  "subJsonAlwaysArray": false,\n  "subJsonUserAgentRegex": "",\n  "subJsonPath": "/json/",\n  "subJsonURI": "https://sub.example.com/json/",\n  "subClashEnable": true,\n  "subClashPath": "/clash/",\n  "subClashURI": "https://sub.example.com/clash/",\n  "tgBotEnable": false,\n  ...\n}',
+        body: '{\n  "webPort": 2053,\n  "webBasePath": "/",\n  "webDomain": "",\n  "subDomain": "",\n  ...\n}',
       },
       {
         method: 'POST',
@@ -2016,25 +1844,6 @@ export const sections: readonly Section[] = [
           'Test SMTP connection with stage-by-stage reporting (connect, auth, send). Returns structured result with stage and message.',
         response:
           '{\n  "success": true,\n  "stage": "send",\n  "msg": "Test email sent successfully"\n}',
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/setting/testTgBot',
-        summary: 'Test Telegram bot connection by sending a test message to the configured chat.',
-        response: '{\n  "success": true,\n  "msg": "Test message sent to Telegram"\n}',
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/setting/tgBotCapabilities',
-        summary:
-          'Report what the configured bot can do. Inline mode is a BotFather switch, so the panel warns when it is off.',
-        responseSchema: 'TgBotCapabilities',
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/setting/testDiscord',
-        summary: 'Test Discord bot connection by sending a test embed to the configured channel.',
-        response: '{\n  "success": true,\n  "msg": "Test notification sent successfully"\n}',
       },
       {
         method: 'GET',
@@ -2568,266 +2377,10 @@ export const sections: readonly Section[] = [
         ],
         body: 'kind=domain&tokens=geosite:google,geosite:blabla',
       },
-      {
-        method: 'GET',
-        path: '/panel/api/xray/outbound-subs',
-        summary:
-          'List all outbound subscriptions (remote URLs that supply additional outbounds), newest first.',
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/xray/outbound-subs',
-        summary:
-          'Create an outbound subscription. The URL is fetched, parsed into outbounds with stable tags, and merged additively into the running Xray config.',
-        params: outboundSubscriptionBodyParams,
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/xray/outbound-subs/:id',
-        summary:
-          'Update an existing outbound subscription by id. Accepts the same form fields as create.',
-        params: [
-          { name: 'id', in: 'path', type: 'integer', desc: 'Subscription id.' },
-          ...outboundSubscriptionBodyParams,
-        ],
-      },
-      {
-        method: 'DELETE',
-        path: '/panel/api/xray/outbound-subs/:id',
-        summary: 'Delete an outbound subscription by id.',
-        params: [{ name: 'id', in: 'path', type: 'integer', desc: 'Subscription id.' }],
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/xray/outbound-subs/:id/del',
-        summary:
-          'Delete an outbound subscription by id (POST alias of DELETE for clients that cannot send DELETE).',
-        params: [{ name: 'id', in: 'path', type: 'integer', desc: 'Subscription id.' }],
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/xray/outbound-subs/:id/refresh',
-        summary:
-          'Force an immediate re-fetch of the subscription and return the parsed outbounds. Signals Xray to reload.',
-        params: [{ name: 'id', in: 'path', type: 'integer', desc: 'Subscription id.' }],
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/xray/outbound-subs/:id/move',
-        summary:
-          'Reorder a subscription one step up or down in priority (controls its position in the merged outbounds).',
-        params: [
-          { name: 'id', in: 'path', type: 'integer', desc: 'Subscription id.' },
-          {
-            name: 'dir',
-            in: 'body (form)',
-            type: 'string',
-            desc: '"up" to raise priority, anything else to lower it.',
-            optional: true,
-          },
-        ],
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/xray/outbound-subs/parse',
-        summary:
-          'Preview a subscription URL: fetch and parse it into outbounds without persisting anything.',
-        params: [
-          {
-            name: 'url',
-            in: 'body (form)',
-            type: 'string',
-            desc: 'Subscription URL to preview (required).',
-          },
-          {
-            name: 'userAgent',
-            in: 'body (form)',
-            type: 'string',
-            desc: 'Custom User-Agent sent while fetching the preview.',
-            optional: true,
-          },
-          {
-            name: 'allowPrivate',
-            in: 'body (form)',
-            type: 'boolean',
-            desc: 'Allow a private/internal/loopback URL. Default false.',
-            optional: true,
-          },
-          {
-            name: 'allowInsecure',
-            in: 'body (form)',
-            type: 'boolean',
-            desc: 'Skip TLS certificate verification. Default false.',
-            optional: true,
-          },
-        ],
-      },
     ],
   },
 
-  {
-    id: 'sub-balancers',
-    title: 'Subscription Balancers',
-    description:
-      'Client-side balancers for the JSON subscription: each enabled balancer is emitted as one extra config document whose members are the proxy outbounds of the selected inbounds (routing.balancers + burstObservatory). Managed in Settings → Sub Balancers.',
-    endpoints: [
-      {
-        method: 'GET',
-        path: '/panel/api/sub-balancers',
-        summary: 'List all subscription balancers in sort order (sort_order asc, id asc).',
-        responseSchema: 'SubBalancer',
-        responseSchemaArray: true,
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/sub-balancers',
-        summary:
-          'Create a subscription balancer. It appears in the JSON subscription of every client that sits on at least one selected inbound.',
-        params: subBalancerBodyParams,
-        responseSchema: 'SubBalancer',
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/sub-balancers/:id',
-        summary:
-          'Update a balancer by id. Accepts the same form fields as create (full-row update); omitting memberWeights clears stored weights, while omitting enabled keeps its current value.',
-        params: [
-          { name: 'id', in: 'path', type: 'integer', desc: 'Balancer id.' },
-          ...subBalancerBodyParams,
-        ],
-        responseSchema: 'SubBalancer',
-      },
-      {
-        method: 'DELETE',
-        path: '/panel/api/sub-balancers/:id',
-        summary: 'Delete a balancer by id.',
-        params: [{ name: 'id', in: 'path', type: 'integer', desc: 'Balancer id.' }],
-        responseSchema: 'SubBalancer',
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/sub-balancers/:id/del',
-        summary:
-          'Delete a balancer by id (POST alias of DELETE for clients that cannot send DELETE).',
-        params: [{ name: 'id', in: 'path', type: 'integer', desc: 'Balancer id.' }],
-        responseSchema: 'SubBalancer',
-      },
-    ],
-  },
 
-  {
-    id: 'subscription',
-    title: 'Subscription Server',
-    description:
-      'A separate HTTP/HTTPS server that serves proxy subscription links (standard, JSON, and Clash) to clients. The server listens on its own port (default 2096) and is configured in Settings → Subscription. Fresh panels generate random path prefixes for each format; all paths remain configurable. Every subscription endpoint sets response headers for client apps to read traffic/expiry info.',
-    subHeader: [
-      {
-        name: 'Subscription-Userinfo',
-        desc: 'Traffic and expiry: <code>upload=N; download=N; total=N; expire=TS</code>',
-      },
-      { name: 'Profile-Title', desc: 'Base64-encoded subscription display name' },
-      { name: 'Profile-Web-Page-Url', desc: 'Link to the subscription info page' },
-      { name: 'Support-Url', desc: 'Support contact URL configured in settings' },
-      {
-        name: 'Profile-Update-Interval',
-        desc: 'Suggested polling interval in minutes (e.g. <code>10</code>)',
-      },
-      { name: 'Announce', desc: 'Base64-encoded announcement string' },
-      {
-        name: 'Routing-Enable',
-        desc: '<code>true</code> or <code>false</code> — whether routing rules are included',
-      },
-      {
-        name: 'Routing',
-        desc: 'Global routing rules for client apps that support them (e.g. Happ)',
-      },
-    ],
-    endpoints: [
-      {
-        method: 'GET',
-        path: '/{subPath}:subid',
-        summary:
-          'Return base64-encoded subscription links for all enabled clients matching the subscription ID. When the request has an Accept: text/html header or ?html=1, renders a styled info page instead. With ?format=info, returns the page view-model as JSON (traffic, expiry, online status; no links) for live polling. The path prefix is configured by subPath.',
-        params: [
-          { name: 'subid', in: 'path', type: 'string', desc: 'Client subscription ID.' },
-          {
-            name: 'format',
-            in: 'query',
-            type: 'string',
-            optional: true,
-            desc: 'Set to "info" to get the subscription status view-model as JSON instead of the links.',
-          },
-        ],
-      },
-      {
-        method: 'HEAD',
-        path: '/{subPath}:subid',
-        summary:
-          'Return the same status and subscription metadata headers as GET without a response body.',
-        params: [{ name: 'subid', in: 'path', type: 'string', desc: 'Client subscription ID.' }],
-        responses: subscriptionHeadResponses,
-      },
-      {
-        method: 'GET',
-        path: '/{subPath}:subid/hwid-status',
-        summary:
-          'Return aggregate HWID device-slot usage for the subscription: whether an HWID limit is active, the limit, how many devices are registered and how many slots remain. Read-only — it never registers a device, so asking does not consume a slot. Counters only: no HWID value, email or device metadata. The path prefix is configured by subPath.',
-        description:
-          'Responds with the bare HwidSlotStatus object, not the <code>{success,msg,obj}</code> panel envelope, like the other subscription-server routes. With no HWID limit configured, <code>active</code> is false and every counter is 0.',
-        params: [{ name: 'subid', in: 'path', type: 'string', desc: 'Client subscription ID.' }],
-        responses: {
-          '200': {
-            description: 'Device-slot counters for the subscription.',
-            content: {
-              'application/json': { schema: { $ref: '#/components/schemas/HwidSlotStatus' } },
-            },
-          },
-          ...hwidStatusErrorResponses,
-        },
-      },
-      {
-        method: 'HEAD',
-        path: '/{subPath}:subid/hwid-status',
-        summary:
-          'Return the HWID device-slot status code and headers as GET without a response body.',
-        params: [{ name: 'subid', in: 'path', type: 'string', desc: 'Client subscription ID.' }],
-        responses: {
-          '200': { description: 'Headers match GET; no response body.' },
-          ...hwidStatusErrorResponses,
-        },
-      },
-      {
-        method: 'GET',
-        path: '/{jsonPath}:subid',
-        summary:
-          'Return subscription as a JSON array of proxy configs (one per enabled client). Only when JSON subscription is enabled in settings. The path prefix is configured by subJsonPath.',
-        params: [{ name: 'subid', in: 'path', type: 'string', desc: 'Client subscription ID.' }],
-      },
-      {
-        method: 'HEAD',
-        path: '/{jsonPath}:subid',
-        summary:
-          'Return the JSON subscription status and metadata headers without a body. Registered only when JSON subscriptions are enabled.',
-        params: [{ name: 'subid', in: 'path', type: 'string', desc: 'Client subscription ID.' }],
-        responses: subscriptionHeadResponses,
-      },
-      {
-        method: 'GET',
-        path: '/{clashPath}:subid',
-        summary:
-          'Return subscription as a Clash/Mihomo-compatible YAML config, including configured global Clash routing rules. Only when Clash subscription is enabled in settings. The path prefix is configured by subClashPath.',
-        params: [{ name: 'subid', in: 'path', type: 'string', desc: 'Client subscription ID.' }],
-      },
-      {
-        method: 'HEAD',
-        path: '/{clashPath}:subid',
-        summary:
-          'Return the Clash subscription status and metadata headers without a body. Registered only when Clash subscriptions are enabled.',
-        params: [{ name: 'subid', in: 'path', type: 'string', desc: 'Client subscription ID.' }],
-        responses: subscriptionHeadResponses,
-      },
-    ],
-  },
 
   {
     id: 'websocket',

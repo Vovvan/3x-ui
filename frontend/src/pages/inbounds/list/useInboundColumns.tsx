@@ -35,7 +35,6 @@ interface UseInboundColumnsParams {
   hostRemarksByInboundId: Map<number, string[]>;
   clientCount: Record<number, ClientCountEntry>;
   inboundSpeed: Record<number, InboundSpeedEntry>;
-  subEnable: boolean;
   expireDiff: number;
   trafficDiff: number;
   onRowAction: (action: { key: RowAction; dbInbound: DBInboundRecord }) => void;
@@ -50,7 +49,6 @@ export function useInboundColumns({
   hostRemarksByInboundId,
   clientCount,
   inboundSpeed,
-  subEnable,
   expireDiff,
   trafficDiff,
   onRowAction,
@@ -118,7 +116,6 @@ export function useInboundColumns({
         render: (_, record) => (
           <RowActionsCell
             record={record}
-            subEnable={subEnable}
             hasClients={(clientCount[record.id]?.clients || 0) > 0}
             onClick={(key) => onRowAction({ key, dbInbound: record })}
           />
@@ -478,8 +475,7 @@ export function useInboundColumns({
     hostRemarksByInboundId,
     clientCount,
     inboundSpeed,
-    subEnable,
-    expireDiff,
+      expireDiff,
     trafficDiff,
     datepicker,
     onRowAction,

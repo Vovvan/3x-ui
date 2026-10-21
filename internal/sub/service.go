@@ -15,7 +15,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/goccy/go-json"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
@@ -23,7 +22,6 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/tuic"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/maskcompat"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/random"
 	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
@@ -412,11 +410,6 @@ func (s *SubService) RecordSubscriptionFetch(subId string) error {
 		Update("last_sub_fetch", time.Now().UnixMilli()).Error
 }
 
-// GetSubs retrieves subscription links for a given subscription ID and host.
-func (s *SubService) GetSubs(subId string, host string) ([]string, []string, int64, xray.ClientTraffic, error) {
-	return s.ForRequest(host).getSubs(subId)
-}
-
 type infoNodeMode int
 
 const (
@@ -481,7 +474,7 @@ func (s *SubService) resolveInfoNodeRemark(subId string, uniqueEmails []string, 
 	return infoNodeNone, ""
 }
 
-func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.ClientTraffic, error) {
+func (s *SubService) GetSubs(subId string, _ string) ([]string, []string, int64, xray.ClientTraffic, error) {
 	var result []string
 	var ordered []orderedSubEntry[func() string]
 	var emails []string
@@ -491,15 +484,9 @@ func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.Clie
 	if err != nil {
 		return nil, nil, 0, traffic, err
 	}
-	externalLinks, err := s.getClientExternalLinksBySubId(subId)
-	if err != nil {
-		return nil, nil, 0, traffic, err
-	}
-
-	if len(inbounds) == 0 && len(externalLinks) == 0 {
+	if len(inbounds) == 0 {
 		return nil, nil, 0, traffic, nil
 	}
-
 	seenEmails := make(map[string]struct{})
 	for _, inbound := range inbounds {
 		clients := s.matchingClients(inbound, subId)
@@ -562,26 +549,6 @@ func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.Clie
 			result = append(result, render())
 		}
 	}
-	for _, ext := range externalLinks {
-		if ext.Enable {
-			hasEnabledClient = true
-		}
-		if !ext.Active {
-			seenEmails[ext.Email] = struct{}{}
-			if result == nil {
-				result = []string{}
-			}
-			continue
-		}
-		for _, el := range expandEntry(ext) {
-			if link := applyRemarkToLink(el.Link, el.Name); link != "" {
-				result = append(result, link)
-				emails = append(emails, ext.Email)
-				seenEmails[ext.Email] = struct{}{}
-			}
-		}
-	}
-
 	uniqueEmails := make([]string, 0, len(seenEmails))
 	for e := range seenEmails {
 		uniqueEmails = append(uniqueEmails, e)
@@ -589,7 +556,6 @@ func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.Clie
 	slices.Sort(uniqueEmails)
 	traffic, lastOnline := s.AggregateTrafficByEmails(uniqueEmails)
 	traffic.Enable = hasEnabledClient
-
 	if mode, remark := s.resolveInfoNodeRemark(subId, uniqueEmails, traffic, len(result) > 0); mode != infoNodeNone {
 		dummyLink := fmt.Sprintf("socks://127.0.0.1:1080#%s", strings.ReplaceAll(url.QueryEscape(remark), "+", "%20"))
 		if mode == infoNodeExpired || mode == infoNodeDepleted {
@@ -597,7 +563,6 @@ func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.Clie
 		}
 		result = append([]string{dummyLink}, result...)
 	}
-
 	return result, emails, lastOnline, traffic, nil
 }
 
@@ -3242,229 +3207,14 @@ func searchHost(headers any) string {
 
 // PageData is a view model for subpage.html
 // PageData contains data for rendering the subscription information page.
-type PageData struct {
-	Host          string
-	BasePath      string
-	SId           string
-	Enabled       bool
-	IsOnline      bool
-	Download      string
-	Upload        string
-	Total         string
-	Used          string
-	Remained      string
-	Expire        int64
-	LastOnline    int64
-	Datepicker    string
-	DownloadByte  int64
-	UploadByte    int64
-	TotalByte     int64
-	SubUrl        string
-	SubJsonUrl    string
-	SubClashUrl   string
-	SubTitle      string
-	SubSupportUrl string
-	SubAnnounce   string
-	Result        []string
-	Emails        []string
-}
 
-// ResolveRequest extracts scheme, host, and header information from an HTTP request.
-// X-Real-IP names the visitor, never the panel, so it is no host source (#6589).
-func (s *SubService) ResolveRequest(c *gin.Context) (scheme string, host string, hostWithPort string, hostHeader string) {
-	trusted := s.forwardedHeadersTrusted(c)
-	if !trusted {
-		warnSuppressedForwardedHeaders(c)
+func cloneMap(src map[string]any) map[string]any {
+	if src == nil {
+		return nil
 	}
-	forwarded := func(name string) string {
-		if !trusted {
-			return ""
-		}
-		return c.GetHeader(name)
-	}
-
-	// scheme
-	scheme = "http"
-	if c.Request.TLS != nil || strings.EqualFold(forwarded("X-Forwarded-Proto"), "https") {
-		scheme = "https"
-	}
-
-	// base host (no port): trusted X-Forwarded-Host, then the dialed request Host.
-	if h, err := getHostFromXFH(forwarded("X-Forwarded-Host")); err == nil && h != "" {
-		host = h
-	}
-	if host == "" {
-		var err error
-		host, _, err = net.SplitHostPort(c.Request.Host)
-		if err != nil {
-			host = c.Request.Host
-		}
-	}
-
-	// host:port for URLs
-	hostWithPort = forwarded("X-Forwarded-Host")
-	if hostWithPort == "" {
-		hostWithPort = c.Request.Host
-	}
-	if hostWithPort == "" {
-		hostWithPort = host
-	}
-
-	// header display host
-	hostHeader = forwarded("X-Forwarded-Host")
-	if hostHeader == "" {
-		hostHeader = host
-	}
-	return
-}
-
-// BuildURLs constructs absolute subscription and JSON subscription URLs for a given subscription ID.
-// It prioritizes configured URIs, then individual settings, and finally falls back to request-derived components.
-func (s *SubService) BuildURLs(subPath, subJsonPath, subClashPath, subId string) (subURL, subJsonURL, subClashURL string) {
-	if subId == "" {
-		return "", "", ""
-	}
-
-	configuredSubURI, _ := s.settingService.GetSubURI()
-	configuredSubJsonURI, _ := s.settingService.GetSubJsonURI()
-	configuredSubClashURI, _ := s.settingService.GetSubClashURI()
-
-	// Same base as the panel's Client Information page; s.address is the
-	// subscriber's host already normalized away from any loopback/bind IP.
-	base := s.settingService.BuildSubURIBase(s.address)
-
-	subURL = s.buildSingleURL(configuredSubURI, base, subPath, subId)
-
-	// When subURI is explicitly configured (reverse-proxy setup), use its
-	// scheme+host as the base for JSON and Clash URLs so they match the
-	// reverse-proxy endpoint instead of the raw sub-server port. Fall back
-	// to the request-derived base if subURI is empty or can't be parsed
-	// into a scheme+host (e.g. a malformed value with no scheme).
-	jsonClashBase := base
-	if configuredSubURI != "" {
-		if derived := s.extractBaseFromURI(configuredSubURI); derived != "" {
-			jsonClashBase = derived
-		}
-	}
-
-	subJsonURL = s.buildSingleURL(configuredSubJsonURI, jsonClashBase, subJsonPath, subId)
-	subClashURL = s.buildSingleURL(configuredSubClashURI, jsonClashBase, subClashPath, subId)
-
-	return subURL, subJsonURL, subClashURL
-}
-
-// extractBaseFromURI extracts scheme://host from a configured URI.
-// e.g., "https://example.com/sub-xxx/" → "https://example.com".
-// Returns "" when the URI is empty or lacks a scheme/host, so callers can
-// fall back to the request-derived base instead of emitting a broken value.
-func (s *SubService) extractBaseFromURI(uri string) string {
-	u, err := url.Parse(uri)
-	if err != nil || u.Scheme == "" || u.Host == "" {
-		return ""
-	}
-	return fmt.Sprintf("%s://%s", u.Scheme, u.Host)
-}
-
-// buildSingleURL constructs a single URL using configured URI or base components
-func (s *SubService) buildSingleURL(configuredURI, base, basePath, subId string) string {
-	if configuredURI != "" {
-		return s.joinPathWithID(configuredURI, subId)
-	}
-	return s.joinPathWithID(base+basePath, subId)
-}
-
-// joinPathWithID safely joins a base path with a subscription ID
-func (s *SubService) joinPathWithID(basePath, subId string) string {
-	if strings.HasSuffix(basePath, "/") {
-		return basePath + subId
-	}
-	return basePath + "/" + subId
-}
-
-// BuildPageData parses header and prepares the template view model.
-// BuildPageData constructs page data for rendering the subscription information page.
-func (s *SubService) BuildPageData(subId string, hostHeader string, traffic xray.ClientTraffic, lastOnline int64, subs []string, emails []string, subURL, subJsonURL, subClashURL string, basePath string, subTitle string, subSupportUrl string) PageData {
-	download := common.FormatTraffic(traffic.Down)
-	upload := common.FormatTraffic(traffic.Up)
-	total := "∞"
-	used := common.FormatTraffic(traffic.Up + traffic.Down)
-	remained := ""
-	if traffic.Total > 0 {
-		total = common.FormatTraffic(traffic.Total)
-		left := max(traffic.Total-(traffic.Up+traffic.Down), 0)
-		remained = common.FormatTraffic(left)
-	}
-
-	datepicker := s.datepicker
-	if datepicker == "" {
-		datepicker = "gregorian"
-	}
-
-	pageLinks := make([]string, 0, len(subs))
-	pageEmails := make([]string, 0, len(subs))
-	for i, sub := range subs {
-		email := ""
-		if i < len(emails) {
-			email = emails[i]
-		}
-		for _, link := range splitLinkLines(sub) {
-			pageLinks = append(pageLinks, link)
-			pageEmails = append(pageEmails, email)
-		}
-	}
-
-	return PageData{
-		Host:          hostHeader,
-		BasePath:      basePath,
-		SId:           subId,
-		Enabled:       traffic.Enable,
-		IsOnline:      subIsOnline(emails, s.inboundService.GetOnlineClients()),
-		Download:      download,
-		Upload:        upload,
-		Total:         total,
-		Used:          used,
-		Remained:      remained,
-		Expire:        traffic.ExpiryTime / 1000,
-		LastOnline:    lastOnline,
-		Datepicker:    datepicker,
-		DownloadByte:  traffic.Down,
-		UploadByte:    traffic.Up,
-		TotalByte:     traffic.Total,
-		SubUrl:        subURL,
-		SubJsonUrl:    subJsonURL,
-		SubClashUrl:   subClashURL,
-		SubTitle:      subTitle,
-		SubSupportUrl: subSupportUrl,
-		Result:        pageLinks,
-		Emails:        pageEmails,
-	}
-}
-
-func subIsOnline(subEmails, onlineEmails []string) bool {
-	if len(subEmails) == 0 || len(onlineEmails) == 0 {
-		return false
-	}
-	onlineSet := make(map[string]struct{}, len(onlineEmails))
-	for _, email := range onlineEmails {
-		onlineSet[email] = struct{}{}
-	}
-	for _, email := range subEmails {
-		if _, online := onlineSet[email]; online {
-			return true
-		}
-	}
-	return false
-}
-
-func getHostFromXFH(s string) (string, error) {
-	if strings.Contains(s, ":") {
-		realHost, _, err := net.SplitHostPort(s)
-		if err != nil {
-			return "", err
-		}
-		return realHost, nil
-	}
-	return s, nil
+	dst := make(map[string]any, len(src))
+	maps.Copy(dst, src)
+	return dst
 }
 
 // extraSalamanderKeys lists salamander settings unexpressible in hysteria2 URI;

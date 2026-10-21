@@ -4,17 +4,13 @@ import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { ConfigProvider, Tag, Tooltip, message } from 'antd';
 import {
-  ApartmentOutlined,
   CheckCircleFilled,
   ClockCircleOutlined,
   CloseCircleFilled,
-  CloudServerOutlined,
   ClusterOutlined,
   CodeOutlined,
-  CopyOutlined,
   DashboardOutlined,
   DatabaseOutlined,
-  DiscordOutlined,
   ExportOutlined,
   FileTextOutlined,
   ImportOutlined,
@@ -32,10 +28,9 @@ import {
   ToolOutlined,
 } from '@ant-design/icons';
 
-import { ClipboardManager, HttpUtil, SizeFormatter } from '@/utils';
+import { HttpUtil, SizeFormatter } from '@/utils';
 import { activateOnKey } from '@/utils/a11y';
 import { useInboundOptions } from '@/api/queries/useInboundOptions';
-import { useAllSettings } from '@/api/queries/useAllSettings';
 import { useTheme } from '@/hooks/useTheme';
 import { PANEL_ROUTES } from '@/routes/panelRoutes';
 import type { ClientRecord, InboundOption } from '@/schemas/client';
@@ -92,7 +87,6 @@ export default function CommandPalette() {
   const navigate = useNavigate();
   const { isDark, isUltra, toggleTheme, toggleUltra, antdThemeConfig } = useTheme();
   const { isOpen, close } = useCommandPalette();
-  const { allSetting } = useAllSettings();
   const { data: inbounds = [] } = useInboundOptions();
 
   const [query, setQuery] = useState('');
@@ -216,19 +210,6 @@ export default function CommandPalette() {
     };
   }, [isOpen, debouncedQuery]);
 
-  const copySubscription = useCallback(
-    async (client: ClientRecord) => {
-      if (!client.subId || !allSetting.subURI) {
-        messageApi.warning(t('pages.clients.noSubId'));
-        return;
-      }
-      const link = `${allSetting.subURI}${client.subId}`;
-      const ok = await ClipboardManager.copyText(link);
-      if (ok) messageApi.success(t('copied'));
-    },
-    [allSetting.subURI, messageApi, t],
-  );
-
   const restartXray = useCallback(async () => {
     close();
     const msg = await HttpUtil.post('/panel/api/server/restartXrayService', undefined, {
@@ -294,17 +275,6 @@ export default function CommandPalette() {
             close();
             navigate(`/clients?search=${encodeURIComponent(c.email)}`);
           },
-          secondaryAction:
-            c.subId && allSetting.subURI
-              ? {
-                  label: t('commandPalette.copySubscription'),
-                  icon: <CopyOutlined aria-hidden />,
-                  execute: (e) => {
-                    e.stopPropagation();
-                    copySubscription(c);
-                  },
-                }
-              : undefined,
         });
       });
     }
@@ -406,46 +376,11 @@ export default function CommandPalette() {
         icon: <SafetyOutlined aria-hidden />,
       },
       {
-        path: '/settings#telegram',
-        title: `${t('menu.settings')} · ${t('pages.settings.TGBotSettings')}`,
-        subtitle: t('pages.settings.TGBotSettings'),
-        keywords: ['telegram', 'tgbot', 'bot token', 'chat id', 'notifications', 'alerts'],
-        icon: <TelegramFilled aria-hidden />,
-      },
-      {
         path: '/settings#email',
         title: `${t('menu.settings')} · ${t('pages.settings.emailSettings')}`,
         subtitle: t('pages.settings.emailSettings'),
         keywords: ['email', 'smtp', 'mail', 'crash alerts'],
         icon: <MailOutlined aria-hidden />,
-      },
-      {
-        path: '/settings#discord',
-        title: `${t('menu.settings')} · ${t('pages.settings.discordSettings')}`,
-        subtitle: t('pages.settings.discordSettings'),
-        keywords: ['discord', 'bot', 'channel', 'notifications', 'alerts'],
-        icon: <DiscordOutlined aria-hidden />,
-      },
-      {
-        path: '/settings#subscription',
-        title: `${t('menu.settings')} · ${t('pages.settings.subSettings')}`,
-        subtitle: t('pages.settings.subSettings'),
-        keywords: ['subscription', 'subPort', 'subURI', 'subDomain', 'reverse proxy'],
-        icon: <CloudServerOutlined aria-hidden />,
-      },
-      {
-        path: '/settings#subscription-formats',
-        title: `${t('menu.settings')} · ${t('menu.subFormats')}`,
-        subtitle: t('menu.subFormats'),
-        keywords: ['formats', 'clash', 'sing-box', 'v2ray', 'json', 'sub formats'],
-        icon: <CodeOutlined aria-hidden />,
-      },
-      {
-        path: '/settings#subscription-balancers',
-        title: `${t('menu.settings')} · ${t('pages.settings.subBalancers.menu')}`,
-        subtitle: t('pages.settings.subBalancers.menu'),
-        keywords: ['balancers', 'sub balancers', 'balancer nodes'],
-        icon: <ApartmentOutlined aria-hidden />,
       },
       {
         path: '/xray#basic',
@@ -591,11 +526,9 @@ export default function CommandPalette() {
     inbounds,
     isDark,
     isUltra,
-    allSetting.subURI,
     t,
     close,
     navigate,
-    copySubscription,
     restartXray,
     cycleTheme,
   ]);

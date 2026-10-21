@@ -10,10 +10,8 @@
     "server",
     "settings",
     "xray-settings",
-    "subscription-server",
     "hosts",
     "nodes",
-    "backup",
     "websocket"
   ]
 }

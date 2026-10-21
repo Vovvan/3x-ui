@@ -45,11 +45,6 @@ func (f *fakeNodeRuntime) UpdateInbound(context.Context, *model.Inbound, *model.
 	return nil
 }
 
-func (f *fakeNodeRuntime) SetInboundSubSortIndex(context.Context, *model.Inbound, int) error {
-	f.updateSubSort.Add(1)
-	return nil
-}
-
 func (f *fakeNodeRuntime) AddUser(context.Context, *model.Inbound, map[string]any) error { return nil }
 
 func (f *fakeNodeRuntime) RemoveUser(context.Context, *model.Inbound, string) error { return nil }

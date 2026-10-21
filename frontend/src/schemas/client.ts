@@ -183,12 +183,10 @@ export const ClientPageResponseSchema = z.object({
   groups: nullableStringArray.optional(),
 });
 
-// A per-client external link surfaced in the client's subscription:
-// kind=link is a single share link, kind=subscription is a remote sub URL.
+// A per-client external link surfaced in the client's subscription.
 export const ExternalLinkSchema = z
   .object({
     id: z.number().int().optional().default(0),
-    kind: z.enum(['link', 'subscription']).default('link'),
     value: z.string(),
     remark: z.string().optional().default(''),
     enable: z.preprocess((v) => (v == null ? true : v), z.boolean()).default(true),

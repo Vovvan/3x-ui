@@ -42,8 +42,8 @@ describe('useAllSettings', () => {
     const queryClient = makeTestQueryClient();
     const fetchDefaults = vi
       .fn()
-      .mockResolvedValueOnce({ subURI: 'https://example.com/sub/' })
-      .mockResolvedValueOnce({ subURI: 'https://example.com/my_custom_path/' });
+      .mockResolvedValueOnce({ webPort: 2053 })
+      .mockResolvedValueOnce({ webPort: 2096 });
     const defaultsQuery = {
       queryKey: keys.settings.defaults(),
       queryFn: fetchDefaults,
@@ -63,7 +63,7 @@ describe('useAllSettings', () => {
 
     const defaults = await queryClient.query(defaultsQuery);
     expect(fetchDefaults).toHaveBeenCalledTimes(2);
-    expect(defaults.subURI).toBe('https://example.com/my_custom_path/');
+    expect(defaults.webPort).toBe(2096);
   });
 
   it('keeps cached default settings when a save fails', async () => {
@@ -74,8 +74,8 @@ describe('useAllSettings', () => {
     const queryClient = makeTestQueryClient();
     const fetchDefaults = vi
       .fn()
-      .mockResolvedValueOnce({ subURI: 'https://example.com/sub/' })
-      .mockResolvedValueOnce({ subURI: 'https://example.com/my_custom_path/' });
+      .mockResolvedValueOnce({ webPort: 2053 })
+      .mockResolvedValueOnce({ webPort: 2096 });
     const defaultsQuery = {
       queryKey: keys.settings.defaults(),
       queryFn: fetchDefaults,
@@ -95,23 +95,7 @@ describe('useAllSettings', () => {
 
     const defaults = await queryClient.query(defaultsQuery);
     expect(fetchDefaults).toHaveBeenCalledOnce();
-    expect(defaults.subURI).toBe('https://example.com/sub/');
-  });
-
-  it('accepts legacy overlength regex settings without logging a response validation warning', async () => {
-    const subJsonUserAgentRegex = 'x'.repeat(2_049);
-    vi.spyOn(HttpUtil, 'post').mockResolvedValue(new Msg(true, '', { subJsonUserAgentRegex }));
-    const warning = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-    const queryClient = makeTestQueryClient();
-    const wrapper = ({ children }: { children: ReactNode }) => (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    );
-
-    const { result } = renderHook(() => useAllSettings(), { wrapper });
-
-    await waitFor(() => expect(result.current.fetched).toBe(true));
-    expect(result.current.allSetting.subJsonUserAgentRegex).toBe(subJsonUserAgentRegex);
-    expect(warning).not.toHaveBeenCalled();
+    expect(defaults.webPort).toBe(2053);
   });
 
   it('keeps an edited setting when a refetch returns older server data', async () => {
@@ -141,7 +125,7 @@ describe('useAllSettings', () => {
         return new Msg(
           true,
           '',
-          fetchCount === 1 ? { hasTgBotToken: false } : { hasTgBotToken: true, tgBotToken: '' },
+          fetchCount === 1 ? { hasSmtpPassword: false } : { hasSmtpPassword: true, smtpPassword: '' },
         );
       }
       return new Msg(true, '');
@@ -153,14 +137,14 @@ describe('useAllSettings', () => {
     const { result } = renderHook(() => useAllSettings(), { wrapper });
 
     await waitFor(() => expect(result.current.fetched).toBe(true));
-    act(() => result.current.updateSetting({ tgBotToken: 'secret' }));
+    act(() => result.current.updateSetting({ smtpPassword: 'secret' }));
     await act(async () => {
       await result.current.saveAll();
     });
 
     await waitFor(() => expect(HttpUtil.post).toHaveBeenCalledTimes(3));
-    expect(result.current.allSetting.tgBotToken).toBe('');
-    expect(result.current.allSetting.hasTgBotToken).toBe(true);
+    expect(result.current.allSetting.smtpPassword).toBe('');
+    expect(result.current.allSetting.hasSmtpPassword).toBe(true);
     expect(result.current.saveDisabled).toBe(true);
   });
 
@@ -172,7 +156,7 @@ describe('useAllSettings', () => {
         return new Msg(
           true,
           '',
-          fetchCount === 1 ? { hasTgBotToken: false } : { hasTgBotToken: true, tgBotToken: '' },
+          fetchCount === 1 ? { hasSmtpPassword: false } : { hasSmtpPassword: true, smtpPassword: '' },
         );
       }
       return new Msg(true, '');
@@ -184,7 +168,7 @@ describe('useAllSettings', () => {
     const { result } = renderHook(() => useAllSettings(), { wrapper });
 
     await waitFor(() => expect(result.current.fetched).toBe(true));
-    act(() => result.current.updateSetting({ tgBotToken: 'secret' }));
+    act(() => result.current.updateSetting({ smtpPassword: 'secret' }));
     await act(async () => {
       await result.current.savePayload({
         ...result.current.allSetting,
@@ -194,8 +178,8 @@ describe('useAllSettings', () => {
     });
 
     await waitFor(() => expect(HttpUtil.post).toHaveBeenCalledTimes(3));
-    expect(result.current.allSetting.tgBotToken).toBe('');
-    expect(result.current.allSetting.hasTgBotToken).toBe(true);
+    expect(result.current.allSetting.smtpPassword).toBe('');
+    expect(result.current.allSetting.hasSmtpPassword).toBe(true);
     expect(result.current.saveDisabled).toBe(true);
   });
 });

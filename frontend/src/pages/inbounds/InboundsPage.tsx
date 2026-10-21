@@ -60,7 +60,6 @@ type RowAction =
   | 'edit'
   | 'showInfo'
   | 'export'
-  | 'subs'
   | 'clipboard'
   | 'delete'
   | 'resetTraffic'
@@ -71,7 +70,7 @@ type RowAction =
   | 'addToGroup'
   | 'clone';
 
-type GeneralAction = 'import' | 'export' | 'subs' | 'resetInbounds';
+type GeneralAction = 'import' | 'export' | 'resetInbounds';
 
 interface ClientMatchTarget {
   id?: string;
@@ -387,27 +386,6 @@ export default function InboundsPage() {
     [openText, t],
   );
 
-  const exportInboundSubs = useCallback(
-    (dbInbound: DBInbound) => {
-      const settings = coerceInboundJsonField(dbInbound.settings) as {
-        clients?: { subId?: string }[];
-      };
-      const clients = settings.clients || [];
-      const subLinks: string[] = [];
-      for (const c of clients) {
-        if (c.subId && subSettings.subURI) {
-          subLinks.push(subSettings.subURI + c.subId);
-        }
-      }
-      openText({
-        title: t('pages.inbounds.exportSubsTitle'),
-        content: [...new Set(subLinks)].join('\n'),
-        fileName: `${dbInbound.remark || 'inbound'}-Subs`,
-      });
-    },
-    [subSettings, openText, t],
-  );
-
   const exportAllLinks = useCallback(async () => {
     const msg = await HttpUtil.get('/panel/api/inbounds/allLinks');
     const links = msg?.success && Array.isArray(msg.obj) ? (msg.obj as string[]) : [];
@@ -417,27 +395,6 @@ export default function InboundsPage() {
       fileName: t('pages.inbounds.exportAllLinksFileName'),
     });
   }, [openText, t]);
-
-  const exportAllSubs = useCallback(async () => {
-    const hydrated = await Promise.all(
-      dbInbounds.map((ib) => hydrateInbound(ib.id).then((r) => r ?? ib)),
-    );
-    const out: string[] = [];
-    for (const ib of hydrated) {
-      const settings = coerceInboundJsonField(ib.settings) as { clients?: { subId?: string }[] };
-      const clients = settings.clients || [];
-      for (const c of clients) {
-        if (c.subId && subSettings.subURI) {
-          out.push(subSettings.subURI + c.subId);
-        }
-      }
-    }
-    openText({
-      title: t('pages.inbounds.exportAllSubsTitle'),
-      content: [...new Set(out)].join('\r\n'),
-      fileName: t('pages.inbounds.exportAllSubsFileName'),
-    });
-  }, [dbInbounds, hydrateInbound, subSettings, openText, t]);
 
   const importInbound = useCallback(() => {
     openPrompt({
@@ -602,9 +559,6 @@ export default function InboundsPage() {
         case 'export':
           exportAllLinks();
           break;
-        case 'subs':
-          exportAllSubs();
-          break;
         case 'resetInbounds':
           modal.confirm({
             title: t('pages.inbounds.resetAllTrafficTitle'),
@@ -620,7 +574,7 @@ export default function InboundsPage() {
           messageApi.info(`General action "${key}" — coming in a later 5f subphase`);
       }
     },
-    [modal, importInbound, exportAllLinks, exportAllSubs, refresh, messageApi, t],
+    [modal, importInbound, exportAllLinks, refresh, messageApi, t],
   );
 
   const onRowAction = useCallback(
@@ -632,7 +586,6 @@ export default function InboundsPage() {
         'edit',
         'showInfo',
         'export',
-        'subs',
         'clipboard',
         'clone',
         'attachClients',
@@ -654,9 +607,6 @@ export default function InboundsPage() {
           break;
         case 'export':
           exportInboundLinks(target);
-          break;
-        case 'subs':
-          exportInboundSubs(target);
           break;
         case 'clipboard':
           exportInboundClipboard(target);
@@ -699,7 +649,6 @@ export default function InboundsPage() {
       checkFallback,
       findClientIndex,
       exportInboundLinks,
-      exportInboundSubs,
       exportInboundClipboard,
       confirmDelete,
       confirmResetTraffic,
@@ -792,7 +741,6 @@ export default function InboundsPage() {
                       trafficDiff={trafficDiff}
                       pageSize={pageSize}
                       isMobile={isMobile}
-                      subEnable={subSettings.enable}
                       nodesById={nodesById}
                       hasActiveNode={showNodeInfo}
                       hosts={hosts}
@@ -832,7 +780,6 @@ export default function InboundsPage() {
             trafficDiff={trafficDiff}
             ipLimitEnable={ipLimitEnable}
             tgBotEnable={tgBotEnable}
-            subSettings={subSettings}
             hosts={hosts}
             lastOnlineMap={lastOnlineMap}
             nodeAddress={infoNodeAddress}

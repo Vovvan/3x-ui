@@ -37,7 +37,6 @@ import {
   EditOutlined,
   FilterOutlined,
   InfoCircleOutlined,
-  LinkOutlined,
   MoreOutlined,
   PlusOutlined,
   QrcodeOutlined,
@@ -86,7 +85,6 @@ const ClientQrModal = lazy(() => import('./ClientQrModal'));
 const ClientBulkAddModal = lazy(() => import('./ClientBulkAddModal'));
 const ClientBulkAdjustModal = lazy(() => import('./ClientBulkAdjustModal'));
 const FilterDrawer = lazy(() => import('./FilterDrawer'));
-const SubLinksModal = lazy(() => import('./SubLinksModal'));
 const BulkAddToGroupModal = lazy(() => import('./BulkAddToGroupModal'));
 const BulkAttachInboundsModal = lazy(() => import('./BulkAttachInboundsModal'));
 const BulkDetachInboundsModal = lazy(() => import('./BulkDetachInboundsModal'));
@@ -410,7 +408,6 @@ export default function ClientsPage() {
   );
   const [bulkAddOpen, setBulkAddOpen] = useState(false);
   const [bulkAdjustOpen, setBulkAdjustOpen] = useState(false);
-  const [subLinksOpen, setSubLinksOpen] = useState(false);
   const [bulkGroupOpen, setBulkGroupOpen] = useState(false);
   const [bulkAttachOpen, setBulkAttachOpen] = useState(false);
   const [bulkDetachOpen, setBulkDetachOpen] = useState(false);
@@ -1467,12 +1464,6 @@ export default function ClientsPage() {
                                         label: t('pages.clients.adjust'),
                                         onClick: () => setBulkAdjustOpen(true),
                                       },
-                                      {
-                                        key: 'subLinks',
-                                        icon: <LinkOutlined aria-hidden />,
-                                        label: t('pages.clients.subLinks'),
-                                        onClick: () => setSubLinksOpen(true),
-                                      },
                                     ]
                                   : [
                                       {
@@ -1967,15 +1958,6 @@ export default function ClientsPage() {
               }
               return null;
             }}
-          />
-        </LazyMount>
-        <LazyMount when={subLinksOpen}>
-          <SubLinksModal
-            open={subLinksOpen}
-            emails={selectedRowKeys}
-            clients={clients}
-            subSettings={subSettings}
-            onOpenChange={setSubLinksOpen}
           />
         </LazyMount>
         <LazyMount when={bulkGroupOpen}>

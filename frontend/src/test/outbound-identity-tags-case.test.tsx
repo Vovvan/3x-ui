@@ -30,13 +30,11 @@ function renderTab(settings: XraySettingsValue) {
         setTemplateSettings={vi.fn()}
         outboundsTraffic={[]}
         outboundTestStates={{}}
-        subscriptionTestStates={{}}
         testingAll={false}
         inboundTags={[]}
         isMobile={false}
         onResetTraffic={vi.fn()}
         onTest={vi.fn()}
-        onTestSubscription={vi.fn()}
         onTestAll={vi.fn()}
         onShowWarp={vi.fn()}
         onShowNord={vi.fn()}

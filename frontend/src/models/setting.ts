@@ -1,5 +1,4 @@
 import { ObjectUtil } from '@/utils';
-import type { SubProfileMode, SubHostSortMode } from '@/schemas/setting';
 
 export class AllSetting {
   webListen = '';
@@ -26,118 +25,13 @@ export class AllSetting {
   subTrafficDepletedTemplate =
     '🚫 {{EMAIL}} | Traffic Depleted | {{TRAFFIC_USED}}/{{TRAFFIC_TOTAL}}';
   datepicker: 'gregorian' | 'jalalian' = 'gregorian';
-  tgBotEnable = false;
-  tgBotToken = '';
-  tgBotAPIServer = '';
-  tgBotChatId = '';
-  tgRunTime = '@daily';
-  tgBotBackup = false;
-  tgCpu = 80;
-  tgMemory = 80;
-  tgLang = 'en-US';
   twoFactorEnable = false;
   twoFactorToken = '';
   xrayTemplateConfig = '';
-  happLinkEnable = false;
-  subEnable = true;
-  subJsonEnable = false;
-  subJsonAutoDetect = false;
-  subJsonAlwaysArray = false;
-  subJsonUserAgentRegex = '';
-  subClashAutoDetect = false;
-  subClashUserAgentRegex = '';
-  subTitle = '';
-  subSupportUrl = '';
-  subProfileMode: SubProfileMode = 'none';
-  subProfileUrl = '';
-  subAnnounce = '';
-  subEnableRouting = false;
-  subRoutingRules = '';
-  subIncyEnableRouting = false;
-  subIncyRoutingRules = '';
-  subListen = '';
-  subPort = 2096;
-  subPath = '/sub/';
-  subJsonPath = '/json/';
-  subClashEnable = false;
-  subClashPath = '/clash/';
   subDomain = '';
   externalTrafficInformEnable = false;
   externalTrafficInformURI = '';
   restartXrayOnClientDisable = true;
-  subCertFile = '';
-  subKeyFile = '';
-  externalSubUserAgent = 'v2rayNG/1.8.5';
-  subUpdates = 12;
-  subEncrypt = true;
-  subURI = '';
-  subJsonURI = '';
-  subClashURI = '';
-  subClashEnableRouting = false;
-  subClashRules = '';
-  subClashRemoteDNS = false;
-  subJsonMux = '';
-  subJsonRules = '';
-  subJsonRoutingRules = '';
-  subJsonDns = '';
-  subJsonFinalMask = '';
-  subJsonObservatory = '';
-  subThemeDir = '';
-  subHideSettings = false;
-  subHappAutoDetect = false;
-  subHappProviderId = '';
-  subHappNewUrl = '';
-  subHappFallbackUrl = '';
-  subHappSubInfoColor = 'blue';
-  subHappSubInfoText = '';
-  subHappSubInfoButtonText = '';
-  subHappSubInfoButtonLink = '';
-  subHappSubExpire = false;
-  subHappSubExpireButtonLink = '';
-  subHappNotificationExpire = false;
-  subHappNoLimit = false;
-  subHappAlwaysHwid = false;
-  subHappTunMode = '';
-  subHappTunType = '';
-  subHappExcludeRoutes = '';
-  subHappExcludeApns = false;
-  subHappColorProfile = '';
-  subHappPingType = '';
-  subHappAutoConnect = false;
-  subHappAutoConnectType = 'lowestdelay';
-  subHappPerAppMode = 'off';
-  subHappPerAppList = '';
-  subHappLocalProxyAuth = 'auto';
-
-  subIncyAppAutoDetect = false;
-  subIncyProfileDescription = '';
-  subIncySortOrder = '';
-  subIncySupportEmail = '';
-  subIncyAnnounceUrl = '';
-  subIncyPremiumUrl = '';
-  subIncyBannerText = '';
-  subIncyBannerButtonText = '';
-  subIncyBannerButtonUrl = '';
-  subIncyBannerBgColor = '';
-  subIncyBannerButtonColor = '';
-  subIncyHideUrl = '';
-  subIncyHideCheck = '';
-  subIncyNoLimitEnabled = '';
-  subIncyPerAppEnable = '';
-  subIncyPerAppMode = '';
-  subIncyPerAppList = '';
-  subIncyFragmentationEnable = '';
-  subIncyFragmentLength = '';
-  subIncyFragmentInterval = '';
-  subIncyFragmentPackets = '';
-  subIncyNoisesEnable = '';
-  subIncyNoisesType = '';
-  subIncyNoisesPacket = '';
-  subIncyNoisesDelay = '';
-  subIncyResolveEnable = '';
-  subIncyResolveDnsDomain = '';
-  subIncyResolveDnsIp = '';
-
   timeLocation = 'Local';
 
   ldapEnable = false;
@@ -161,7 +55,6 @@ export class AllSetting {
   ldapDefaultTotalGB = 0;
   ldapDefaultExpiryDays = 0;
   ldapDefaultLimitIP = 0;
-  tgEnabledEvents = 'login.attempt,cpu.high';
   smtpEnable = false;
   smtpHost = '';
   smtpPort = 587;
@@ -186,16 +79,6 @@ export class AllSetting {
   clearTgBotToken = false;
   clearLdapPassword = false;
   clearSmtpPassword = false;
-  discordBotEnable = false;
-  discordBotToken = '';
-  discordChannelId = '';
-  discordAdminIds = '';
-  discordRunTime = '@daily';
-  discordBotBackup = false;
-  discordCpu = 80;
-  discordMemory = 80;
-  discordLang = 'en-US';
-  discordEnabledEvents = 'login.attempt,cpu.high';
   hasDiscordBotToken = false;
   clearDiscordBotToken = false;
 
@@ -203,17 +86,6 @@ export class AllSetting {
     if (data != null) {
       ObjectUtil.cloneProps(this, data);
     }
-    // Legacy settings with a custom URL retain it until an explicit mode is saved.
-    if (
-      typeof data === 'object' &&
-      data !== null &&
-      (!('subProfileMode' in data) || data.subProfileMode === undefined) &&
-      this.subProfileUrl.trim() !== ''
-    ) {
-      this.subProfileMode = 'custom';
-    }
-    const cpu = Math.round(Number(this.tgCpu));
-    this.tgCpu = Number.isFinite(cpu) ? Math.min(100, Math.max(0, cpu)) : 80;
     const threshold = Math.round(Number(this.outboundDownThreshold));
     this.outboundDownThreshold = Number.isFinite(threshold)
       ? Math.min(100, Math.max(1, threshold))

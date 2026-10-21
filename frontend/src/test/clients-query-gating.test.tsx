@@ -59,15 +59,15 @@ function wrapperFor() {
 
 describe('useClients query gating', () => {
   it.each([
-    ['missing', {}, false],
-    ['false', { happLinkEnable: false }, false],
-    ['true', { happLinkEnable: true }, true],
-  ])('maps a %s Happ gate to a fail-closed client setting', async (_name, defaults, want) => {
+    ['sub domain', { subDomain: 'sub.example.com', webDomain: 'web.example.com' }, 'sub.example.com'],
+    ['web domain', { webDomain: 'web.example.com' }, 'web.example.com'],
+    ['neither', {}, ''],
+  ])('uses the %s as the share-link host', async (_name, defaults, want) => {
     mockPanel(defaults);
     const { result } = renderHook(() => useClients(), { wrapper: wrapperFor() });
 
     await waitFor(() => expect(result.current.settingsReady).toBe(true));
-    expect(result.current.subSettings.happLinkEnable).toBe(want);
+    expect(result.current.subSettings.publicHost).toBe(want);
   });
 
   it('does not fetch the list until the page supplies a query', async () => {

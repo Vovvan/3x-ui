@@ -3,7 +3,6 @@ package controller
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -20,16 +19,15 @@ import (
 
 // XraySettingController handles Xray configuration and settings operations.
 type XraySettingController struct {
-	XraySettingService          service.XraySettingService
-	SettingService              service.SettingService
-	InboundService              service.InboundService
-	OutboundService             outbound.OutboundService
-	XrayService                 service.XrayService
-	WarpService                 integration.WarpService
-	NordService                 integration.NordService
-	PiaService                  integration.PiaService
-	OutboundSubscriptionService service.OutboundSubscriptionService
-	GeodataService              service.GeodataService
+	XraySettingService service.XraySettingService
+	SettingService     service.SettingService
+	InboundService     service.InboundService
+	OutboundService    outbound.OutboundService
+	XrayService        service.XrayService
+	WarpService        integration.WarpService
+	NordService        integration.NordService
+	PiaService         integration.PiaService
+	GeodataService     service.GeodataService
 }
 
 // NewXraySettingController creates a new XraySettingController and initializes its routes.
@@ -64,14 +62,6 @@ func (a *XraySettingController) initRouter(g *gin.RouterGroup) {
 	g.POST("/geodata/validate", a.geodataValidate)
 
 	// Outbound subscription (remote outbound lists)
-	g.GET("/outbound-subs", a.listOutboundSubs)
-	g.POST("/outbound-subs", a.createOutboundSub)
-	g.POST("/outbound-subs/:id/refresh", a.refreshOutboundSub)
-	g.POST("/outbound-subs/:id/move", a.moveOutboundSub)
-	g.POST("/outbound-subs/:id", a.updateOutboundSub)
-	g.DELETE("/outbound-subs/:id", a.deleteOutboundSub)
-	g.POST("/outbound-subs/:id/del", a.deleteOutboundSub) // POST alias for clients that can't send DELETE
-	g.POST("/outbound-subs/parse", a.parseOutboundSubURL) // preview without saving
 }
 
 // getXraySetting retrieves the Xray configuration template, inbound tags, and outbound test URL.
@@ -119,16 +109,6 @@ func (a *XraySettingController) getXraySetting(c *gin.Context) {
 		"geodataSources":    service.StandardGeodataSources(),
 	}
 
-	// Surface subscription outbounds (and their tags) so the frontend can:
-	// - show them as read-only items in the Outbounds tab
-	// - let users pick them in balancers and routing rules
-	// These are not part of the editable template; they are injected at runtime.
-	if subObs, err := a.OutboundSubscriptionService.AllActiveOutbounds(); err == nil && len(subObs) > 0 {
-		xrayResponse["subscriptionOutbounds"] = subObs
-	}
-	if subTags, err := a.OutboundSubscriptionService.AllActiveOutboundTags(); err == nil && len(subTags) > 0 {
-		xrayResponse["subscriptionOutboundTags"] = subTags
-	}
 	result, err := json.Marshal(xrayResponse)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.getSettings"), err)
@@ -502,156 +482,4 @@ func geodataPaging(c *gin.Context) (int, int) {
 		limit = 0
 	}
 	return offset, limit
-}
-
-// --- Outbound Subscription handlers ---
-
-func (a *XraySettingController) listOutboundSubs(c *gin.Context) {
-	list, err := a.OutboundSubscriptionService.List()
-	if err != nil {
-		jsonMsg(c, "Failed to list outbound subscriptions", err)
-		return
-	}
-	jsonObj(c, list, nil)
-}
-
-func (a *XraySettingController) createOutboundSub(c *gin.Context) {
-	remark := c.PostForm("remark")
-	rawURL := c.PostForm("url")
-	prefix := c.PostForm("tagPrefix")
-	userAgent := c.PostForm("userAgent")
-	enabled := c.PostForm("enabled") != "false"
-	allowPrivate := c.PostForm("allowPrivate") == "true"
-	allowInsecure := c.PostForm("allowInsecure") == "true"
-	prepend := c.PostForm("prepend") == "true"
-	intervalStr := c.PostForm("updateInterval")
-	interval := 600
-	if intervalStr != "" {
-		if v, err := parseIntSafe(intervalStr); err == nil && v > 0 {
-			interval = v
-		}
-	}
-	sub, err := a.OutboundSubscriptionService.Create(remark, rawURL, prefix, userAgent, enabled, interval, allowPrivate, prepend, allowInsecure)
-	if err != nil {
-		jsonMsg(c, "Failed to create outbound subscription", err)
-		return
-	}
-	jsonObj(c, sub, nil)
-}
-
-func (a *XraySettingController) updateOutboundSub(c *gin.Context) {
-	id := c.Param("id")
-	var subID int
-	if _, err := fmt.Sscanf(id, "%d", &subID); err != nil {
-		jsonMsg(c, "Invalid id", err)
-		return
-	}
-	remark := c.PostForm("remark")
-	rawURL := c.PostForm("url")
-	prefix := c.PostForm("tagPrefix")
-	userAgent := c.PostForm("userAgent")
-	enabled := c.PostForm("enabled") != "false"
-	allowPrivate := c.PostForm("allowPrivate") == "true"
-	allowInsecure := c.PostForm("allowInsecure") == "true"
-	prepend := c.PostForm("prepend") == "true"
-	intervalStr := c.PostForm("updateInterval")
-	interval := 600
-	if intervalStr != "" {
-		if v, err := parseIntSafe(intervalStr); err == nil && v > 0 {
-			interval = v
-		}
-	}
-	if err := a.OutboundSubscriptionService.Update(subID, remark, rawURL, prefix, userAgent, enabled, interval, allowPrivate, prepend, allowInsecure); err != nil {
-		jsonMsg(c, "Failed to update outbound subscription", err)
-		return
-	}
-	jsonObj(c, "", nil)
-}
-
-func (a *XraySettingController) deleteOutboundSub(c *gin.Context) {
-	id := c.Param("id")
-	var subID int
-	if _, err := fmt.Sscanf(id, "%d", &subID); err != nil {
-		jsonMsg(c, "Invalid id", err)
-		return
-	}
-	if err := a.OutboundSubscriptionService.Delete(subID); err != nil {
-		jsonMsg(c, "Failed to delete outbound subscription", err)
-		return
-	}
-	// Signal that xray should drop this subscription's outbounds on next reload.
-	a.XrayService.SetToNeedRestart()
-	jsonObj(c, "", nil)
-}
-
-func (a *XraySettingController) refreshOutboundSub(c *gin.Context) {
-	id := c.Param("id")
-	var subID int
-	if _, err := fmt.Sscanf(id, "%d", &subID); err != nil {
-		jsonMsg(c, "Invalid id", err)
-		return
-	}
-	obs, err := a.OutboundSubscriptionService.Refresh(subID)
-	if err != nil {
-		jsonMsg(c, "Refresh failed", err)
-		return
-	}
-	// Signal that xray should pick up the new outbounds on next restart/reload
-	a.XrayService.SetToNeedRestart()
-	jsonObj(c, obs, nil)
-}
-
-func (a *XraySettingController) moveOutboundSub(c *gin.Context) {
-	id := c.Param("id")
-	var subID int
-	if _, err := fmt.Sscanf(id, "%d", &subID); err != nil {
-		jsonMsg(c, "Invalid id", err)
-		return
-	}
-	up := c.PostForm("dir") == "up"
-	if err := a.OutboundSubscriptionService.Move(subID, up); err != nil {
-		jsonMsg(c, "Failed to reorder outbound subscription", err)
-		return
-	}
-	// Order affects the merged outbounds, so xray needs a reload.
-	a.XrayService.SetToNeedRestart()
-	jsonObj(c, "", nil)
-}
-
-// parseOutboundSubURL is a preview endpoint: it fetches + parses the provided
-// URL but does not persist anything. Useful for the "add subscription" flow
-// so the user can see the resulting outbounds (and assigned tags) before saving.
-func (a *XraySettingController) parseOutboundSubURL(c *gin.Context) {
-	rawURL := c.PostForm("url")
-	if rawURL == "" {
-		jsonMsg(c, "url is required", common.NewError("missing url"))
-		return
-	}
-	allowPrivate := c.PostForm("allowPrivate") == "true"
-	allowInsecure := c.PostForm("allowInsecure") == "true"
-	userAgent := c.PostForm("userAgent")
-	// Use a throw-away service instance; it only needs the settingService for proxy.
-	svc := service.OutboundSubscriptionService{}
-	// We don't have a direct "fetch once" that returns without storing, so we
-	// temporarily create a disabled row, refresh it, then delete. Cleaner would
-	// be to expose a pure ParseURL on the service, but this keeps the surface small.
-	tmp, err := svc.Create("preview", rawURL, "", userAgent, false, 600, allowPrivate, false, allowInsecure)
-	if err != nil {
-		jsonMsg(c, "Failed to preview subscription", err)
-		return
-	}
-	obs, err := svc.Refresh(tmp.Id)
-	// best-effort cleanup
-	_ = svc.Delete(tmp.Id)
-	if err != nil {
-		jsonMsg(c, "Failed to fetch/parse subscription", err)
-		return
-	}
-	jsonObj(c, obs, nil)
-}
-
-func parseIntSafe(s string) (int, error) {
-	var v int
-	_, err := fmt.Sscanf(s, "%d", &v)
-	return v, err
 }

@@ -8,7 +8,6 @@ import (
 )
 
 type SubLinkProvider interface {
-	SubLinksForSubId(host, subId string) ([]string, error)
 	LinksForClient(host string, inbound *model.Inbound, email string) []string
 	LinksForInbounds(host string, inbounds []*model.Inbound) []string
 }
@@ -29,14 +28,6 @@ func subLinkProvider() SubLinkProvider {
 	subLinkProviderMu.RLock()
 	defer subLinkProviderMu.RUnlock()
 	return registeredSubLinkProvider
-}
-
-func (s *InboundService) GetSubLinks(host, subId string) ([]string, error) {
-	provider := subLinkProvider()
-	if provider == nil {
-		return nil, common.NewError("sub link provider not registered")
-	}
-	return provider.SubLinksForSubId(host, subId)
 }
 
 func (s *InboundService) GetAllInboundLinks(host string, userId int) ([]string, error) {

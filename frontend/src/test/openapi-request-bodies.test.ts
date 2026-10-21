@@ -63,19 +63,6 @@ describe('generated OpenAPI request bodies', () => {
     ];
     expect(outboundTest.schema.required).toEqual(['outbound']);
 
-    const outboundUpdate = requestBody('/panel/api/xray/outbound-subs/{id}').content[
-      'application/x-www-form-urlencoded'
-    ];
-    expect(outboundUpdate.schema.required).toEqual(['url']);
-    expect(outboundUpdate.schema.properties).toHaveProperty('allowInsecure');
-
-    const balancerUpdate = requestBody('/panel/api/sub-balancers/{id}').content[
-      'application/x-www-form-urlencoded'
-    ];
-    expect(balancerUpdate.schema.required).toEqual(['remark', 'inboundIds']);
-    expect(balancerUpdate.encoding?.inboundIds).toEqual({ style: 'form', explode: true });
-    expect(balancerUpdate.encoding?.memberWeights).toEqual({ contentType: 'application/json' });
-
     const inboundUpdate = requestBody('/panel/api/inbounds/update/{id}').content[
       'application/json'
     ];

@@ -36,7 +36,6 @@ import { TRAFFIC_POLL_INTERVAL_S } from '@/lib/traffic/poll-interval';
 
 // One row sent to POST /clients/:email/externalLinks.
 export type ExternalLinkInput = {
-  kind: 'link' | 'subscription';
   value: string;
   remark: string;
   enable: boolean;
@@ -49,13 +48,6 @@ export type { ClientRecord, ClientTraffic, ClientsSummary, InboundOption, Extern
 const JSON_HEADERS = { headers: { 'Content-Type': 'application/json' } } as const;
 
 interface SubSettings {
-  enable: boolean;
-  happLinkEnable: boolean;
-  subURI: string;
-  subJsonURI: string;
-  subJsonEnable: boolean;
-  subClashURI: string;
-  subClashEnable: boolean;
   publicHost: string;
 }
 
@@ -268,26 +260,9 @@ export function useClients(options: UseClientsOptions = {}) {
   const defaults = defaultsQuery.data ?? {};
   const subSettings: SubSettings = useMemo(
     () => ({
-      enable: !!defaults.subEnable,
-      happLinkEnable: defaults.happLinkEnable === true,
-      subURI: (defaults.subURI as string) || '',
-      subJsonURI: (defaults.subJsonURI as string) || '',
-      subJsonEnable: !!defaults.subJsonEnable,
-      subClashURI: (defaults.subClashURI as string) || '',
-      subClashEnable: !!defaults.subClashEnable,
       publicHost: (defaults.subDomain as string) || (defaults.webDomain as string) || '',
     }),
-    [
-      defaults.subEnable,
-      defaults.happLinkEnable,
-      defaults.subURI,
-      defaults.subJsonURI,
-      defaults.subJsonEnable,
-      defaults.subClashURI,
-      defaults.subClashEnable,
-      defaults.subDomain,
-      defaults.webDomain,
-    ],
+    [defaults.subDomain, defaults.webDomain],
   );
 
   const ipLimitEnable = !!defaults.ipLimitEnable;

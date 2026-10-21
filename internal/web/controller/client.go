@@ -2,13 +2,10 @@ package controller
 
 import (
 	"encoding/json"
-	"errors"
-	"net/http"
 	"strconv"
 	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/websocket"
 
@@ -40,12 +37,10 @@ type ClientController struct {
 	inboundService service.InboundService
 	xrayService    service.XrayService
 	settingService service.SettingService
-	happGenerator  service.HappLinkGenerator
 }
 
 func NewClientController(g *gin.RouterGroup) *ClientController {
 	a := &ClientController{}
-	a.happGenerator = service.NewHappService(&a.clientService, &a.settingService)
 	a.initRouter(g)
 	return a
 }
@@ -57,9 +52,7 @@ func (a *ClientController) initRouter(g *gin.RouterGroup) {
 	g.GET("/get/subId/:subId", a.getBySubId)
 	g.GET("/get/tgId/:tgId", a.getByTgId)
 	g.GET("/traffic/:email", a.getTrafficByEmail)
-	g.GET("/subLinks/:subId", a.getSubLinks)
 	g.GET("/links/:email", a.getClientLinks)
-	g.POST("/happLink/:id", a.generateHappLink)
 
 	g.POST("/add", a.create)
 	g.POST("/renewalPreview", a.renewalPreview)
@@ -672,15 +665,6 @@ func (a *ClientController) getTrafficByEmail(c *gin.Context) {
 	jsonObj(c, traffic, nil)
 }
 
-func (a *ClientController) getSubLinks(c *gin.Context) {
-	links, err := a.inboundService.GetSubLinks(resolveHost(c), c.Param("subId"))
-	if err != nil {
-		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
-		return
-	}
-	jsonObj(c, links, nil)
-}
-
 func (a *ClientController) getClientLinks(c *gin.Context) {
 	links, err := a.inboundService.GetAllClientLinks(resolveHost(c), c.Param("email"))
 	if err != nil {
@@ -688,26 +672,6 @@ func (a *ClientController) getClientLinks(c *gin.Context) {
 		return
 	}
 	jsonObj(c, links, nil)
-}
-
-func (a *ClientController) generateHappLink(c *gin.Context) {
-	c.Header("Cache-Control", "no-store")
-	clientID, err := strconv.Atoi(c.Param("id"))
-	if err != nil || clientID < 1 {
-		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), service.ErrHappLinkUnavailable)
-		return
-	}
-	result, err := a.happGenerator.Generate(c.Request.Context(), clientID, c.Request.Host)
-	if err != nil {
-		if errors.Is(err, service.ErrHappSourceTooLong) {
-			// Keep the code exact so clients can localize it without exposing internal error details.
-			c.JSON(http.StatusOK, entity.Msg{Success: false, Msg: "happ_source_too_long", Obj: nil})
-			return
-		}
-		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), service.ErrHappLinkUnavailable)
-		return
-	}
-	jsonObj(c, result, nil)
 }
 
 func (a *ClientController) detach(c *gin.Context) {

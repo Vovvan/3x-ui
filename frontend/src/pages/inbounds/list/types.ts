@@ -56,14 +56,13 @@ export type RowAction =
   | 'edit'
   | 'showInfo'
   | 'export'
-  | 'subs'
   | 'clipboard'
   | 'delete'
   | 'resetTraffic'
   | 'delAllClients'
   | 'clone';
 
-export type GeneralAction = 'import' | 'export' | 'subs' | 'resetInbounds';
+export type GeneralAction = 'import' | 'export' | 'resetInbounds';
 
 export interface InboundListProps {
   dbInbounds: DBInboundRecord[];
@@ -75,7 +74,6 @@ export interface InboundListProps {
   trafficDiff: number;
   pageSize: number;
   isMobile: boolean;
-  subEnable: boolean;
   nodesById: Map<number, NodeRecord>;
   hasActiveNode: boolean;
   hosts: HostRecord[];

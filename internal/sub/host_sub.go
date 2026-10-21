@@ -569,3 +569,36 @@ func applyEndpointHostPathObj(e ShareEndpoint, obj map[string]any) {
 		}
 	}
 }
+
+func mergeFinalMask(base any, extra map[string]any) map[string]any {
+	merged := map[string]any{}
+	if baseMap, ok := base.(map[string]any); ok {
+		for key, value := range baseMap {
+			switch key {
+			case "tcp", "udp":
+				if masks, ok := value.([]any); ok {
+					merged[key] = append([]any(nil), masks...)
+				}
+			default:
+				merged[key] = value
+			}
+		}
+	}
+	for key, value := range extra {
+		switch key {
+		case "tcp", "udp":
+			baseMasks, _ := merged[key].([]any)
+			extraMasks, _ := value.([]any)
+			if len(extraMasks) > 0 {
+				merged[key] = append(baseMasks, extraMasks...)
+			}
+		case "quicParams":
+			if _, exists := merged[key]; !exists {
+				merged[key] = value
+			}
+		default:
+			merged[key] = value
+		}
+	}
+	return merged
+}

@@ -56,7 +56,6 @@ export default function InboundList({
   trafficDiff,
   pageSize,
   isMobile,
-  subEnable,
   nodesById,
   hasActiveNode,
   hosts,
@@ -174,8 +173,7 @@ export default function InboundList({
     hostRemarksByInboundId,
     clientCount,
     inboundSpeed,
-    subEnable,
-    expireDiff,
+      expireDiff,
     trafficDiff,
     onRowAction,
     onSwitchEnable,
@@ -199,15 +197,6 @@ export default function InboundList({
         label: t('pages.inbounds.importInbound'),
       },
       { key: 'export', icon: <ExportOutlined aria-hidden />, label: t('pages.inbounds.export') },
-      ...(subEnable
-        ? [
-            {
-              key: 'subs',
-              icon: <ExportOutlined aria-hidden />,
-              label: `${t('pages.inbounds.export')} — ${t('pages.settings.subSettings')}`,
-            },
-          ]
-        : []),
       {
         key: 'resetInbounds',
         icon: <ReloadOutlined aria-hidden />,
@@ -342,8 +331,7 @@ export default function InboundList({
                           menu={{
                             items: buildRowActionsMenu({
                               record,
-                              subEnable,
-                              t,
+                                                          t,
                               isMobile: true,
                               hasClients: (clientCount[record.id]?.clients || 0) > 0,
                             }),

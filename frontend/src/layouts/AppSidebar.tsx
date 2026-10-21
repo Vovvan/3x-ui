@@ -5,13 +5,10 @@ import { useTranslation } from 'react-i18next';
 import { Drawer, Layout, Menu, Tooltip } from 'antd';
 import type { MenuProps } from 'antd';
 import {
-  ApartmentOutlined,
   CloseOutlined,
-  CloudServerOutlined,
   ClusterOutlined,
   CodeOutlined,
   DatabaseOutlined,
-  DiscordOutlined,
   GithubOutlined,
   HeartOutlined,
   LogoutOutlined,
@@ -32,7 +29,6 @@ import {
 import { HttpUtil } from '@/utils';
 import { formatPanelVersion } from '@/lib/panel-version';
 import { pauseAnimationsUntilLeave, useTheme } from '@/hooks/useTheme';
-import { useAllSettings } from '@/api/queries/useAllSettings';
 import { useCommandPalette } from '@/components/command-palette/useCommandPalette';
 import { PANEL_ROUTES } from '@/routes/panelRoutes';
 import './AppSidebar.css';
@@ -152,9 +148,6 @@ export default function AppSidebar() {
   const { open: openCommandPalette } = useCommandPalette();
   const navigate = useNavigate();
   const { pathname, hash } = useLocation();
-  const { allSetting } = useAllSettings();
-  const showSubFormats = !!(allSetting.subJsonEnable || allSetting.subClashEnable);
-  const showSubBalancers = !!allSetting.subJsonEnable;
 
   const [hovered, setHovered] = useState(() => hoveredAcrossRemounts);
   const [pinned, setPinned] = useState(readSidebarPinned);
@@ -215,43 +208,8 @@ export default function AppSidebar() {
         icon: <SafetyOutlined aria-hidden />,
         label: t('pages.settings.securitySettings'),
       },
-      {
-        key: '/settings#telegram',
-        icon: <TelegramFilled aria-hidden />,
-        label: t('pages.settings.TGBotSettings'),
-      },
-      {
-        key: '/settings#email',
-        icon: <MailOutlined aria-hidden />,
-        label: t('pages.settings.emailSettings'),
-      },
-      {
-        key: '/settings#discord',
-        icon: <DiscordOutlined aria-hidden />,
-        label: t('pages.settings.discordSettings'),
-      },
-      {
-        key: '/settings#subscription',
-        icon: <CloudServerOutlined aria-hidden />,
-        label: t('pages.settings.subSettings'),
-      },
-    ];
-    if (showSubFormats) {
-      children.push({
-        key: '/settings#subscription-formats',
-        icon: <CodeOutlined aria-hidden />,
-        label: t('menu.subFormats'),
-      });
-    }
-    if (showSubBalancers) {
-      children.push({
-        key: '/settings#subscription-balancers',
-        icon: <ApartmentOutlined aria-hidden />,
-        label: t('pages.settings.subBalancers.menu'),
-      });
-    }
     return children;
-  }, [t, showSubFormats, showSubBalancers]);
+  }, [t]);
 
   const xrayChildren = useMemo<NonNullable<MenuProps['items']>>(
     () => [

@@ -19,7 +19,6 @@ import type { DBInboundRecord, RowAction } from './types';
 
 interface RowActionsMenuProps {
   record: DBInboundRecord;
-  subEnable: boolean;
   hasClients: boolean;
   onClick: (key: RowAction) => void;
   isMobile?: boolean;
@@ -27,13 +26,11 @@ interface RowActionsMenuProps {
 
 export function buildRowActionsMenu({
   record,
-  subEnable,
   t,
   isMobile,
   hasClients,
 }: {
   record: DBInboundRecord;
-  subEnable: boolean;
   t: (k: string) => string;
   isMobile?: boolean;
   hasClients?: boolean;
@@ -48,13 +45,6 @@ export function buildRowActionsMenu({
       icon: <ExportOutlined aria-hidden />,
       label: t('pages.inbounds.export'),
     });
-    if (subEnable) {
-      items.push({
-        key: 'subs',
-        icon: <ExportOutlined aria-hidden />,
-        label: `${t('pages.inbounds.export')} — ${t('pages.settings.subSettings')}`,
-      });
-    }
   } else {
     items.push({
       key: 'showInfo',
@@ -119,7 +109,7 @@ export function buildRowActionsMenu({
   return items;
 }
 
-export function RowActionsCell({ record, subEnable, hasClients, onClick }: RowActionsMenuProps) {
+export function RowActionsCell({ record, hasClients, onClick }: RowActionsMenuProps) {
   const { t } = useTranslation();
   return (
     <div className="action-buttons">
@@ -134,7 +124,7 @@ export function RowActionsCell({ record, subEnable, hasClients, onClick }: RowAc
       <Dropdown
         trigger={['click']}
         menu={{
-          items: buildRowActionsMenu({ record, subEnable, t, hasClients }),
+          items: buildRowActionsMenu({ record, t, hasClients }),
           onClick: ({ key }) => onClick(key as RowAction),
         }}
       >

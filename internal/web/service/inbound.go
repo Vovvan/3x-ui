@@ -1669,22 +1669,6 @@ func (s *InboundService) delInbound(id int) (bool, func(), error) {
 		if _, err := database.DeleteHosts(tx, "inbound_id = ?", id); err != nil {
 			return err
 		}
-		// Drop the deleted inbound from any sub-balancer that selects it; a
-		// dangling id would emit a member no subscriber can resolve (#5648).
-		var balancers []model.SubBalancer
-		if err := tx.Find(&balancers).Error; err != nil {
-			return err
-		}
-		for i := range balancers {
-			before := balancers[i].InboundIds
-			balancers[i].InboundIds = slices.DeleteFunc(before, func(b int) bool { return b == id })
-			if len(balancers[i].InboundIds) == len(before) {
-				continue
-			}
-			if err := tx.Save(&balancers[i]).Error; err != nil {
-				return err
-			}
-		}
 		if loadErr == nil && ib.NodeID != nil {
 			return (&NodeService{}).MarkNodeDirtyTx(tx, *ib.NodeID)
 		}
@@ -1783,55 +1767,6 @@ func (s *InboundService) GetInboundDetail(id int) (*model.Inbound, error) {
 	s.enrichClientStats(db, []*model.Inbound{inbound})
 	s.overlayInboundsClientStats(db, []*model.Inbound{inbound})
 	return inbound, nil
-}
-
-// SetInboundSubSortIndex changes only the subscription sort order, so a
-// reorder cannot carry a stale settings/client payload over another edit.
-func (s *InboundService) SetInboundSubSortIndex(id int, index int) error {
-	defer InvalidateSubData()
-	index = normalizeSubSortIndex(index)
-	inbound, err := s.GetInbound(id)
-	if err != nil {
-		return err
-	}
-	if inbound.SubSortIndex == index {
-		return nil
-	}
-
-	db := database.GetDB()
-	if err := db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Model(model.Inbound{}).Where("id = ?", id).
-			Update("sub_sort_index", index).Error; err != nil {
-			return err
-		}
-		if inbound.NodeID != nil {
-			return (&NodeService{}).MarkNodeDirtyTx(tx, *inbound.NodeID)
-		}
-		return nil
-	}); err != nil {
-		return err
-	}
-	inbound.SubSortIndex = index
-
-	if inbound.NodeID == nil {
-		return nil
-	}
-	rt, push, _, perr := s.nodePushPlan(inbound)
-	if perr != nil {
-		return perr
-	}
-	if push {
-		narrow, ok := rt.(interface {
-			SetInboundSubSortIndex(context.Context, *model.Inbound, int) error
-		})
-		if !ok {
-			return fmt.Errorf("runtime %s does not support narrow subscription ordering updates", rt.Name())
-		}
-		if err := narrow.SetInboundSubSortIndex(context.Background(), inbound, index); err != nil {
-			logger.Warning("SetInboundSubSortIndex: remote metadata update on", rt.Name(), "failed:", err)
-		}
-	}
-	return nil
 }
 
 func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {

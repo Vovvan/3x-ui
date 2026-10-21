@@ -27,7 +27,6 @@ import {
   ClockCircleOutlined,
   DeleteOutlined,
   EditOutlined,
-  LinkOutlined,
   MoreOutlined,
   PieChartOutlined,
   PlusOutlined,
@@ -62,7 +61,6 @@ const ClientRecordListSchema = z
   .nullable()
   .transform((v) => v ?? []);
 
-const SubLinksModal = lazy(() => import('../clients/SubLinksModal'));
 const ClientBulkAdjustModal = lazy(() => import('../clients/ClientBulkAdjustModal'));
 const GroupAddClientsModal = lazy(() => import('./GroupAddClientsModal'));
 const GroupRemoveClientsModal = lazy(() => import('./GroupRemoveClientsModal'));
@@ -99,7 +97,7 @@ export default function GroupsPage() {
   }, [messageApi]);
   const queryClient = useQueryClient();
 
-  const { subSettings, bulkAdjust, bulkAddToGroup, bulkRemoveFromGroup, bulkDelete } = useClients({
+  const { bulkAdjust, bulkAddToGroup, bulkRemoveFromGroup, bulkDelete } = useClients({
     list: false,
   });
 
@@ -155,7 +153,6 @@ export default function GroupsPage() {
   const [renameTarget, setRenameTarget] = useState<GroupSummary | null>(null);
   const [renameValue, setRenameValue] = useState('');
 
-  const [subLinksOpen, setSubLinksOpen] = useState(false);
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [addClientsOpen, setAddClientsOpen] = useState(false);
   const [removeClientsOpen, setRemoveClientsOpen] = useState(false);
@@ -170,7 +167,7 @@ export default function GroupsPage() {
       const validated = parseMsg(msg, ClientRecordListSchema, 'clients/list');
       return validated.obj ?? [];
     },
-    enabled: addClientsOpen || removeClientsOpen || subLinksOpen,
+    enabled: addClientsOpen || removeClientsOpen,
     staleTime: 30_000,
   });
   const allClients = allClientsQuery.data ?? [];
@@ -250,21 +247,6 @@ export default function GroupsPage() {
         }
       },
     });
-  }
-
-  async function openSubLinksFor(g: GroupSummary) {
-    if (!g.clientCount) {
-      messageApi.info(t('pages.groups.emptyForAction'));
-      return;
-    }
-    const emails = await fetchEmailsForGroup(g.name);
-    if (emails.length === 0) {
-      messageApi.info(t('pages.groups.emptyForAction'));
-      return;
-    }
-    setGroupForAction(g);
-    setGroupEmails(emails);
-    setSubLinksOpen(true);
   }
 
   async function openAdjustFor(g: GroupSummary) {
@@ -352,13 +334,6 @@ export default function GroupsPage() {
 
   function rowActions(row: GroupSummary): MenuProps['items'] {
     return [
-      {
-        key: 'subLinks',
-        icon: <LinkOutlined aria-hidden />,
-        label: t('pages.clients.subLinksSelected', { count: row.clientCount || 0 }),
-        disabled: !row.clientCount,
-        onClick: () => openSubLinksFor(row),
-      },
       {
         key: 'adjust',
         icon: <ClockCircleOutlined aria-hidden />,
@@ -644,15 +619,6 @@ export default function GroupsPage() {
           </Form>
         </Modal>
 
-        <LazyMount when={subLinksOpen}>
-          <SubLinksModal
-            open={subLinksOpen}
-            emails={groupEmails}
-            clients={allClients}
-            subSettings={subSettings}
-            onOpenChange={setSubLinksOpen}
-          />
-        </LazyMount>
 
         <LazyMount when={adjustOpen}>
           <ClientBulkAdjustModal

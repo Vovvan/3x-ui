@@ -78,7 +78,6 @@ const CLIENT_FORM_MODAL_Z_INDEX = 1000;
 const CLIENT_IP_LOG_MODAL_Z_INDEX = CLIENT_FORM_MODAL_Z_INDEX + 1;
 
 interface ExternalLinkRow {
-  kind: 'link' | 'subscription';
   value: string;
   remark: string;
   enable: boolean;
@@ -190,7 +189,6 @@ const EMPTY: Values = {
 
 function toExternalLinkRows(links: ExternalLink[] | undefined): ExternalLinkRow[] {
   return (links || []).map((l) => ({
-    kind: l.kind === 'subscription' ? 'subscription' : 'link',
     value: l.value || '',
     remark: l.remark || '',
     enable: l.enable !== false,
@@ -336,9 +334,8 @@ export default function ClientFormModal({
     return ids;
   }, [inbounds]);
 
-  function addExternalLinkRow(kind: 'link' | 'subscription') {
+  function addExternalLinkRow() {
     appendExternalLink({
-      kind,
       value: '',
       remark: '',
       enable: true,
@@ -646,12 +643,7 @@ export default function ClientFormModal({
     [expiryDate],
   );
 
-  const linkRows = externalLinkFields
-    .map((field, index) => ({ field, index }))
-    .filter((row) => row.field.kind === 'link');
-  const subscriptionRows = externalLinkFields
-    .map((field, index) => ({ field, index }))
-    .filter((row) => row.field.kind === 'subscription');
+  const linkRows = externalLinkFields.map((field, index) => ({ field, index }));
 
   async function loadIps() {
     if (!isEdit || !client?.email) return;
@@ -855,7 +847,6 @@ export default function ClientFormModal({
 
     const externalLinks: ExternalLinkInput[] = values.externalLinks
       .map((r) => ({
-        kind: r.kind,
         value: r.value.trim(),
         remark: (r.remark || '').trim(),
         enable: r.enable !== false,
@@ -1548,8 +1539,6 @@ export default function ClientFormModal({
 
                       <Button
                         type="primary"
-                        icon={<PlusOutlined aria-hidden />}
-                        onClick={() => addExternalLinkRow('link')}
                       >
                         {t('pages.clients.addExternalLink')}
                       </Button>
@@ -1618,93 +1607,6 @@ export default function ClientFormModal({
                         )}
                       </div>
 
-                      <Button
-                        type="primary"
-                        icon={<PlusOutlined aria-hidden />}
-                        onClick={() => addExternalLinkRow('subscription')}
-                      >
-                        {t('pages.clients.addExternalSubscription')}
-                      </Button>
-                      <div style={{ marginTop: 12 }}>
-                        {subscriptionRows.length === 0 ? (
-                          <Typography.Text type="secondary">
-                            {t('pages.clients.noExternalSubscriptions')}
-                          </Typography.Text>
-                        ) : (
-                          subscriptionRows.map(({ field, index }) => (
-                            <div key={field.id} className="external-link-card">
-                              <div className="external-link-row">
-                                <div className="external-link-enable">
-                                  <FormField
-                                    name={`externalLinks.${index}.enable`}
-                                    valueProp="checked"
-                                    noStyle
-                                  >
-                                    <Switch size="small" aria-label={t('enable')} />
-                                  </FormField>
-                                  <span>{t('enable')}</span>
-                                </div>
-                                <FormField name={`externalLinks.${index}.value`} noStyle>
-                                  <Input
-                                    aria-label="https://provider.example/sub/…"
-                                    placeholder="https://provider.example/sub/…"
-                                  />
-                                </FormField>
-                                <Tooltip title={t('delete')}>
-                                  <Button
-                                    aria-label={t('delete')}
-                                    danger
-                                    icon={<DeleteOutlined aria-hidden />}
-                                    onClick={() => removeExternalLink(index)}
-                                  />
-                                </Tooltip>
-                              </div>
-                              <div className="external-link-details three-cols">
-                                <FormField name={`externalLinks.${index}.remark`} noStyle>
-                                  <Input aria-label={t('remark')} placeholder={t('remark')} />
-                                </FormField>
-                                <FormField name={`externalLinks.${index}.namePrefix`} noStyle>
-                                  <Input
-                                    aria-label={t('pages.clients.namePrefix')}
-                                    placeholder={t('pages.clients.namePrefix')}
-                                  />
-                                </FormField>
-                                <Controller
-                                  control={methods.control}
-                                  name={`externalLinks.${index}.expiryTime`}
-                                  render={({ field: expiryField }) => {
-                                    const displayedExpiry = resolveExternalLinkExpiry(
-                                      expiryField.value,
-                                      expiryDate,
-                                    );
-                                    const hasSpecificExpiry = Number(expiryField.value) > 0;
-                                    return (
-                                      <DateTimePicker
-                                        aria-label={t('pages.clients.expiryTime')}
-                                        value={displayedExpiry > 0 ? dayjs(displayedExpiry) : null}
-                                        onChange={(v) => expiryField.onChange(v ? v.valueOf() : 0)}
-                                        placeholder={t('pages.inbounds.leaveBlankToNeverExpire')}
-                                        allowClear={hasSpecificExpiry}
-                                        maxDate={expiryDate > 0 ? dayjs(expiryDate) : undefined}
-                                      />
-                                    );
-                                  }}
-                                />
-                              </div>
-                              <Typography.Text
-                                type={field.lastFetchError ? 'danger' : 'secondary'}
-                                className="external-link-fetch-status"
-                              >
-                                {field.lastFetchError
-                                  ? `${t('pages.clients.lastFetchError')}: ${field.lastFetchError}`
-                                  : field.lastFetchAt > 0
-                                    ? `${t('pages.clients.lastFetchAt')}: ${dayjs(field.lastFetchAt).format('YYYY-MM-DD HH:mm:ss')}`
-                                    : t('pages.clients.neverFetched')}
-                              </Typography.Text>
-                            </div>
-                          ))
-                        )}
-                      </div>
                     </>
                   ),
                 },

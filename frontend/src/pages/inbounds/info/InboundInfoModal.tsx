@@ -58,8 +58,6 @@ export default function InboundInfoModal({
   const [wireguardLinks, setWireguardLinks] = useState<string[][]>([]);
   const [amneziawgConfigs, setAmneziawgConfigs] = useState<string[][]>([]);
   const [amneziawgLinks, setAmneziawgLinks] = useState<string[][]>([]);
-  const [subLink, setSubLink] = useState('');
-  const [subJsonLink, setSubJsonLink] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [clientIpsArray, setClientIpsArray] = useState<string[]>([]);
   const [clientIpsText, setClientIpsText] = useState('');
@@ -209,16 +207,6 @@ export default function InboundInfoModal({
       setAmneziawgLinks([]);
     }
 
-    if (clientSet?.subId) {
-      setSubLink((subSettings?.subURI || '') + clientSet.subId);
-      setSubJsonLink(
-        subSettings?.subJsonEnable ? (subSettings?.subJsonURI || '') + clientSet.subId : '',
-      );
-    } else {
-      setSubLink('');
-      setSubJsonLink('');
-    }
-
     setClientIpsArray([]);
     setClientIpsText('');
 
@@ -302,7 +290,6 @@ export default function InboundInfoModal({
   const encryptionLabel = (inbound?.settings?.encryption as string) || '';
   const serverNameLabel = inbound?.serverName || '';
   const showClientTab = !!clientSettings;
-  const showSubscriptionTab = !!(subSettings?.enable && clientSettings?.subId);
 
   if (!dbInbound || !inbound) {
     return (
@@ -564,55 +551,6 @@ export default function InboundInfoModal({
         </>
       )}
 
-      {showSubscriptionTab && (
-        <>
-          <Divider>{t('subscription.title')}</Divider>
-          <div className="link-panel">
-            <div className="link-panel-header">
-              <Tag color="green">{t('subscription.title')}</Tag>
-              <Tooltip title={t('copy')}>
-                <Button
-                  size="small"
-                  icon={<CopyOutlined aria-hidden />}
-                  aria-label={t('copy')}
-                  onClick={() => copyText(subLink, t)}
-                />
-              </Tooltip>
-            </div>
-            <a
-              href={subLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="link-panel-anchor"
-            >
-              {subLink}
-            </a>
-          </div>
-          {subSettings?.subJsonEnable && subJsonLink && (
-            <div className="link-panel">
-              <div className="link-panel-header">
-                <Tag color="green">JSON</Tag>
-                <Tooltip title={t('copy')}>
-                  <Button
-                    size="small"
-                    icon={<CopyOutlined aria-hidden />}
-                    aria-label={t('copy')}
-                    onClick={() => copyText(subJsonLink, t)}
-                  />
-                </Tooltip>
-              </div>
-              <a
-                href={subJsonLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="link-panel-anchor"
-              >
-                {subJsonLink}
-              </a>
-            </div>
-          )}
-        </>
-      )}
     </>
   );
 

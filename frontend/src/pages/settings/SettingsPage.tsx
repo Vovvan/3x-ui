@@ -25,12 +25,7 @@ import { AllSettingSchema } from '@/schemas/setting';
 import AppSidebar from '@/layouts/AppSidebar';
 import GeneralTab from './GeneralTab';
 import SecurityTab from './SecurityTab';
-import TelegramTab from './TelegramTab';
 import EmailTab from './EmailTab';
-import DiscordTab from './DiscordTab';
-import SubscriptionGeneralTab from './SubscriptionGeneralTab';
-import SubscriptionFormatsTab from './SubscriptionFormatsTab';
-import SubscriptionBalancersTab from './SubscriptionBalancersTab';
 import './SettingsPage.css';
 
 interface ApiMsg {
@@ -40,12 +35,7 @@ interface ApiMsg {
 const tabSlugs = [
   'general',
   'security',
-  'telegram',
   'email',
-  'discord',
-  'subscription',
-  'subscription-formats',
-  'subscription-balancers',
 ];
 
 function isIp(h: string): boolean {
@@ -169,32 +159,6 @@ export default function SettingsPage() {
     if (segs && allSetting.webBasePath === '/') {
       out.push(t('pages.settings.warnDefaultBasePath'));
     }
-    if (allSetting.subEnable) {
-      let subPath = allSetting.subPath;
-      if (allSetting.subURI) {
-        try {
-          subPath = new URL(allSetting.subURI).pathname;
-        } catch {
-          /* noop */
-        }
-      }
-      if (subPath === '/sub/') {
-        out.push(t('pages.settings.warnDefaultSubPath'));
-      }
-    }
-    if (allSetting.subJsonEnable) {
-      let p = allSetting.subJsonPath;
-      if (allSetting.subJsonURI) {
-        try {
-          p = new URL(allSetting.subJsonURI).pathname;
-        } catch {
-          /* noop */
-        }
-      }
-      if (p === '/json/') {
-        out.push(t('pages.settings.warnDefaultJsonPath'));
-      }
-    }
     return out;
   }, [allSetting, t]);
 
@@ -215,18 +179,8 @@ export default function SettingsPage() {
             saveSetting={savePayload}
           />
         );
-      case 'telegram':
-        return <TelegramTab allSetting={allSetting} updateSetting={updateSetting} />;
       case 'email':
         return <EmailTab allSetting={allSetting} updateSetting={updateSetting} />;
-      case 'discord':
-        return <DiscordTab allSetting={allSetting} updateSetting={updateSetting} />;
-      case 'subscription':
-        return <SubscriptionGeneralTab allSetting={allSetting} updateSetting={updateSetting} />;
-      case 'subscription-formats':
-        return <SubscriptionFormatsTab allSetting={allSetting} updateSetting={updateSetting} />;
-      case 'subscription-balancers':
-        return <SubscriptionBalancersTab allSetting={allSetting} updateSetting={updateSetting} />;
       default:
         return <GeneralTab allSetting={allSetting} updateSetting={updateSetting} />;
     }

@@ -27,7 +27,6 @@ func TestGetFactoryDefaultsExposesBrowserSafeKeys(t *testing.T) {
 		want string
 	}{
 		{key: "webPort", want: "2053"},
-		{key: "subPort", want: "2096"},
 	}
 	for _, tc := range tests {
 		t.Run(tc.key, func(t *testing.T) {

@@ -7,7 +7,7 @@ import (
 
 func TestCheckValidSmtpFrom(t *testing.T) {
 	base := func() *AllSetting {
-		return &AllSetting{WebPort: 2053, SubPort: 2096}
+		return &AllSetting{WebPort: 2053}
 	}
 
 	for _, v := range []string{"", "panel@example.com"} {
@@ -31,23 +31,11 @@ func TestCheckValidSmtpFrom(t *testing.T) {
 	}
 }
 
-func TestCheckValidWildcardListenPortConflict(t *testing.T) {
-	s := &AllSetting{WebPort: 2053, SubPort: 2053, WebListen: "0.0.0.0", SubListen: ""}
-	if err := s.CheckValid(); err == nil {
-		t.Error("CheckValid must reject the same port bound on 0.0.0.0 and \"\" (both wildcard)")
-	}
-
-	ok := &AllSetting{WebPort: 2053, SubPort: 2053, WebListen: "127.0.0.1", SubListen: "192.168.1.1"}
-	if err := ok.CheckValid(); err != nil {
-		t.Errorf("distinct specific listens on the same port should be allowed: %v", err)
-	}
-}
-
 // The allowlist and the trusted-proxy list share one validator, so this also
 // pins that each list still reports its own message (#5378).
 func TestCheckValidIPOrCIDRLists(t *testing.T) {
 	base := func() *AllSetting {
-		return &AllSetting{WebPort: 2053, SubPort: 2096}
+		return &AllSetting{WebPort: 2053}
 	}
 
 	for _, v := range []string{"", "203.0.113.10", "198.51.100.0/24", " 203.0.113.10 , 2001:db8::/32 ", "203.0.113.10,,"} {
@@ -83,19 +71,17 @@ func TestCheckValidIPOrCIDRLists(t *testing.T) {
 // or sync job then silently never ran.
 func TestCheckValidSchedules(t *testing.T) {
 	set := map[string]func(*AllSetting, string){
-		"tgRunTime":      func(s *AllSetting, v string) { s.TgRunTime = v },
-		"discordRunTime": func(s *AllSetting, v string) { s.DiscordRunTime = v },
-		"ldapSyncCron":   func(s *AllSetting, v string) { s.LdapSyncCron = v },
+		"ldapSyncCron": func(s *AllSetting, v string) { s.LdapSyncCron = v },
 	}
 	for name, apply := range set {
 		for _, v := range []string{"", "@daily", "30 8 * * *", "0 30 8 * * *", "@every 1m"} {
-			s := &AllSetting{WebPort: 2053, SubPort: 2096}
+			s := &AllSetting{WebPort: 2053}
 			apply(s, v)
 			if err := s.CheckValid(); err != nil {
 				t.Errorf("%s=%q: unexpected error %v", name, v, err)
 			}
 		}
-		s := &AllSetting{WebPort: 2053, SubPort: 2096}
+		s := &AllSetting{WebPort: 2053}
 		apply(s, "every morning")
 		err := s.CheckValid()
 		if err == nil || !strings.Contains(err.Error(), name) {

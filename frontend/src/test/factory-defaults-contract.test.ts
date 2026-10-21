@@ -40,7 +40,7 @@ describe('factory defaults contract', () => {
 
   it('parses a plausible slice of the Go map', () => {
     expect(goDefaults.webPort).toBe('2053');
-    expect(goDefaults.subPort).toBe('2096');
+    expect(goDefaults.datepicker).toBe('gregorian');
     expect(sharedKeys.length).toBeGreaterThan(20);
   });
 

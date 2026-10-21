@@ -22,19 +22,6 @@ func (p *LinkProvider) build(host string) *SubService {
 	return svc
 }
 
-func (p *LinkProvider) SubLinksForSubId(host, subId string) ([]string, error) {
-	svc := p.build(host)
-	links, _, _, _, err := svc.GetSubs(subId, host)
-	if err != nil {
-		return nil, err
-	}
-	out := make([]string, 0, len(links))
-	for _, l := range links {
-		out = append(out, splitLinkLines(l)...)
-	}
-	return out, nil
-}
-
 func (p *LinkProvider) LinksForClient(host string, inbound *model.Inbound, email string) []string {
 	svc := p.build(host)
 	svc.projectThroughFallbackMaster(inbound)

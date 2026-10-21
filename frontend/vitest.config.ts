@@ -36,6 +36,8 @@ export default defineConfig({
           name: 'components',
           include: ['src/test/**/*.test.tsx'],
           environment: 'jsdom',
+          // jsdom + Ant Design mounts exceed Vitest's 5s default on slow runners.
+          testTimeout: 20000,
           setupFiles: ['./src/test/setup.ts', './src/test/setup.components.ts'],
         },
       },

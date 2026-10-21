@@ -478,42 +478,6 @@ func TestJoinHostPort(t *testing.T) {
 	}
 }
 
-func TestGetHostFromXFH_HostOnly(t *testing.T) {
-	got, err := getHostFromXFH("example.com")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if got != "example.com" {
-		t.Fatalf("got %q, want example.com", got)
-	}
-}
-
-func TestGetHostFromXFH_HostWithPort(t *testing.T) {
-	got, err := getHostFromXFH("example.com:8443")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if got != "example.com" {
-		t.Fatalf("got %q, want example.com", got)
-	}
-}
-
-func TestGetHostFromXFH_IPv6WithPort(t *testing.T) {
-	got, err := getHostFromXFH("[2606:4700::1111]:443")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if got != "2606:4700::1111" {
-		t.Fatalf("got %q, want 2606:4700::1111", got)
-	}
-}
-
-func TestGetHostFromXFH_BadHostPort(t *testing.T) {
-	if _, err := getHostFromXFH("example.com:8443:9999"); err == nil {
-		t.Fatal("expected error for malformed host:port")
-	}
-}
-
 func TestReadPositiveInt(t *testing.T) {
 	cases := []struct {
 		name    string

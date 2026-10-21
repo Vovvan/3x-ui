@@ -417,16 +417,6 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 	}
 	xrayConfig.InboundConfigs = dropInboundsRefusedByXDrive(xrayConfig.InboundConfigs)
 
-	// Merge subscription-derived outbounds (if any) into the final outbounds array.
-	// These are additive: each subscription is placed before or after the template
-	// outbounds based on its Prepend flag, ordered by Priority. Tags assigned by the
-	// subscription service are kept stable across refreshes so that balancers and
-	// routing rules continue to work.
-	subSvc := &OutboundSubscriptionService{}
-	if prepend, appendList, err := subSvc.activeOutboundsSplit(); err == nil && (len(prepend) > 0 || len(appendList) > 0) {
-		mergeSubscriptionOutbounds(xrayConfig, prepend, appendList)
-	}
-
 	// Route opted-in local mtproto inbounds through the core's router. Each one
 	// gets a loopback SOCKS bridge — tagged with the inbound's own tag so it is
 	// matchable in routing rules — that its mtg sidecar dials Telegram through.
@@ -981,8 +971,7 @@ func amneziawgV6EgressTag(inboundID int, email string) string {
 //
 // Modeled on injectNodeEgresses (the established N-per-slice inbound+rule
 // precedent, not injectAmneziawgnetSocks itself, which only ever emits a
-// single inbound and never touches outbounds/routing) and
-// mergeSubscriptionOutbounds's unmarshal-append-remarshal pattern for
+// single inbound and never touches outbounds/routing) for
 // cfg.OutboundConfigs. Synthetic rules are prepended ahead of whatever's
 // already in the routing rules array, the same pattern injectNodeEgresses/
 // injectMtprotoEgress already use for their own always-must-win infra
@@ -1091,37 +1080,6 @@ func injectAmneziawgV6Egress(cfg *xray.Config, inbounds []*model.Inbound) {
 		return
 	}
 	cfg.RouterConfig = json_util.RawMessage(newRouting)
-}
-
-// mergeSubscriptionOutbounds appends the subscription outbounds to the
-// OutboundConfigs array of the xray config. It works on the already-unmarshaled
-// template so that manually configured outbounds are never overwritten.
-//
-// Safety: if we cannot parse the template's outbounds array, we leave
-// OutboundConfigs exactly as it came from the template (we do not inject
-// subscription outbounds). This prevents us from accidentally dropping the
-// user's manually configured outbounds when the template is in a weird state.
-func mergeSubscriptionOutbounds(cfg *xray.Config, prepend, appendList []any) {
-	if len(prepend) == 0 && len(appendList) == 0 {
-		return
-	}
-	var templateOutbounds []any
-	if len(cfg.OutboundConfigs) > 0 {
-		if err := json.Unmarshal(cfg.OutboundConfigs, &templateOutbounds); err != nil {
-			// Corrupt template outbounds — do not touch the field at all.
-			// The user will see problems on Xray start / next save.
-			return
-		}
-	}
-	var merged []any
-	merged = append(merged, prepend...)
-	merged = append(merged, templateOutbounds...)
-	merged = append(merged, appendList...)
-	combined, err := json.MarshalIndent(merged, "", "  ")
-	if err != nil {
-		return
-	}
-	cfg.OutboundConfigs = json_util.RawMessage(combined)
 }
 
 // ensureAPIServices guarantees the gRPC services the panel depends on are

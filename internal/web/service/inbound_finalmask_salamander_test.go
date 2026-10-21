@@ -51,15 +51,6 @@ func TestSavePathsRefuseShortSalamanderPassword(t *testing.T) {
 			})
 			return err
 		}},
-		{"subscription JSON finalmask", func(t *testing.T) error {
-			s := &SettingService{}
-			all, err := s.GetAllSetting()
-			if err != nil {
-				t.Fatalf("GetAllSetting: %v", err)
-			}
-			all.SubJsonFinalMask = `{"udp":[{"type":"salamander","settings":{"password":"ab"}}]}`
-			return s.UpdateAllSetting(all, SecretClears{})
-		}},
 		{"xray template inbound", func(t *testing.T) error {
 			return (&XraySettingService{}).SaveXraySetting(`{"inbounds":[{"tag":"hy","port":18446,"protocol":"hysteria",
 				"settings":{"version":2,"clients":[]},"streamSettings":` + hysteriaSalamanderStream("") + `}],
