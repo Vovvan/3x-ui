@@ -274,7 +274,6 @@ type HostGroup struct {
 	FinalMask              string   `json:"finalMask"`
 	VlessRoute             string   `json:"vlessRoute"`
 	ExcludeFromSubTypes    []string `json:"excludeFromSubTypes"`
-	NodeGuids              []string `json:"nodeGuids"`
 	MihomoIpVersion        string   `json:"mihomoIpVersion" validate:"omitempty,oneof=dual ipv4 ipv6 ipv4-prefer ipv6-prefer"`
 	MihomoX25519           bool     `json:"mihomoX25519"`
 	ShuffleHost            bool     `json:"shuffleHost"`

@@ -71,7 +71,6 @@ export const PALETTE_KEYWORDS: Record<string, string[]> = {
   ],
   '/clients': ['clients', 'users', 'sub', 'traffic', 'quota'],
   '/groups': ['groups', 'tags', 'batch'],
-  '/nodes': ['nodes', 'servers', 'cluster', 'remote nodes'],
   '/hosts': ['hosts', 'sni', 'domains'],
   '/outbound': ['outbounds', 'freedom', 'blackhole', 'socks', 'http', 'warp', 'nord', 'pia'],
   '/routing': ['routing', 'rules', 'geoip', 'geosite', 'direct', 'block'],
@@ -519,18 +518,7 @@ export default function CommandPalette() {
     actions.filter((a) => matches(a.title, a.subtitle, a.keywords)).forEach((a) => list.push(a));
 
     return list;
-  }, [
-    query,
-    clientSearch,
-    inbounds,
-    isDark,
-    isUltra,
-    t,
-    close,
-    navigate,
-    restartXray,
-    cycleTheme,
-  ]);
+  }, [query, clientSearch, inbounds, isDark, isUltra, t, close, navigate, restartXray, cycleTheme]);
 
   const clampedActiveIndex = Math.min(activeIndex, Math.max(0, items.length - 1));
 

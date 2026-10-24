@@ -619,7 +619,6 @@ export default function GroupsPage() {
           </Form>
         </Modal>
 
-
         <LazyMount when={adjustOpen}>
           <ClientBulkAdjustModal
             open={adjustOpen}

@@ -413,7 +413,6 @@ describe('inbound formValuesToWirePayload integration', () => {
       total: 0,
       trafficReset: 'never',
       lastTrafficResetTime: 0,
-      nodeId: null,
       protocol: 'vless',
       settings: {
         clients: [{ id: '7eeb09ed-ae97-400d-a1ce-2485fb904407', email: 'n' }],
@@ -475,7 +474,6 @@ describe('inbound formValuesToWirePayload integration', () => {
       total: 0,
       trafficReset: 'never',
       lastTrafficResetTime: 0,
-      nodeId: null,
       protocol: 'hysteria',
       settings: { version: 2, clients: [] },
       streamSettings: {
@@ -521,7 +519,6 @@ describe('inbound formValuesToWirePayload integration', () => {
       total: 0,
       trafficReset: 'never',
       lastTrafficResetTime: 0,
-      nodeId: null,
       protocol: 'vless',
       settings: {
         clients: [{ id: '7eeb09ed-ae97-400d-a1ce-2485fb904407', email: 'n' }],
@@ -572,7 +569,6 @@ describe('inbound formValuesToWirePayload integration', () => {
       total: 0,
       trafficReset: 'never',
       lastTrafficResetTime: 0,
-      nodeId: null,
       protocol: 'vless',
       settings: {
         clients: [{ id: '7eeb09ed-ae97-400d-a1ce-2485fb904407', email: 'n' }],

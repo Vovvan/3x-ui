@@ -99,13 +99,6 @@ _openapi:
         The body uses form encoding with a single "data" field.
       url: '#bulk-import-an-inbound-from-a-json-blob-eg-one-exported-via-the-ui-the-body-uses-form-encoding-with-a-single-data-field'
     - depth: 2
-      title: Receive a master panel's aggregated per-client usage, keyed by the
-        master's GUID. Stored in a side table used only for the UI display
-        overlay and local quota enforcement — never folded into the local
-        counters that masters poll, so delta accounting stays intact. Called
-        panel-to-panel by the node traffic sync job.
-      url: '#receive-a-master-panels-aggregated-per-client-usage-keyed-by-the-masters-guid-stored-in-a-side-table-used-only-for-the-ui-display-overlay-and-local-quota-enforcement--never-folded-into-the-local-counters-that-masters-poll-so-delta-accounting-stays-intact-called-panel-to-panel-by-the-node-traffic-sync-job'
-    - depth: 2
       title: List the fallback rules attached to a master VLESS/Trojan TCP-TLS
         inbound. Each rule links one child inbound (the dest) to optional
         SNI/ALPN/path/dest/xver match criteria. When dest is empty the child
@@ -190,12 +183,6 @@ _openapi:
       - content: Bulk-import an inbound from a JSON blob (e.g. one exported via the UI).
           The body uses form encoding with a single "data" field.
         id: bulk-import-an-inbound-from-a-json-blob-eg-one-exported-via-the-ui-the-body-uses-form-encoding-with-a-single-data-field
-      - content: Receive a master panel's aggregated per-client usage, keyed by the
-          master's GUID. Stored in a side table used only for the UI display
-          overlay and local quota enforcement — never folded into the local
-          counters that masters poll, so delta accounting stays intact. Called
-          panel-to-panel by the node traffic sync job.
-        id: receive-a-master-panels-aggregated-per-client-usage-keyed-by-the-masters-guid-stored-in-a-side-table-used-only-for-the-ui-display-overlay-and-local-quota-enforcement--never-folded-into-the-local-counters-that-masters-poll-so-delta-accounting-stays-intact-called-panel-to-panel-by-the-node-traffic-sync-job
       - content: List the fallback rules attached to a master VLESS/Trojan TCP-TLS
           inbound. Each rule links one child inbound (the dest) to optional
           SNI/ALPN/path/dest/xver match criteria. When dest is empty the child

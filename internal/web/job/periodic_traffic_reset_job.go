@@ -11,8 +11,8 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 )
 
-// periodicResetConcurrency bounds how many inbounds or clients one run resets at once:
-// each waits on its node, so one at a time a few hanging nodes stretched a run for hours.
+// periodicResetConcurrency bounds how many inbounds or clients one run resets at
+// once; each waits on its inbound lock and runtime, so serial resets can stretch.
 const periodicResetConcurrency = 8
 
 // Period represents the time period for traffic resets.
@@ -170,7 +170,7 @@ func (j *PeriodicTrafficResetJob) resetClientsOnTheirOwnCycle() {
 	forEachResetBounded(len(due), func(i int) {
 		c := due[i]
 		// ResetTrafficByEmail rather than a bulk UPDATE: it is the path that also
-		// propagates to the client's node and clears the MTProto sidecar quota.
+		// propagates to the running core and clears the MTProto sidecar quota.
 		nr, resetErr := j.clientService.ResetTrafficByEmail(&j.inboundService, c.Email)
 		if resetErr != nil {
 			logger.Warning("Failed to reset traffic for client", c.Email, ":", resetErr)

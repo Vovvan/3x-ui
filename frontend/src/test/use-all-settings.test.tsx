@@ -125,7 +125,9 @@ describe('useAllSettings', () => {
         return new Msg(
           true,
           '',
-          fetchCount === 1 ? { hasSmtpPassword: false } : { hasSmtpPassword: true, smtpPassword: '' },
+          fetchCount === 1
+            ? { hasSmtpPassword: false }
+            : { hasSmtpPassword: true, smtpPassword: '' },
         );
       }
       return new Msg(true, '');
@@ -156,7 +158,9 @@ describe('useAllSettings', () => {
         return new Msg(
           true,
           '',
-          fetchCount === 1 ? { hasSmtpPassword: false } : { hasSmtpPassword: true, smtpPassword: '' },
+          fetchCount === 1
+            ? { hasSmtpPassword: false }
+            : { hasSmtpPassword: true, smtpPassword: '' },
         );
       }
       return new Msg(true, '');

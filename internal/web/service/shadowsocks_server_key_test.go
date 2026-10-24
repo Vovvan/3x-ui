@@ -26,9 +26,9 @@ func TestShadowsocks2022ServerKeyRejected(t *testing.T) {
 
 	t.Run("add", func(t *testing.T) {
 		setupConflictDB(t)
-		nodeID, fake := setupNodeRuntime(t)
+		fake := setupFakeRuntime(t)
 		ib := &model.Inbound{
-			UserId: 1, NodeID: &nodeID, Tag: "ss-add", Enable: true, Port: 41801, Protocol: model.Shadowsocks,
+			UserId: 1, Tag: "ss-add", Enable: true, Port: 41801, Protocol: model.Shadowsocks,
 			Settings: ss2022Settings("2022-blake3-aes-128-gcm", key32),
 		}
 		_, _, err := (&InboundService{}).AddInbound(ib)
@@ -42,10 +42,10 @@ func TestShadowsocks2022ServerKeyRejected(t *testing.T) {
 
 	t.Run("update", func(t *testing.T) {
 		setupConflictDB(t)
-		nodeID, fake := setupNodeRuntime(t)
+		fake := setupFakeRuntime(t)
 		svc := &InboundService{}
 		ib := &model.Inbound{
-			UserId: 1, NodeID: &nodeID, Tag: "ss-update", Enable: true, Port: 41802, Protocol: model.Shadowsocks,
+			UserId: 1, Tag: "ss-update", Enable: true, Port: 41802, Protocol: model.Shadowsocks,
 			Settings: ss2022Settings("2022-blake3-aes-128-gcm", key16),
 		}
 		if _, _, err := svc.AddInbound(ib); err != nil {
@@ -65,9 +65,9 @@ func TestShadowsocks2022ServerKeyRejected(t *testing.T) {
 	// The core reads a non-base64 key as its raw bytes, so this one is valid.
 	t.Run("raw key the core accepts", func(t *testing.T) {
 		setupConflictDB(t)
-		nodeID, _ := setupNodeRuntime(t)
+		setupFakeRuntime(t)
 		ib := &model.Inbound{
-			UserId: 1, NodeID: &nodeID, Tag: "ss-raw", Enable: true, Port: 41803, Protocol: model.Shadowsocks,
+			UserId: 1, Tag: "ss-raw", Enable: true, Port: 41803, Protocol: model.Shadowsocks,
 			Settings: ss2022Settings("2022-blake3-aes-128-gcm", "0123456789abcd-!"),
 		}
 		if _, _, err := (&InboundService{}).AddInbound(ib); err != nil {
@@ -86,9 +86,9 @@ func TestShadowsocks2022ChachaInboundRejected(t *testing.T) {
 
 	t.Run("add", func(t *testing.T) {
 		setupConflictDB(t)
-		nodeID, fake := setupNodeRuntime(t)
+		fake := setupFakeRuntime(t)
 		ib := &model.Inbound{
-			UserId: 1, NodeID: &nodeID, Tag: "ss-chacha-add", Enable: true, Port: 41811, Protocol: model.Shadowsocks,
+			UserId: 1, Tag: "ss-chacha-add", Enable: true, Port: 41811, Protocol: model.Shadowsocks,
 			Settings: ss2022Settings(chacha, key32),
 		}
 		_, _, err := (&InboundService{}).AddInbound(ib)
@@ -102,10 +102,10 @@ func TestShadowsocks2022ChachaInboundRejected(t *testing.T) {
 
 	t.Run("update", func(t *testing.T) {
 		setupConflictDB(t)
-		nodeID, fake := setupNodeRuntime(t)
+		fake := setupFakeRuntime(t)
 		svc := &InboundService{}
 		ib := &model.Inbound{
-			UserId: 1, NodeID: &nodeID, Tag: "ss-chacha-update", Enable: true, Port: 41812, Protocol: model.Shadowsocks,
+			UserId: 1, Tag: "ss-chacha-update", Enable: true, Port: 41812, Protocol: model.Shadowsocks,
 			Settings: ss2022Settings("2022-blake3-aes-128-gcm", key16),
 		}
 		if _, _, err := svc.AddInbound(ib); err != nil {

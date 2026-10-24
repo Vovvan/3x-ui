@@ -18,7 +18,6 @@ import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 
 import type { InboundOption } from '@/hooks/useClients';
-import type { NodeRecord } from '@/schemas/node';
 import { formatInboundLabel } from '@/lib/inbounds/label';
 import { emptyFilters, type ClientFilters } from './filters';
 
@@ -30,7 +29,6 @@ interface FilterDrawerProps {
   inbounds: InboundOption[];
   protocols: string[];
   groups: string[];
-  nodes: NodeRecord[];
 }
 
 const BUCKET_KEYS = ['active', 'expiring', 'depleted', 'deactive', 'online'] as const;
@@ -43,7 +41,6 @@ export default function FilterDrawer({
   inbounds,
   protocols,
   groups,
-  nodes,
 }: FilterDrawerProps) {
   const { t } = useTranslation();
   const uid = useId();
@@ -67,16 +64,6 @@ export default function FilterDrawer({
   );
 
   const groupOptions = useMemo(() => groups.map((g) => ({ value: g, label: g })), [groups]);
-
-  // 0 is the "local panel" sentinel (inbounds without a nodeId) — see
-  // ClientFilters.nodeIds (#4997).
-  const nodeOptions = useMemo(
-    () => [
-      { value: 0, label: t('pages.clients.filters.localPanel') },
-      ...nodes.map((n) => ({ value: n.id, label: n.name || `#${n.id}` })),
-    ],
-    [nodes, t],
-  );
 
   const dateRange: [Dayjs | null, Dayjs | null] = [
     filters.expiryFrom ? dayjs(filters.expiryFrom) : null,
@@ -142,23 +129,6 @@ export default function FilterDrawer({
           />
         </Form.Item>
 
-        {nodes.length > 0 && (
-          <Form.Item label={t('pages.clients.filters.nodes')} htmlFor={`${uid}-nodes`}>
-            <Select
-              id={`${uid}-nodes`}
-              mode="multiple"
-              value={filters.nodeIds}
-              onChange={(v) => patch('nodeIds', v as number[])}
-              options={nodeOptions}
-              placeholder={t('pages.clients.filters.nodes')}
-              maxTagCount="responsive"
-              allowClear
-              showSearch={{ optionFilterProp: 'label' }}
-              listHeight={220}
-            />
-          </Form.Item>
-        )}
-
         <Form.Item label={t('pages.clients.group')} htmlFor={`${uid}-groups`}>
           <Select
             id={`${uid}-groups`}
@@ -181,7 +151,11 @@ export default function FilterDrawer({
             onChange={(range) => {
               const from = range?.[0]?.startOf('day').valueOf();
               const to = range?.[1]?.endOf('day').valueOf();
-              onChange({ ...filters, expiryFrom: from || undefined, expiryTo: to || undefined });
+              onChange({
+                ...filters,
+                expiryFrom: from || undefined,
+                expiryTo: to || undefined,
+              });
             }}
             style={{ width: '100%' }}
             allowEmpty={[true, true]}

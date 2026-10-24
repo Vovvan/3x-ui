@@ -74,7 +74,6 @@ func (s *ClientService) BulkResetTraffic(inboundSvc *InboundService, emails []st
 		return 0, err
 	}
 	affected := 0
-	var resetNodes []int
 	err = submitTrafficWrite(func() error {
 		db := database.GetDB()
 		return db.Transaction(func(tx *gorm.DB) error {
@@ -90,24 +89,13 @@ func (s *ClientService) BulkResetTraffic(inboundSvc *InboundService, emails []st
 				}
 				affected += int(res.RowsAffected)
 			}
-			if err := clearGlobalTraffic(tx, cleanEmails...); err != nil {
-				return err
-			}
-			for _, batch := range chunkStrings(cleanEmails, sqlInChunk) {
-				if err := tx.Where("email IN ?", batch).Delete(&model.NodeClientTraffic{}).Error; err != nil {
-					return err
-				}
-			}
-			var qErr error
-			resetNodes, qErr = queueNodeResets(tx, cleanEmails)
-			return qErr
+			return nil
 		})
 	})
 	if err != nil {
 		return 0, err
 	}
 	inboundSvc.resetMtprotoClientQuotas(cleanEmails)
-	inboundSvc.deliverNodeResetsNow(resetNodes)
 	// After the zeroing, as in ResetTrafficByEmail: enabling a still-depleted
 	// client first lets the next traffic tick switch it off again.
 	for _, e := range cleanEmails {
@@ -125,18 +113,16 @@ func (s *ClientService) BulkResetTraffic(inboundSvc *InboundService, emails []st
 }
 
 func (s *ClientService) ResetAllClientTraffics(inboundSvc *InboundService, id int) (bool, error) {
-	var resetNodes []int
 	var resetEmails, restore []string
 	err := submitTrafficWrite(func() error {
 		var inner error
-		resetEmails, restore, resetNodes, inner = s.resetAllClientTrafficsLocked(id)
+		resetEmails, restore, inner = s.resetAllClientTrafficsLocked(id)
 		return inner
 	})
 	if err != nil {
 		return false, err
 	}
 	inboundSvc.resetMtprotoClientQuotas(resetEmails)
-	inboundSvc.deliverNodeResetsNow(resetNodes)
 	needRestart := false
 	if len(restore) > 0 {
 		var enableErr error
@@ -147,10 +133,9 @@ func (s *ClientService) ResetAllClientTraffics(inboundSvc *InboundService, id in
 	return needRestart, nil
 }
 
-func (s *ClientService) resetAllClientTrafficsLocked(id int) ([]string, []string, []int, error) {
+func (s *ClientService) resetAllClientTrafficsLocked(id int) ([]string, []string, error) {
 	db := database.GetDB()
 	now := time.Now().Unix() * 1000
-	var resetNodes []int
 	var reset, restore []string
 
 	if err := db.Transaction(func(tx *gorm.DB) error {
@@ -193,19 +178,6 @@ func (s *ClientService) resetAllClientTrafficsLocked(id int) ([]string, []string
 			return result.Error
 		}
 
-		if err := clearGlobalTraffic(tx, resetEmails...); err != nil {
-			return err
-		}
-
-		for _, batch := range chunkStrings(resetEmails, sqlInChunk) {
-			if err := tx.Where("email IN ?", batch).Delete(&model.NodeClientTraffic{}).Error; err != nil {
-				return err
-			}
-		}
-		if resetNodes, qErr = queueNodeResets(tx, resetEmails); qErr != nil {
-			return qErr
-		}
-
 		inboundWhereText := "id "
 		if id == -1 {
 			inboundWhereText += " > ?"
@@ -219,14 +191,13 @@ func (s *ClientService) resetAllClientTrafficsLocked(id int) ([]string, []string
 
 		return result.Error
 	}); err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
-	return reset, restore, resetNodes, nil
+	return reset, restore, nil
 }
 
 func (s *ClientService) ResetAllTraffics() (bool, error) {
 	var affected int64
-	var resetNodes []int
 	var restore []string
 	err := submitTrafficWrite(func() error {
 		return database.GetDB().Transaction(func(tx *gorm.DB) error {
@@ -241,14 +212,7 @@ func (s *ClientService) ResetAllTraffics() (bool, error) {
 				return res.Error
 			}
 			affected = res.RowsAffected
-			if err := tx.Where("1 = 1").Delete(&model.ClientGlobalTraffic{}).Error; err != nil {
-				return err
-			}
-			if err := tx.Where("1 = 1").Delete(&model.NodeClientTraffic{}).Error; err != nil {
-				return err
-			}
-			resetNodes, qErr = queueNodeResets(tx, nil)
-			return qErr
+			return nil
 		})
 	})
 	if err != nil {
@@ -256,7 +220,6 @@ func (s *ClientService) ResetAllTraffics() (bool, error) {
 	}
 	inbounds := &InboundService{}
 	inbounds.resetAllMtprotoQuotas()
-	inbounds.deliverNodeResetsNow(resetNodes)
 	needRestart := false
 	if len(restore) > 0 {
 		var enableErr error

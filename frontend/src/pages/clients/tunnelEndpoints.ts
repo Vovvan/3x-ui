@@ -12,11 +12,7 @@ export function tunnelConfigEndpoints(
   publicHost: string,
   subType: 'raw' | 'clash' = 'raw',
 ): (HostEndpoint | undefined)[] {
-  const defaultDest = resolveShareHost(
-    inbound,
-    inbound.nodeAddress ?? '',
-    preferPublicHost(host, publicHost),
-  );
+  const defaultDest = resolveShareHost(inbound, preferPublicHost(host, publicHost));
   const endpoints = hostEndpointsFor(hosts, inbound.id, inbound.port ?? 0, defaultDest, subType);
   return endpoints.length > 0 ? endpoints : [undefined];
 }

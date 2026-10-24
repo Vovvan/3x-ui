@@ -14,7 +14,7 @@ import (
 func TestSyncInboundClientsOnPostgres(t *testing.T) {
 	db := durablePostgresDB(t)
 	suffix := time.Now().UnixNano()
-	inbound := durableTestInbound(nil, fmt.Sprintf("pg-sync-%d", suffix), 20000+int(suffix%20000))
+	inbound := durableTestInbound(fmt.Sprintf("pg-sync-%d", suffix), 20000+int(suffix%20000))
 	if err := db.Create(inbound).Error; err != nil {
 		t.Fatalf("create inbound: %v", err)
 	}

@@ -15,7 +15,6 @@ const eventTypes = [
   'client_stats',
   'inbounds',
   'outbounds',
-  'nodes',
   'notification',
   'xray_state',
   'invalidate',
@@ -24,7 +23,6 @@ const eventTypes = [
 const timestamp = 1735689600000;
 const int64 = { type: 'integer', format: 'int64' };
 const stringArray = { type: 'array', items: { type: 'string' } };
-const stringArrayMap = { type: 'object', additionalProperties: stringArray };
 const timestampMap = { type: 'object', additionalProperties: int64 };
 const currentTotal = {
   type: 'object',
@@ -87,7 +85,10 @@ const statusPayloadSchema = {
     amneziawg: {
       type: 'object',
       required: ['configured', 'running'],
-      properties: { configured: { type: 'boolean' }, running: { type: 'boolean' } },
+      properties: {
+        configured: { type: 'boolean' },
+        running: { type: 'boolean' },
+      },
     },
     panelVersion: { type: 'string' },
     panelGuid: { type: 'string' },
@@ -121,8 +122,14 @@ const statusPayloadSchema = {
 const trafficPayloadSchema = {
   type: 'object',
   properties: {
-    traffics: { type: 'array', items: { $ref: '#/components/schemas/Traffic' } },
-    clientTraffics: { type: 'array', items: { $ref: '#/components/schemas/ClientTraffic' } },
+    traffics: {
+      type: 'array',
+      items: { $ref: '#/components/schemas/Traffic' },
+    },
+    clientTraffics: {
+      type: 'array',
+      items: { $ref: '#/components/schemas/ClientTraffic' },
+    },
     clientTrafficSource: {
       type: 'string',
       enum: ['xray', 'tuic'],
@@ -132,29 +139,16 @@ const trafficPayloadSchema = {
       type: 'integer',
       description: 'Sampling interval used to calculate client speed, in milliseconds.',
     },
-    nodeTraffics: {
-      type: 'array',
-      nullable: true,
-      items: { $ref: '#/components/schemas/Traffic' },
-    },
     onlineClients: stringArray,
-    onlineByGuid: stringArrayMap,
-    activeInbounds: stringArrayMap,
     lastOnlineMap: timestampMap,
   },
   oneOf: [
     {
-      required: [
-        'traffics',
-        'clientTraffics',
-        'onlineClients',
-        'onlineByGuid',
-        'activeInbounds',
-        'lastOnlineMap',
-      ],
+      required: ['traffics', 'clientTraffics', 'onlineClients', 'lastOnlineMap'],
     },
-    { required: ['nodeTraffics'] },
-    { required: ['clientTraffics', 'clientTrafficSource', 'clientTrafficIntervalMs'] },
+    {
+      required: ['clientTraffics', 'clientTrafficSource', 'clientTrafficIntervalMs'],
+    },
   ],
 };
 
@@ -163,7 +157,10 @@ const clientStatsPayloadSchema = {
   required: ['snapshot'],
   properties: {
     snapshot: { type: 'boolean' },
-    clients: { type: 'array', items: { $ref: '#/components/schemas/ClientTraffic' } },
+    clients: {
+      type: 'array',
+      items: { $ref: '#/components/schemas/ClientTraffic' },
+    },
     inbounds: {
       type: 'array',
       items: { $ref: '#/components/schemas/InboundTrafficSummary' },
@@ -177,7 +174,9 @@ export const websocketEnvelopeSchema = {
   required: ['type', 'payload', 'time'],
   properties: {
     type: { type: 'string', enum: eventTypes },
-    payload: { description: 'Shape is selected by type; see x-websocket-events on GET /ws.' },
+    payload: {
+      description: 'Shape is selected by type; see x-websocket-events on GET /ws.',
+    },
     time: {
       type: 'integer',
       format: 'int64',
@@ -226,7 +225,7 @@ export function buildWebSocketEvents(
     {
       type: 'traffic',
       summary:
-        'Live traffic deltas plus online, per-node and last-online maps. TUIC also sends source-tagged client deltas with their sampling interval for live speed.',
+        'Live traffic deltas plus online and last-online maps. TUIC also sends source-tagged client deltas with their sampling interval for live speed.',
       payloadSchema: trafficPayloadSchema,
       example: {
         type: 'traffic',
@@ -234,8 +233,6 @@ export function buildWebSocketEvents(
           traffics: [examples.Traffic],
           clientTraffics: [examples.ClientTraffic],
           onlineClients: ['alice@example.com'],
-          onlineByGuid: { 'panel-guid': ['alice@example.com'] },
-          activeInbounds: { 'panel-guid': ['inbound-443'] },
           lastOnlineMap: { 'alice@example.com': timestamp },
         },
         time: timestamp,
@@ -259,8 +256,15 @@ export function buildWebSocketEvents(
     {
       type: 'inbounds',
       summary: 'Full inbound list after an inbound mutation, unless invalidate is used at scale.',
-      payloadSchema: { type: 'array', items: { $ref: '#/components/schemas/Inbound' } },
-      example: { type: 'inbounds', payload: [examples.Inbound], time: timestamp },
+      payloadSchema: {
+        type: 'array',
+        items: { $ref: '#/components/schemas/Inbound' },
+      },
+      example: {
+        type: 'inbounds',
+        payload: [examples.Inbound],
+        time: timestamp,
+      },
     },
     {
       type: 'outbounds',
@@ -269,13 +273,11 @@ export function buildWebSocketEvents(
         type: 'array',
         items: { $ref: '#/components/schemas/OutboundTraffics' },
       },
-      example: { type: 'outbounds', payload: [examples.OutboundTraffics], time: timestamp },
-    },
-    {
-      type: 'nodes',
-      summary: 'Current node tree after the heartbeat probe cycle.',
-      payloadSchema: { type: 'array', items: { $ref: '#/components/schemas/NodeView' } },
-      example: { type: 'nodes', payload: [examples.NodeView], time: timestamp },
+      example: {
+        type: 'outbounds',
+        payload: [examples.OutboundTraffics],
+        time: timestamp,
+      },
     },
     {
       type: 'notification',
@@ -332,7 +334,6 @@ export function buildWebSocketEvents(
               'client_stats',
               'inbounds',
               'outbounds',
-              'nodes',
               'notification',
               'xray_state',
               'clients',
@@ -340,7 +341,11 @@ export function buildWebSocketEvents(
           },
         },
       },
-      example: { type: 'invalidate', payload: { type: 'inbounds' }, time: timestamp },
+      example: {
+        type: 'invalidate',
+        payload: { type: 'inbounds' },
+        time: timestamp,
+      },
     },
   ];
 }

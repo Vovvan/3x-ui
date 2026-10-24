@@ -57,7 +57,7 @@ func TestValidateRegex(t *testing.T) {
 func TestAPITokenMutationRoutesEnforceExpectedScope(t *testing.T) {
 	t.Setenv("XUI_DB_FOLDER", t.TempDir())
 	dbtest.InitDB(t, filepath.Join(t.TempDir(), "x-ui.db"))
-	row := &model.ApiToken{Name: "route-scope", Token: crypto.HashTokenSHA256("token"), Enabled: true, Scope: model.ApiScopeNodeSync}
+	row := &model.ApiToken{Name: "route-scope", Token: crypto.HashTokenSHA256("token"), Enabled: true, Scope: model.ApiScopeMonitor}
 	if err := database.GetDB().Create(row).Error; err != nil {
 		t.Fatalf("seed token: %v", err)
 	}

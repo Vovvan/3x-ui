@@ -22,7 +22,7 @@
 ‏3X-UI که به‌عنوان یک فورک بهبودیافته از پروژه‌ی اصلی X-UI ساخته شده است، پشتیبانی گسترده‌تر از پروتکل‌ها، پایداری بهتر، حسابداری ترافیک به‌ازای هر کلاینت و بسیاری از ویژگی‌های رفاهی را اضافه می‌کند.
 
 > [!NOTE]
-> این فورک سرور سابسکریپشن داخلی، رابط وب و قالب‌های آن (Happ/Incy، Clash/JSON)، متعادل‌کننده‌های سابسکریپشن، اشتراک‌های اوتباند و ربات‌های Telegram/Discord را حذف می‌کند. ساخت لینک‌های اشتراک‌گذاری و QR برای هر کلاینت باقی می‌ماند.
+> این فورک سرور سابسکریپشن داخلی، رابط وب و قالب‌های آن (Happ/Incy، Clash/JSON)، متعادل‌کننده‌های سابسکریپشن، اشتراک‌های اوتباند و ربات‌های Telegram/Discord و مدیریت چند نودی را حذف می‌کند. ساخت لینک‌های اشتراک‌گذاری و QR برای هر کلاینت باقی می‌ماند.
 
 > [!IMPORTANT]
 > این پروژه فقط برای استفاده‌ی شخصی در نظر گرفته شده است. لطفاً از آن برای اهداف غیرقانونی یا در محیط تولید (production) استفاده نکنید.
@@ -65,10 +65,6 @@
   <img alt="Add client" src="./media/03-add-client-light.png">
 </picture>
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="./media/05-add-nodes-dark.png">
-  <img alt="Configs" src="./media/05-add-nodes-light.png">
-</picture>
 
 </details>
 
@@ -170,7 +166,7 @@ docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/mhsanaei/3x-ui
 | `XUI_TUNNEL_HEALTH_TIMEOUT` | مهلت زمانی هر پروب | `10s` |
 | `XUI_TUNNEL_HEALTH_FAILURES` | تعداد خطاهای متوالی پیش از آن‌که یک ری‌استارت فعال شود | `3` |
 | `XUI_TUNNEL_HEALTH_COOLDOWN` | حداقل تأخیر بین ری‌استارت‌های متوالی | `5m` |
-| `NODE_TOKEN_ENCRYPTION` | رمزگذاری توکن‌های API نود در حالت سکون: `off`، `migration` یا `required` (بدون پیشوند `XUI_`) | `off` |
+| `NODE_TOKEN_ENCRYPTION` | رمزگذاری توکن‌های ذخیره‌شدهٔ ارائه‌دهنده (PIA) در حالت سکون: `off`، `migration` یا `required` (بدون پیشوند `XUI_`) | `off` |
 | `XUI_NODE_TOKEN_KEY_FILE` | حلقه‌کلید JSON (با دسترسی `0600`) شامل شناسه‌ی کلید فعال و کلیدهای ۳۲ بایتی base64 | `/etc/x-ui/node_token_key.json` |
 | `XUI_NODE_TOKEN_KEY` | یک کلید ۳۲ بایتی base64 که تنها در صورت بارگذاری‌نشدن فایل کلید استفاده می‌شود | — |
 

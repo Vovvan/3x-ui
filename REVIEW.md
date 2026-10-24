@@ -43,8 +43,8 @@ the comment.
   config generation in `internal/xray/`.
 - A state-changing inbound or client operation that bypasses `runtime.Runtime`
   (`internal/web/runtime/`) and calls `internal/xray/api.go` directly, or
-  dispatches from a controller or cron job. It passes every local test and
-  silently breaks every multi-node deployment.
+  dispatches from a controller or cron job. It bypasses the contract every
+  inbound/client path relies on.
 - A schema or model change without a matching hand-written migration in
   `internal/database/db.go`, one that behaves differently on SQLite and
   PostgreSQL, or one that loses or overwrites operator data on upgrade or
@@ -102,8 +102,8 @@ than the happy path the author had in mind:
 - **A restart.** Anything held only in memory is gone when the panel or the
   Xray child restarts, and the cron jobs in `internal/web/job/` then fire
   against whatever survived.
-- **A second actor at the same instant.** Two panel requests, a request racing
-  a cron job, or a sub-node syncing while the master writes. Read-modify-write
+- **A second actor at the same instant.** Two panel requests or a request racing
+  a cron job. Read-modify-write
   on the same row is where this surfaces.
 - **The same operation twice.** A retried request, a re-sent sync, a job that
   ran late and then again on schedule. Traffic and quota resets and Xray API
@@ -113,8 +113,7 @@ than the happy path the author had in mind:
   other end, the operator with thousands of clients whose loop or query this
   change sits inside.
 - **A dependency that is down.** The Xray gRPC API refusing a call, the
-  mtg-multi management API unreachable, a sub-node offline, PIA or LDAP
-  timing out. What the caller sees, and what state is left behind.
+  mtg-multi management API unreachable, PIA or LDAP timing out. What the caller sees, and what state is left behind.
 
 Running a case is not reporting it. Each one still has to clear the
 verification bar below — the code path that mishandles it, cited — and a case
@@ -191,8 +190,7 @@ Read in this order, so what runs out is the part that matters least:
 2. The exposed surfaces: `internal/web/controller/`, session and middleware
    code, `internal/sub/`, Xray config generation in `internal/xray/`.
 3. Schema, model and migration changes in `internal/database/`.
-4. State-changing inbound and client paths, `internal/web/runtime/` and node
-   sync.
+4. State-changing inbound and client paths and `internal/web/runtime/`.
 5. What the panel emits on the wire — the link, subscription and sidecar
    config generators.
 6. Everything else, tests and frontend last.
@@ -258,8 +256,8 @@ Then give exactly one verdict:
 For a feature, answer instead: what user-visible capability it adds; whether
 the panel already offers it or most of it (setting, inbound option, existing
 endpoint); whether it holds across the deployment shapes in "What HIGH means
-here" — multi-node, upgrade over an existing database, every link
-implementation — and which ones it leaves out. Then give one verdict: `Fits`,
+here" — upgrade over an existing database, every link implementation — and
+which ones it leaves out. Then give one verdict: `Fits`,
 `Fits with gaps` or `Overlaps existing` — and, after the tally, a short
 **Design** section: in prose only, the ideas a senior engineer would raise about the
 approach — a simpler model, an existing mechanism it could build on, a case

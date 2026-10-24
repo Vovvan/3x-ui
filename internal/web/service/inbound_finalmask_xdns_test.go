@@ -54,7 +54,7 @@ func TestAddInbound_StoresXdnsMaskInNamesShape(t *testing.T) {
 	assertXdnsSettingsUpgraded(t, stream)
 }
 
-// A row that never went through the save path (restored backup, node sync, direct DB
+// A row that never went through the save path (restored backup, direct DB
 // edit) must still reach the core with its xdns domains, or the mask serves nothing.
 func TestGetXrayConfig_UpgradesLegacyXdnsMask(t *testing.T) {
 	setupConflictDB(t)

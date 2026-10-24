@@ -90,13 +90,6 @@ func TestMigrateData_PreservesFalseDefaultedColumns(t *testing.T) {
 		Update("enable", false).Error; err != nil {
 		t.Fatalf("disable client: %v", err)
 	}
-	if err := src.Create(&model.Node{Name: "n-off", Address: "1.2.3.4", Port: 1, ApiToken: "tok"}).Error; err != nil {
-		t.Fatalf("seed node: %v", err)
-	}
-	if err := src.Model(&model.Node{}).Where("name = ?", "n-off").
-		Update("enable", false).Error; err != nil {
-		t.Fatalf("disable node: %v", err)
-	}
 	if sqlDB, err := src.DB(); err == nil {
 		sqlDB.Close()
 	}
@@ -127,14 +120,6 @@ func TestMigrateData_PreservesFalseDefaultedColumns(t *testing.T) {
 	}
 	if !on.Enable {
 		t.Fatalf("enabled client wrongly disabled after migration")
-	}
-
-	var node model.Node
-	if err := dst.Where("name = ?", "n-off").First(&node).Error; err != nil {
-		t.Fatalf("load node: %v", err)
-	}
-	if node.Enable {
-		t.Fatalf("disabled node re-enabled after migration")
 	}
 }
 

@@ -396,7 +396,7 @@ func TestEnsureHeaderProtectionKeyChangeReconfiguresInPlace(t *testing.T) {
 // IpcSet backstop really exists independent of the save-time
 // ValidateHeaderProtection check in
 // internal/web/service/inbound_amneziawg.go -- that web-layer check can be
-// bypassed (a node-owned inbound, a direct DB edit), so this confirms a
+// bypassed (a direct DB edit), so this confirms a
 // malformed config still fails loudly here rather than silently applying a
 // broken interface.
 func TestEnsureRejectsHeaderProtectionKeyWithLowS1S4(t *testing.T) {

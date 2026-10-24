@@ -1,9 +1,8 @@
 import { describe, it, expect, onTestFinished, vi } from 'vitest';
-import { screen, act, render, cleanup, fireEvent, waitFor } from '@testing-library/react';
+import { screen, act, cleanup, fireEvent, waitFor } from '@testing-library/react';
 
 import InboundFormModal from '@/pages/inbounds/form/InboundFormModal';
 import { DBInbound } from '@/models/dbinbound';
-import { ThemeProvider } from '@/hooks/useTheme';
 import { HttpUtil } from '@/utils';
 import { Protocols } from '@/schemas/primitives';
 import {
@@ -33,7 +32,6 @@ function renderModal() {
       mode="add"
       dbInbound={null}
       dbInbounds={[]}
-      availableNodes={[]}
       onClose={() => {}}
       onSaved={() => {}}
     />,
@@ -93,7 +91,6 @@ function cloneLikeVlessInbound(target: string) {
       },
     },
     sniffing: { enabled: false },
-    nodeId: null,
     shareAddrStrategy: 'listen',
     shareAddr: '',
   });
@@ -106,7 +103,6 @@ function renderCloneLikeEdit(dbInbound: DBInbound) {
       mode="edit"
       dbInbound={dbInbound}
       dbInbounds={[dbInbound]}
-      availableNodes={[]}
       onClose={() => {}}
       onSaved={() => {}}
     />,
@@ -168,13 +164,11 @@ describe('InboundFormModal', () => {
             },
             streamSettings: { network: 'tcp', security: 'none', tcpSettings: {} },
             sniffing: { enabled: false },
-            nodeId: null,
             shareAddrStrategy: 'custom',
             shareAddr: 'edge.example.test',
           })
         }
         dbInbounds={[]}
-        availableNodes={[]}
         onClose={() => {}}
         onSaved={() => {}}
       />,
@@ -200,13 +194,11 @@ describe('InboundFormModal', () => {
             settings: { clients: [] },
             streamSettings: {},
             sniffing: { enabled: false },
-            nodeId: null,
             shareAddrStrategy: 'custom',
             shareAddr: 'proxy.example.test',
           })
         }
         dbInbounds={[]}
-        availableNodes={[]}
         onClose={() => {}}
         onSaved={() => {}}
       />,
@@ -217,61 +209,6 @@ describe('InboundFormModal', () => {
     });
     expect(fieldLabels()).not.toContain('Share address strategy');
     expect(screen.queryByDisplayValue('proxy.example.test')).toBeNull();
-  });
-
-  it('keeps the persisted node share strategy through the nodes-loading race (#5375)', async () => {
-    const node = { id: 1, name: 'arm2', enable: true, status: 'online' } as never;
-    const buildInbound = () =>
-      new DBInbound({
-        id: 1,
-        port: 23456,
-        listen: '',
-        protocol: 'vless',
-        remark: 'noded',
-        enable: true,
-        settings: { clients: [] },
-        streamSettings: { network: 'tcp', security: 'none', tcpSettings: {} },
-        sniffing: { enabled: false },
-        nodeId: 1,
-        shareAddrStrategy: 'node',
-      });
-    const flush = async () => {
-      await act(async () => {
-        await new Promise((r) => setTimeout(r, 0));
-      });
-    };
-    const strategyItem = (title: string) =>
-      document.querySelector(`.ant-select-content[title="${title}"]`);
-    const modal = (nodes: never[], fetched: boolean) => (
-      <ThemeProvider>
-        <InboundFormModal
-          open
-          mode="edit"
-          dbInbound={buildInbound()}
-          dbInbounds={[]}
-          availableNodes={nodes}
-          availableNodesFetched={fetched}
-          onClose={() => {}}
-          onSaved={() => {}}
-        />
-      </ThemeProvider>
-    );
-
-    // Baseline: nodes already loaded, so the node option is offered and selected.
-    render(modal([node], true));
-    await flush();
-    expect(strategyItem('Node address')).toBeTruthy();
-    cleanup();
-
-    // Race: the modal mounts before /nodes/list resolves (empty placeholder),
-    // then nodes arrive. The persisted 'node' strategy must survive the gap and
-    // stay selected once the option reappears — not silently revert to listen.
-    const { rerender } = render(modal([], false));
-    await flush();
-    rerender(modal([node], true));
-    await flush();
-    expect(strategyItem('Node address')).toBeTruthy();
-    expect(strategyItem('Inbound listen')).toBeFalsy();
   });
 
   it('surfaces a Reality validation error and switches to its tab', async () => {
@@ -444,7 +381,6 @@ describe('InboundFormModal', () => {
         finalmask: { quicParams: { udpHop: { ports: '20000-30000', interval: '5-10' } } },
       },
       sniffing: { enabled: false },
-      nodeId: null,
       shareAddrStrategy: 'listen',
       shareAddr: '',
     });
@@ -537,7 +473,6 @@ describe('InboundFormModal', () => {
       },
       streamSettings: {},
       sniffing: { enabled: false },
-      nodeId: null,
       shareAddrStrategy: 'listen',
       shareAddr: '',
     });

@@ -92,9 +92,6 @@ func resetScaleJobTables(t *testing.T, db *gorm.DB) {
 	if err := db.Where("1 = 1").Delete(&model.InboundClientIps{}).Error; err != nil {
 		t.Fatalf("clear inbound client ips: %v", err)
 	}
-	if err := db.Where("1 = 1").Delete(&model.NodeClientIp{}).Error; err != nil {
-		t.Fatalf("clear node client ips: %v", err)
-	}
 }
 
 // seedScaleIPDataset seeds n clients across numInbounds inbounds. Every client

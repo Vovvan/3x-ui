@@ -24,7 +24,7 @@ func readClientTraffic(t *testing.T, email string) xray.ClientTraffic {
 // while it was open must survive the save in settings, record and stats.
 func TestInboundFormSaveKeepsClientRenewedWhileOpen(t *testing.T) {
 	setupBulkDB(t)
-	ib := seedRenewableNeighbour(t, 23201, nil)
+	ib := seedRenewableNeighbour(t, 23201)
 	form := *ib
 
 	if err := database.GetDB().Transaction(autoRenewTick); err != nil {
@@ -45,37 +45,11 @@ func TestInboundFormSaveKeepsClientRenewedWhileOpen(t *testing.T) {
 	}
 }
 
-// On a node the master's push is authoritative, lifecycle fields included.
-func TestInboundUpdateFromMasterAppliesClientLifecycle(t *testing.T) {
-	setupBulkDB(t)
-	ib := seedRenewableNeighbour(t, 23202, nil)
-	clients, err := (&InboundService{}).GetClients(ib)
-	if err != nil {
-		t.Fatalf("GetClients: %v", err)
-	}
-	for i := range clients {
-		if clients[i].Email == "x@stale" {
-			clients[i].Enable = false
-		}
-	}
-	push := *ib
-	push.Settings = clientsSettings(t, clients)
-	if _, _, err := (&InboundService{FromNodeSync: true}).UpdateInbound(&push); err != nil {
-		t.Fatalf("UpdateInbound: %v", err)
-	}
-	if x, _ := settingsClient(t, ib.Id, "x@stale"); x.Enable {
-		t.Fatal("master push disabling x@stale was ignored in settings")
-	}
-	if readClientTraffic(t, "x@stale").Enable {
-		t.Fatal("master push disabling x@stale was ignored in client_traffics")
-	}
-}
-
 // Traffic the poll adds after UpdateInbound read the row must not be written
 // back over by the edit.
 func TestInboundUpdateKeepsTrafficAddedMidEdit(t *testing.T) {
 	setupBulkDB(t)
-	ib := seedRenewableNeighbour(t, 23203, nil)
+	ib := seedRenewableNeighbour(t, 23203)
 	form := *ib
 	form.Remark = "edited"
 	commitTickBetweenReadAndWrite(t, func(tx *gorm.DB) error {
@@ -110,7 +84,7 @@ func inboundLinksEmail(t *testing.T, inboundId int, email string) bool {
 // saving the inbound must not detach it.
 func TestInboundFormSaveKeepsClientAddedWhileOpen(t *testing.T) {
 	setupBulkDB(t)
-	ib := seedRenewableNeighbour(t, 23204, nil)
+	ib := seedRenewableNeighbour(t, 23204)
 	form := *ib
 
 	if _, err := (&ClientService{}).AddInboundClient(&InboundService{}, &model.Inbound{
@@ -131,7 +105,7 @@ func TestInboundFormSaveKeepsClientAddedWhileOpen(t *testing.T) {
 // back; saving must not restore its access.
 func TestInboundFormSaveDoesNotResurrectDeletedClient(t *testing.T) {
 	setupBulkDB(t)
-	ib := seedRenewableNeighbour(t, 23205, nil)
+	ib := seedRenewableNeighbour(t, 23205)
 	form := *ib
 
 	if _, err := (&ClientService{}).DelInboundClientByEmail(&InboundService{}, ib.Id, "x@stale", false, true); err != nil {
@@ -150,7 +124,7 @@ func TestInboundFormSaveDoesNotResurrectDeletedClient(t *testing.T) {
 // which still holds enable=true, is saved.
 func TestInboundFormSaveKeepsEnableToggledWhileOpen(t *testing.T) {
 	setupBulkDB(t)
-	ib := seedRenewableNeighbour(t, 23206, nil)
+	ib := seedRenewableNeighbour(t, 23206)
 	form := *ib
 
 	if _, err := (&InboundService{}).SetInboundEnable(ib.Id, false); err != nil {

@@ -28,7 +28,7 @@ exports[`InboundSchema (full) fixtures > parses hysteria-tls byte-stably 1`] = `
     "version": 2,
   },
   "shareAddr": "",
-  "shareAddrStrategy": "node",
+  "shareAddrStrategy": "listen",
   "sniffing": {
     "destOverride": [
       "http",
@@ -116,7 +116,7 @@ exports[`InboundSchema (full) fixtures > parses masque-tls byte-stably 1`] = `
     "mtu": 1400,
   },
   "shareAddr": "",
-  "shareAddrStrategy": "node",
+  "shareAddrStrategy": "listen",
   "sniffing": {
     "destOverride": [
       "http",
@@ -205,7 +205,7 @@ exports[`InboundSchema (full) fixtures > parses shadowsocks-tcp-2022 byte-stably
     "password": "ZmFrZS1zZXJ2ZXItcGFzc3dvcmQtMDAwMQ==",
   },
   "shareAddr": "",
-  "shareAddrStrategy": "node",
+  "shareAddrStrategy": "listen",
   "sniffing": {
     "destOverride": [
       "http",
@@ -263,7 +263,7 @@ exports[`InboundSchema (full) fixtures > parses trojan-ws-tls byte-stably 1`] = 
     "fallbacks": [],
   },
   "shareAddr": "",
-  "shareAddrStrategy": "node",
+  "shareAddrStrategy": "listen",
   "sniffing": {
     "destOverride": [
       "http",
@@ -355,7 +355,7 @@ exports[`InboundSchema (full) fixtures > parses vless-tcp-reality byte-stably 1`
     "fallbacks": [],
   },
   "shareAddr": "",
-  "shareAddrStrategy": "node",
+  "shareAddrStrategy": "listen",
   "sniffing": {
     "destOverride": [
       "http",
@@ -441,7 +441,7 @@ exports[`InboundSchema (full) fixtures > parses vless-ws-tls byte-stably 1`] = `
     "fallbacks": [],
   },
   "shareAddr": "",
-  "shareAddrStrategy": "node",
+  "shareAddrStrategy": "listen",
   "sniffing": {
     "destOverride": [
       "http",
@@ -533,7 +533,7 @@ exports[`InboundSchema (full) fixtures > parses vless-ws-tls-pinned byte-stably 
     "fallbacks": [],
   },
   "shareAddr": "",
-  "shareAddrStrategy": "node",
+  "shareAddrStrategy": "listen",
   "sniffing": {
     "destOverride": [
       "http",
@@ -626,7 +626,7 @@ exports[`InboundSchema (full) fixtures > parses vmess-tcp-tls byte-stably 1`] = 
     ],
   },
   "shareAddr": "",
-  "shareAddrStrategy": "node",
+  "shareAddrStrategy": "listen",
   "sniffing": {
     "destOverride": [
       "http",
@@ -714,7 +714,7 @@ exports[`InboundSchema (full) fixtures > parses wireguard-server byte-stably 1`]
     "subnetIp": "",
   },
   "shareAddr": "",
-  "shareAddrStrategy": "node",
+  "shareAddrStrategy": "listen",
   "sniffing": {
     "destOverride": [
       "http",

@@ -60,7 +60,6 @@ func newHostGroup(h *model.Host, groupId string) *entity.HostGroup {
 		FinalMask:              h.FinalMask,
 		VlessRoute:             h.VlessRoute,
 		ExcludeFromSubTypes:    h.ExcludeFromSubTypes,
-		NodeGuids:              h.NodeGuids,
 		MihomoIpVersion:        h.MihomoIpVersion,
 		MihomoX25519:           h.MihomoX25519,
 		ShuffleHost:            h.ShuffleHost,
@@ -171,28 +170,12 @@ func buildHostRows(groupId string, req *entity.HostGroup) []*model.Host {
 				FinalMask:              req.FinalMask,
 				VlessRoute:             req.VlessRoute,
 				ExcludeFromSubTypes:    req.ExcludeFromSubTypes,
-				NodeGuids:              req.NodeGuids,
 				MihomoIpVersion:        req.MihomoIpVersion,
 				MihomoX25519:           req.MihomoX25519,
 				ShuffleHost:            req.ShuffleHost,
 				RandomCount:            clampRandomCount(req.RandomCount),
 			})
 		}
-	}
-	return rows
-}
-
-// adoptedHostRows projects a node's host groups onto a freshly adopted central
-// inbound so TLS/SNI/fingerprint overrides survive the node-to-master import.
-func adoptedHostRows(groups []*entity.HostGroup, nodeInboundId, centralInboundId int) []*model.Host {
-	var rows []*model.Host
-	for _, g := range groups {
-		if g == nil || !slices.Contains(g.InboundIds, nodeInboundId) {
-			continue
-		}
-		scoped := *g
-		scoped.InboundIds = []int{centralInboundId}
-		rows = append(rows, buildHostRows(g.GroupId, &scoped)...)
 	}
 	return rows
 }

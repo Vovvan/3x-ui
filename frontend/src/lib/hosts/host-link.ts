@@ -172,11 +172,10 @@ export function withHostEndpoints(
   inbound: Inbound,
   inboundId: number,
   records: HostRecord[],
-  hostOverride: string,
   fallbackHostname: string,
 ): Inbound {
   if (!HOST_LINK_PROTOCOLS.has(inbound.protocol)) return inbound;
-  const defaultDest = resolveAddr(inbound, hostOverride, fallbackHostname);
+  const defaultDest = resolveAddr(inbound, fallbackHostname);
   const endpoints = hostEndpointsFor(records, inboundId, inbound.port, defaultDest);
   if (endpoints.length === 0) return inbound;
   const externalProxy: ExternalProxyEntry[] = endpoints.map(({ dest, port, remark }) => ({

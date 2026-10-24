@@ -31,7 +31,6 @@ import { ALPN_OPTION, UTLS_FINGERPRINT } from '@/schemas/primitives';
 import { CipherSuitesSelect } from '@/components/form';
 import DynamicEchHelper from '@/components/form/DynamicEchHelper';
 import { FormField, rhfZodValidate } from '@/components/form/rhf';
-import { useNodesQuery } from '@/api/queries/useNodesQuery';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { catTabLabel } from '@/pages/settings/catTabLabel';
 import { HostFinalMaskForm, HostMuxForm, HostSockoptForm } from './json-forms';
@@ -91,7 +90,6 @@ function defaultsFor(host: HostRecord | null): FormShape {
     vlessRoute: host?.vlessRoute ?? '',
     excludeFromSubTypes:
       (host?.excludeFromSubTypes as BulkAddHostValues['excludeFromSubTypes']) ?? [],
-    nodeGuids: host?.nodeGuids ?? [],
     mihomoIpVersion: host?.mihomoIpVersion as BulkAddHostValues['mihomoIpVersion'],
     mihomoX25519: host?.mihomoX25519 ?? false,
     shuffleHost: host?.shuffleHost ?? false,
@@ -142,8 +140,6 @@ export default function HostFormModal({
     }
   }
 
-  const { nodes } = useNodesQuery();
-
   const inboundSelectOptions = useMemo(
     () =>
       inboundOptions.map((ib) => ({
@@ -151,14 +147,6 @@ export default function HostFormModal({
         label: ib.remark || ib.tag || `#${ib.id}`,
       })),
     [inboundOptions],
-  );
-
-  const nodeSelectOptions = useMemo(
-    () =>
-      nodes
-        .filter((n) => n.guid)
-        .map((n) => ({ value: n.guid as string, label: n.name || n.remark || (n.guid as string) })),
-    [nodes],
   );
 
   const alpnOptions = useMemo(
@@ -246,7 +234,9 @@ export default function HostFormModal({
       cancelText={t('cancel')}
       destroyOnHidden
       width={isMobile ? '95vw' : 760}
-      styles={{ body: { maxHeight: '70vh', overflowY: 'auto', overflowX: 'hidden' } }}
+      styles={{
+        body: { maxHeight: '70vh', overflowY: 'auto', overflowX: 'hidden' },
+      }}
     >
       {messageContextHolder}
       <FormProvider {...methods}>
@@ -273,7 +263,9 @@ export default function HostFormModal({
                       name="remark"
                       label={t('pages.hosts.fields.remark')}
                       tooltip={t('pages.hosts.hints.remark')}
-                      rules={{ validate: rhfZodValidate(BulkAddHostSchema.shape.remark) }}
+                      rules={{
+                        validate: rhfZodValidate(BulkAddHostSchema.shape.remark),
+                      }}
                     >
                       <Input maxLength={256} />
                     </FormField>
@@ -287,7 +279,9 @@ export default function HostFormModal({
                     <FormField
                       name="inboundIds"
                       label={t('pages.hosts.fields.inbound')}
-                      rules={{ validate: rhfZodValidate(BulkAddHostSchema.shape.inboundIds) }}
+                      rules={{
+                        validate: rhfZodValidate(BulkAddHostSchema.shape.inboundIds),
+                      }}
                     >
                       <Select
                         mode="multiple"
@@ -300,7 +294,9 @@ export default function HostFormModal({
                       name="hosts"
                       label={t('pages.hosts.fields.address')}
                       tooltip={t('pages.hosts.hints.address')}
-                      rules={{ validate: rhfZodValidate(BulkAddHostSchema.shape.hosts) }}
+                      rules={{
+                        validate: rhfZodValidate(BulkAddHostSchema.shape.hosts),
+                      }}
                     >
                       <Select
                         mode="tags"
@@ -327,18 +323,6 @@ export default function HostFormModal({
                       tooltip={t('pages.hosts.hints.tags')}
                     >
                       <Select mode="tags" allowClear tokenSeparators={[',']} />
-                    </FormField>
-                    <FormField
-                      name="nodeGuids"
-                      label={t('pages.hosts.fields.nodeGuids')}
-                      tooltip={t('pages.hosts.hints.nodeGuids')}
-                    >
-                      <Select
-                        mode="multiple"
-                        allowClear
-                        options={nodeSelectOptions}
-                        showSearch={{ optionFilterProp: 'label' }}
-                      />
                     </FormField>
                     <FormField
                       name="enable"

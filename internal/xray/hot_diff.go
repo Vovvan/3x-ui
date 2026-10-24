@@ -399,10 +399,8 @@ func inboundUsesTproxy(ib *InboundConfig) bool {
 }
 
 // inboundUsesSocksAccounts reports whether an inbound is a password-auth
-// SOCKS5 inbound. TUIC and AmneziaWG generate this shape through
-// injectTuicRelay and injectAmneziawgnetSocks in internal/web/service/xray.go.
-// The panel, per-node and MTProto egress bridges use "noauth" without
-// per-account identity, so this check does not affect those bridges.
+// inboundUsesSocksAccounts reports whether an inbound is a password-auth
+// SOCKS5 inbound with one or more named accounts.
 //
 // Real production incident, not a theoretical concern: a single client
 // edit under an AmneziaWG inbound left this inbound's settings unchanged in

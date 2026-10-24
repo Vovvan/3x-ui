@@ -109,7 +109,7 @@ func (b *Bus) Publish(e Event) {
 // one to every subscriber's queue with a non-blocking send, so a subscriber
 // whose handler blocks on network I/O (the email and Telegram notifiers can
 // block for tens of seconds) can neither stall delivery of unrelated, higher-
-// value events such as xray.crash or node.down, nor force the bus to spawn an
+// value events such as xray.crash, nor force the bus to spawn an
 // unbounded number of goroutines under load. A subscriber whose queue is full
 // drops the event, keeping the bus non-blocking and its memory bounded.
 func (b *Bus) dispatch() {

@@ -1,12 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Divider, Modal, Popover, Tag, Tooltip, message } from 'antd';
-import {
-  CopyOutlined,
-  EyeOutlined,
-  QrcodeOutlined,
-  ReloadOutlined,
-} from '@ant-design/icons';
+import { CopyOutlined, EyeOutlined, QrcodeOutlined, ReloadOutlined } from '@ant-design/icons';
 
 import { ClipboardManager, HttpUtil, IntlUtil, SizeFormatter } from '@/utils';
 import { formatInboundLabel, formatTunnelConfigMeta } from '@/lib/inbounds/label';
@@ -75,7 +70,6 @@ interface ApiMsg<T = unknown> {
 const DEFAULT_SUB: SubSettings = {
   publicHost: '',
 };
-
 
 export default function ClientInfoModal({
   open,
@@ -667,11 +661,6 @@ export default function ClientInfoModal({
               >
                 {entry.ip}
                 {entry.time ? ` (${entry.time})` : ''}
-                {entry.node ? (
-                  <span style={{ marginInlineStart: 6, opacity: 0.85, fontWeight: 600 }}>
-                    @ {entry.node}
-                  </span>
-                ) : null}
               </Tag>
             ))}
           </div>

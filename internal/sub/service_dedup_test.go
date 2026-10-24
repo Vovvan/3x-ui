@@ -11,8 +11,8 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 )
 
-// TestGetSubs_DuplicateSettingsClients_Deduped reproduces #5134: multi-node
-// sync/import drift can leave the same client twice inside an inbound's
+// TestGetSubs_DuplicateSettingsClients_Deduped reproduces #5134: import drift
+// can leave the same client twice inside an inbound's
 // legacy settings.clients JSON while the normalized client_inbounds table
 // stays clean. The subscription output must still contain one profile per
 // (inbound, client).

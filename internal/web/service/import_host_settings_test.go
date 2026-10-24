@@ -8,19 +8,18 @@ import (
 )
 
 // An imported database carries the source machine's listen addresses,
-// certificates and node identity. Keeping this machine's own values is what
+// certificates. Keeping this machine's own values is what
 // stops the panel from becoming unreachable on its own address after a restore.
 func TestImportKeepsHostBoundSettings(t *testing.T) {
 	setupConflictDB(t)
 	db := database.GetDB()
 
 	mine := map[string]string{
-		"webPort":               "8443",
-		"webCertFile":           "/etc/ssl/this-host.pem",
-		"webBasePath":           "/mine/",
-		"subURI":                "https://this-host.example/sub/",
-		"panelGuid":             "this-host-guid",
-		"nodeMtlsClientCertPem": "this-host-leaf",
+		"webPort":     "8443",
+		"webCertFile": "/etc/ssl/this-host.pem",
+		"webBasePath": "/mine/",
+		"subURI":      "https://this-host.example/sub/",
+		"panelGuid":   "this-host-guid",
 	}
 	for key, value := range mine {
 		if err := db.Create(&model.Setting{Key: key, Value: value}).Error; err != nil {
@@ -93,30 +92,6 @@ func TestImportDropsHostBoundSettingsThisMachineNeverHad(t *testing.T) {
 		}
 		if count != 0 {
 			t.Fatalf("imported %s survived although this machine had no row for it", key)
-		}
-	}
-}
-
-// Node mTLS material is minted on demand, so a fresh install has no row and the
-// imported copy is the only one there is — including the CA private key (#6227).
-func TestImportKeepsLazilyMintedMaterialThisMachineNeverHad(t *testing.T) {
-	setupConflictDB(t)
-	db := database.GetDB()
-
-	kept := captureHostBoundSettings()
-
-	for _, key := range []string{"nodeMtlsCaCertPem", "nodeMtlsCaKeyPem", "nodeMtlsClientCertPem", "nodeMtlsClientKeyPem", "nodeMtlsClientCAPem"} {
-		if err := db.Create(&model.Setting{Key: key, Value: "from-imported-file"}).Error; err != nil {
-			t.Fatalf("seed imported %s: %v", key, err)
-		}
-	}
-
-	restoreHostBoundSettings(kept)
-
-	for _, key := range []string{"nodeMtlsCaCertPem", "nodeMtlsCaKeyPem", "nodeMtlsClientCertPem", "nodeMtlsClientKeyPem", "nodeMtlsClientCAPem"} {
-		var got model.Setting
-		if err := db.Where("key = ?", key).First(&got).Error; err != nil {
-			t.Fatalf("%s was dropped; restoring a backup onto a reinstalled panel would lose it: %v", key, err)
 		}
 	}
 }

@@ -71,11 +71,9 @@ func IsDevBuild() bool {
 	return GetBuildCommit() != ""
 }
 
-// GetPanelVersion returns the version a panel advertises to a managing master
-// node and displays in the UI: the plain version for stable builds, or
-// "dev+<short commit>" for dev builds. The dev form mirrors the master's
-// getPanelUpdateInfo latestVersion so a node on the current dev commit compares
-// as up to date instead of always showing "update available".
+// GetPanelVersion returns the version displayed in the UI: the plain version for
+// stable builds, or "dev+<short commit>" for dev builds. The dev form keeps a
+// build on the current commit comparing as up to date against the release feed.
 func GetPanelVersion() string {
 	if !IsDevBuild() {
 		return GetBaseVersion()
@@ -193,24 +191,24 @@ func GetDBDSN() string {
 	return strings.TrimSpace(os.Getenv("XUI_DB_DSN"))
 }
 
-// GetNodeTokenEncryptionMode returns off, migration, or required. Explicit
-// policy prevents a missing key from silently downgrading encrypted storage.
-func GetNodeTokenEncryptionMode() string {
+// GetTokenEncryptionMode returns off, migration, or required. Explicit policy
+// prevents a missing key from silently downgrading encrypted storage.
+func GetTokenEncryptionMode() string {
 	return strings.TrimSpace(os.Getenv("NODE_TOKEN_ENCRYPTION"))
 }
 
-// GetNodeTokenKeyFile returns the mode-0600 keyring path, configurable through
-// XUI_NODE_TOKEN_KEY_FILE.
-func GetNodeTokenKeyFile() string {
+// GetTokenKeyFile returns the mode-0600 keyring path. The env name and default
+// filename keep the legacy node_token spelling so existing deployments upgrade.
+func GetTokenKeyFile() string {
 	if p := strings.TrimSpace(os.Getenv("XUI_NODE_TOKEN_KEY_FILE")); p != "" {
 		return p
 	}
 	return "/etc/x-ui/node_token_key.json"
 }
 
-// GetNodeTokenKeyEnv returns the name of the env var holding a single base64
-// 32-byte node-token key (secondary to the key file). Empty value => unused.
-func GetNodeTokenKeyEnv() string {
+// GetTokenKeyEnv returns the name of the env var holding a single base64 32-byte
+// token-encryption key (secondary to the key file). Empty value => unused.
+func GetTokenKeyEnv() string {
 	return "XUI_NODE_TOKEN_KEY"
 }
 

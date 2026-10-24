@@ -117,36 +117,6 @@ func TestBulkAdjustHwidRollsBackFailedTrim(t *testing.T) {
 	assertHwidState(t, db, rec.Email, 5, 3)
 }
 
-func TestBulkCreateWithdrawsTombstoneWhenHwidTrimFails(t *testing.T) {
-	setupBulkDB(t)
-	StartTrafficWriter()
-	t.Cleanup(StopTrafficWriter)
-	db := database.GetDB()
-	const email = "reborn-bulk@x"
-	const subID = "reborn-bulk-sub"
-	tombstoneClientEmail(email)
-	t.Cleanup(func() { withdrawClientTombstones(email) })
-	seedHwids(t, db, subID, 3)
-	failHwidDeletes(t, db)
-	ib := mkInbound(t, 30441, model.VLESS, `{"clients":[]}`)
-
-	res, _, err := (&ClientService{}).BulkCreate(&InboundService{}, []ClientCreatePayload{{
-		Client: model.Client{
-			Email: email, SubID: subID, ID: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee", Enable: true,
-		},
-		InboundIds: []int{ib.Id}, LimitHwid: 1,
-	}})
-	if err != nil {
-		t.Fatalf("BulkCreate: %v", err)
-	}
-	if len(res.Skipped) != 1 || res.Skipped[0].Reason != errInjectedHwidDelete.Error() {
-		t.Fatalf("skipped = %+v, want injected HWID failure", res.Skipped)
-	}
-	if isClientEmailTombstoned(email) {
-		t.Fatal("live bulk-created client retained a delete tombstone")
-	}
-}
-
 func TestSetClientLimitHwidIsSerializedWithSyncInbound(t *testing.T) {
 	db := durablePostgresDB(t)
 	if err := db.Exec("TRUNCATE client_hwids, clients RESTART IDENTITY CASCADE").Error; err != nil {

@@ -3,7 +3,6 @@
 .inbounds-page,
 .xray-page,
 .settings-page,
-.nodes-page,
 .groups-page,
 .api-docs-page {
   --bg-page: #e6e8ec;
@@ -17,7 +16,6 @@
 .inbounds-page.is-dark,
 .xray-page.is-dark,
 .settings-page.is-dark,
-.nodes-page.is-dark,
 .groups-page.is-dark,
 .api-docs-page.is-dark {
   --bg-page: #1a1b1f;
@@ -29,7 +27,6 @@
 .inbounds-page.is-dark.is-ultra,
 .xray-page.is-dark.is-ultra,
 .settings-page.is-dark.is-ultra,
-.nodes-page.is-dark.is-ultra,
 .groups-page.is-dark.is-ultra,
 .api-docs-page.is-dark.is-ultra {
   --bg-page: #000;
@@ -46,8 +43,6 @@
 .xray-page .ant-layout-content,
 .settings-page .ant-layout,
 .settings-page .ant-layout-content,
-.nodes-page .ant-layout,
-.nodes-page .ant-layout-content,
 .groups-page .ant-layout,
 .groups-page .ant-layout-content,
 .api-docs-page .ant-layout,
@@ -60,7 +55,6 @@
 .inbounds-page .content-shell,
 .xray-page .content-shell,
 .settings-page .content-shell,
-.nodes-page .content-shell,
 .groups-page .content-shell,
 .api-docs-page .content-shell {
   background: transparent;
@@ -71,7 +65,6 @@
 .inbounds-page .content-area,
 .xray-page .content-area,
 .settings-page .content-area,
-.nodes-page .content-area,
 .groups-page .content-area {
   padding: 24px;
 }
@@ -79,7 +72,6 @@
 @media (max-width: 768px) {
   .clients-page .content-area,
   .inbounds-page .content-area,
-  .nodes-page .content-area,
   .groups-page .content-area {
     padding: 8px;
   }
@@ -173,7 +165,6 @@ body.dark .ant-dropdown-menu-item-divider {
 
 .clients-page .summary-card,
 .inbounds-page .summary-card,
-.nodes-page .summary-card,
 .groups-page .summary-card {
   padding: 16px;
 }
@@ -181,7 +172,6 @@ body.dark .ant-dropdown-menu-item-divider {
 @media (max-width: 768px) {
   .clients-page .summary-card,
   .inbounds-page .summary-card,
-  .nodes-page .summary-card,
   .groups-page .summary-card {
     padding: 8px;
   }

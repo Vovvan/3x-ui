@@ -82,8 +82,18 @@ export const sections: readonly Section[] = [
         summary:
           'Authenticate with username + password and receive a session cookie. Required before any cookie-based API call.',
         params: [
-          { name: 'username', in: 'body', type: 'string', desc: 'Panel admin username.' },
-          { name: 'password', in: 'body', type: 'string', desc: 'Panel admin password.' },
+          {
+            name: 'username',
+            in: 'body',
+            type: 'string',
+            desc: 'Panel admin username.',
+          },
+          {
+            name: 'password',
+            in: 'body',
+            type: 'string',
+            desc: 'Panel admin password.',
+          },
           {
             name: 'twoFactorCode',
             in: 'body',
@@ -159,7 +169,11 @@ export const sections: readonly Section[] = [
       {
         method: 'GET',
         path: '/panel/api/inbounds/allLinks',
-        responseObjectSchema: { type: 'array', nullable: true, items: { type: 'string' } },
+        responseObjectSchema: {
+          type: 'array',
+          nullable: true,
+          items: { type: 'string' },
+        },
         summary:
           'Return every protocol URL (vless://, vmess://, trojan://, ss://, hysteria://, mtproto) across all inbounds and all of their clients. Links are rendered through the subscription engine, so the configured remark template (name-only display part) is applied per client — the same output the client info/QR pages use. Protocols without a URL form (socks, http, mixed, wireguard, dokodemo, tunnel) contribute nothing. Used by the panel’s "Export all inbound links" action.',
         response:
@@ -246,33 +260,18 @@ export const sections: readonly Section[] = [
         ],
       },
       {
-        method: 'POST',
-        path: '/panel/api/inbounds/pushClientTraffics',
-        summary:
-          "Receive a master panel's aggregated per-client usage, keyed by the master's GUID. Stored in a side table used only for the UI display overlay and local quota enforcement — never folded into the local counters that masters poll, so delta accounting stays intact. Called panel-to-panel by the node traffic sync job.",
-        params: [
-          {
-            name: 'masterGuid',
-            in: 'body (json)',
-            type: 'string',
-            desc: 'Stable GUID of the pushing master panel.',
-          },
-          {
-            name: 'traffics',
-            in: 'body (json)',
-            type: 'object[]',
-            desc: 'Client traffic rows; only email/up/down are read.',
-          },
-        ],
-        body: '{\n  "masterGuid": "9f6c2d-…",\n  "traffics": [\n    { "email": "alice", "up": 1048576, "down": 2097152 }\n  ]\n}',
-        response: '{\n  "success": true\n}',
-      },
-      {
         method: 'GET',
         path: '/panel/api/inbounds/:id/fallbacks',
         summary:
           "List the fallback rules attached to a master VLESS/Trojan TCP-TLS inbound. Each rule links one child inbound (the dest) to optional SNI/ALPN/path/dest/xver match criteria. When dest is empty the child inbound's listen+port is used.",
-        params: [{ name: 'id', in: 'path', type: 'number', desc: 'Master inbound ID.' }],
+        params: [
+          {
+            name: 'id',
+            in: 'path',
+            type: 'number',
+            desc: 'Master inbound ID.',
+          },
+        ],
         response:
           '{\n  "success": true,\n  "obj": [\n    {\n      "id": 1,\n      "masterId": 10,\n      "childId": 11,\n      "name": "",\n      "alpn": "",\n      "path": "/vlws",\n      "dest": "",\n      "xver": 2,\n      "sortOrder": 0\n    }\n  ]\n}',
       },
@@ -282,7 +281,12 @@ export const sections: readonly Section[] = [
         summary:
           'Replace the entire fallback list for a master inbound. Body is JSON. Triggers an Xray restart.',
         params: [
-          { name: 'id', in: 'path', type: 'number', desc: 'Master inbound ID.' },
+          {
+            name: 'id',
+            in: 'path',
+            type: 'number',
+            desc: 'Master inbound ID.',
+          },
           {
             name: 'fallbacks',
             in: 'body (json)',
@@ -459,17 +463,9 @@ export const sections: readonly Section[] = [
         method: 'GET',
         path: '/panel/api/server/getWebCertFiles',
         summary:
-          'Return this panel\'s own web TLS certificate and key file paths. The central panel calls it on a node (via the node API token) so "Set Cert from Panel" fills a node-assigned inbound with paths that exist on the node.',
+          'Return this panel\'s own web TLS certificate and key file paths. Used by the inbound form\'s "Set Cert from Panel" to fill certificate paths.',
         response:
           '{\n  "success": true,\n  "obj": {\n    "webCertFile": "/root/cert/example.com/fullchain.pem",\n    "webKeyFile": "/root/cert/example.com/privkey.pem"\n  }\n}',
-      },
-      {
-        method: 'GET',
-        path: '/panel/api/server/descendants',
-        summary:
-          'Read-only summaries (guid, parentGuid, name, address, status, versions) of the nodes this panel manages. A parent panel calls it on a node (via the node API token) to surface transitive sub-nodes in a chained topology. Counts are computed by the parent, not returned here.',
-        response:
-          '{\n  "success": true,\n  "obj": [\n    {\n      "guid": "c3d4-...",\n      "parentGuid": "a1b2-...",\n      "name": "Node3",\n      "address": "10.0.0.3",\n      "status": "online"\n    }\n  ]\n}',
       },
       {
         method: 'GET',
@@ -580,7 +576,12 @@ export const sections: readonly Section[] = [
         path: '/panel/api/server/logs/:count',
         summary: 'Return the last N lines of the panel\u2019s own log.',
         params: [
-          { name: 'count', in: 'path', type: 'number', desc: 'Number of trailing log lines.' },
+          {
+            name: 'count',
+            in: 'path',
+            type: 'number',
+            desc: 'Number of trailing log lines.',
+          },
           {
             name: 'level',
             in: 'body (form)',
@@ -597,7 +598,11 @@ export const sections: readonly Section[] = [
           },
         ],
         body: 'level=info&syslog=false',
-        responseObjectSchema: { type: 'array', nullable: true, items: { type: 'string' } },
+        responseObjectSchema: {
+          type: 'array',
+          nullable: true,
+          items: { type: 'string' },
+        },
         response:
           '{\n  "success": true,\n  "obj": [\n    "2025/01/01 12:00:00 [INFO] Server started",\n    "2025/01/01 12:00:01 [INFO] Xray is running"\n  ]\n}',
       },
@@ -606,7 +611,12 @@ export const sections: readonly Section[] = [
         path: '/panel/api/server/xraylogs/:count',
         summary: 'Return the last N lines of the Xray process log.',
         params: [
-          { name: 'count', in: 'path', type: 'number', desc: 'Number of trailing log lines.' },
+          {
+            name: 'count',
+            in: 'path',
+            type: 'number',
+            desc: 'Number of trailing log lines.',
+          },
           {
             name: 'filter',
             in: 'body (form)',
@@ -680,7 +690,7 @@ export const sections: readonly Section[] = [
             name: 'keepHostSettings',
             in: 'body (multipart)',
             type: 'boolean',
-            desc: "Keep this machine's addresses, certificates and node identity. Default true.",
+            desc: "Keep this machine's addresses and certificates. Default true.",
             optional: true,
             defaultValue: true,
           },
@@ -808,48 +818,6 @@ export const sections: readonly Section[] = [
         responseSchema: 'RealityScanResult',
         responseSchemaArray: true,
       },
-      {
-        method: 'GET',
-        path: '/panel/api/server/clientIps',
-        summary:
-          'Fetch the fully aggregated inbound_client_ips database table. Used by nodes to sync recently active IPs across the cluster.',
-        responseSchema: 'InboundClientIps',
-        responseSchemaArray: true,
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/server/clientIps',
-        summary:
-          'Submit a list of recently active IP timestamps. The panel merges them with the existing database to maintain a unified global IP-limit view.',
-        requestSchema: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              clientEmail: { type: 'string' },
-              ips: {
-                type: 'array',
-                nullable: true,
-                items: {
-                  type: 'object',
-                  properties: { ip: { type: 'string' }, timestamp: { type: 'integer' } },
-                  required: ['ip', 'timestamp'],
-                },
-              },
-            },
-            required: ['clientEmail', 'ips'],
-          },
-        },
-      },
-    ],
-  },
-
-  {
-    id: 'clients',
-    title: 'Clients',
-    description:
-      'Manage clients as first-class entities that can be attached to one or more inbounds. A single client row drives the settings.clients entry in every inbound it belongs to. Endpoints live under /panel/api/clients.',
-    endpoints: [
       {
         method: 'GET',
         path: '/panel/api/clients/list',
@@ -1002,7 +970,12 @@ export const sections: readonly Section[] = [
         summary:
           'Fetch one client by email, including the inbound IDs and external config IDs it is attached to.',
         params: [
-          { name: 'email', in: 'path', type: 'string', desc: 'Client email (unique identifier).' },
+          {
+            name: 'email',
+            in: 'path',
+            type: 'string',
+            desc: 'Client email (unique identifier).',
+          },
         ],
         response:
           '{\n  "success": true,\n  "obj": {\n    "client": { "id": 1, "email": "alice@example.com", ... },\n    "inboundIds": [3, 5],\n    "externalLinks": [\n      { "id": 11, "kind": "link", "value": "vless://...", "remark": "DE", "enable": true, "expiryTime": 0 },\n      { "id": 12, "kind": "subscription", "value": "https://provider.example/sub/abc", "remark": "Provider", "enable": false, "expiryTime": 1767225600000, "namePrefix": "[zjh] ", "lastFetchAt": 1767220000000, "lastFetchError": "" }\n    ]\n  }\n}',
@@ -1042,7 +1015,12 @@ export const sections: readonly Section[] = [
         summary:
           'Fetch clients by Telegram user ID. Returns an array since multiple clients can share the same Telegram ID.',
         params: [
-          { name: 'tgId', in: 'path', type: 'integer', desc: 'Telegram user ID (numeric).' },
+          {
+            name: 'tgId',
+            in: 'path',
+            type: 'integer',
+            desc: 'Telegram user ID (numeric).',
+          },
         ],
         response:
           '{\n  "success": true,\n  "obj": [\n    {\n      "client": { "id": 1, "email": "alice@example.com", ... },\n      "inboundIds": [3, 5],\n      "externalLinks": [],\n      "usedTraffic": 1048576\n    }\n  ]\n}',
@@ -1076,7 +1054,7 @@ export const sections: readonly Section[] = [
         path: '/panel/api/clients/renewalPreview',
         summary: 'Preview client auto-renewal dates without saving or resetting anything.',
         description:
-          'Uses the same calendar and catch-up calculation as auto-renew in the panel timezone. resetWeekday is 1 (Monday) to 7 (Sunday), 0 disables weekly mode; it cannot be combined with positive reset or resetDay. Existing resetDay takes precedence over reset. With expiryTime=0, calendar modes suggest a first cutoff but do not activate renewal. Negative expiryTime waits for first-use activation. resetMax and resetCount simulate the existing per-period allowance limit; the preview is informational and does not reserve an allowance or guarantee node availability.',
+          'Uses the same calendar and catch-up calculation as auto-renew in the panel timezone. resetWeekday is 1 (Monday) to 7 (Sunday), 0 disables weekly mode; it cannot be combined with positive reset or resetDay. Existing resetDay takes precedence over reset. With expiryTime=0, calendar modes suggest a first cutoff but do not activate renewal. Negative expiryTime waits for first-use activation. resetMax and resetCount simulate the existing per-period allowance limit; the preview is informational and does not reserve an allowance.',
         params: [
           {
             name: 'expiryTime',
@@ -1143,7 +1121,12 @@ export const sections: readonly Section[] = [
         description:
           'The inbounds are applied concurrently and independently: one that fails no longer stops the others. Every inbound error names the inbound it came from (`inbound 7: <message>`), and several failures are reported together, one per line. So a `success:false` response can still have removed the client from the remaining inbounds; the client record is kept in that case, so re-running the call retries exactly the leftovers. The record and traffic rows are dropped after the inbounds, so a failure there is reported without an `inbound <id>:` prefix and leaves the client already removed from every inbound.',
         params: [
-          { name: 'email', in: 'path', type: 'string', desc: 'Client email (unique identifier).' },
+          {
+            name: 'email',
+            in: 'path',
+            type: 'string',
+            desc: 'Client email (unique identifier).',
+          },
           {
             name: 'keepTraffic',
             in: 'query',
@@ -1160,7 +1143,12 @@ export const sections: readonly Section[] = [
         description:
           'A WireGuard client brings its stored `allowedIPs` into the new inbound instead of being given a fresh address, so the call fails with `inbound <id>: wireguard: allowedIPs entry <entry> overlaps <address> used by another client` when its range overlaps an address or prefix a different client of the target inbound holds. Free the address on that inbound first — see POST /panel/api/clients/add for the full rule. Inbounds are applied independently, so the remaining ones are still attached and a `success:false` response can be partial.',
         params: [
-          { name: 'email', in: 'path', type: 'string', desc: 'Client email (unique identifier).' },
+          {
+            name: 'email',
+            in: 'path',
+            type: 'string',
+            desc: 'Client email (unique identifier).',
+          },
           {
             name: 'inboundIds',
             in: 'body (json)',
@@ -1178,7 +1166,12 @@ export const sections: readonly Section[] = [
         description:
           'The inbounds are applied concurrently and independently: one that fails no longer stops the others. Every inbound error names the inbound it came from (`inbound 7: <message>`), and several failures are reported together, one per line. So a `success:false` response can still have detached the remaining inbounds. Detach writes nothing beyond the inbounds, so every error carries the prefix.',
         params: [
-          { name: 'email', in: 'path', type: 'string', desc: 'Client email (unique identifier).' },
+          {
+            name: 'email',
+            in: 'path',
+            type: 'string',
+            desc: 'Client email (unique identifier).',
+          },
           {
             name: 'inboundIds',
             in: 'body (json)',
@@ -1195,12 +1188,17 @@ export const sections: readonly Section[] = [
         summary:
           "Replace a client's external links and external subscriptions. Sends the full set; the server replaces all rows. Disabled rows stay saved for editing but are not emitted in generated subscriptions. The owning client's disabled or expired state also stops these rows from being emitted on future subscription fetches; credentials already imported by an app remain valid until the external provider revokes them.",
         params: [
-          { name: 'email', in: 'path', type: 'string', desc: 'Client email (unique identifier).' },
+          {
+            name: 'email',
+            in: 'path',
+            type: 'string',
+            desc: 'Client email (unique identifier).',
+          },
           {
             name: 'externalLinks',
             in: 'body',
             type: 'object[]',
-            desc: "Full replacement list; the server replaces all rows. Each row supports { kind, value, remark, enable, expiryTime, namePrefix }. kind=link: value must be a supported share link such as vless://, vmess://, trojan://, ss://, hysteria2://, or wireguard://, and remark overrides the exported node name. kind=subscription: value must be an http(s) subscription URL, and namePrefix is prepended to fetched node names. Omit enable to default true; enable=false or an expired expiryTime keeps the row saved but excludes it from generated subscriptions. expiryTime is a unix millisecond timestamp where 0 means no link-specific expiry; the owning client's enabled state and expiry still apply. A negative value is rejected. Rows are matched by kind+value across saves, so id is ignored on write. lastFetchAt and lastFetchError are read-only status fields returned by GET.",
+            desc: "Full replacement list; the server replaces all rows. Each row supports { kind, value, remark, enable, expiryTime, namePrefix }. kind=link: value must be a supported share link such as vless://, vmess://, trojan://, ss://, hysteria2://, or wireguard://, and remark overrides the exported entry name. kind=subscription: value must be an http(s) subscription URL, and namePrefix is prepended to fetched entry names. Omit enable to default true; enable=false or an expired expiryTime keeps the row saved but excludes it from generated subscriptions. expiryTime is a unix millisecond timestamp where 0 means no link-specific expiry; the owning client's enabled state and expiry still apply. A negative value is rejected. Rows are matched by kind+value across saves, so id is ignored on write. lastFetchAt and lastFetchError are read-only status fields returned by GET.",
           },
         ],
         body: '{\n  "externalLinks": [\n    { "kind": "link", "value": "vless://uuid@host:443?...#srv", "remark": "DE", "enable": true, "expiryTime": 0 },\n    { "kind": "subscription", "value": "https://provider.example/sub/abc", "remark": "Provider", "enable": false, "expiryTime": 1767225600000, "namePrefix": "[zjh] " }\n  ]\n}',
@@ -1248,7 +1246,7 @@ export const sections: readonly Section[] = [
         method: 'POST',
         path: '/panel/api/clients/bulkAdjust',
         summary:
-          'Shift expiry and/or traffic quota for many clients in one call. addDays/addBytes may be negative. Clients with unlimited expiry (expiryTime=0) or unlimited traffic (totalGB=0) are skipped for the corresponding field — bulk extend never converts unlimited to limited. A client that was auto-disabled solely because it was depleted (expired or over quota) is automatically re-enabled — locally and on its node — when the adjustment lifts it out of depletion; a manually-disabled or still-depleted client is left disabled. The optional flow directive sets the XTLS flow on every client: "none" clears it, "xtls-rprx-vision"/"xtls-rprx-vision-udp443" set it where the inbound supports it (omit or "" to leave it unchanged). The optional limitHwid sets maximum registered devices (0 = unlimited). The optional adTag sets MTProto Telegram sponsor channel ("none" clears). Returns the adjusted count and per-email skip reasons.',
+          'Shift expiry and/or traffic quota for many clients in one call. addDays/addBytes may be negative. Clients with unlimited expiry (expiryTime=0) or unlimited traffic (totalGB=0) are skipped for the corresponding field — bulk extend never converts unlimited to limited. A client that was auto-disabled solely because it was depleted (expired or over quota) is automatically re-enabled when the adjustment lifts it out of depletion; a manually-disabled or still-depleted client is left disabled. The optional flow directive sets the XTLS flow on every client: "none" clears it, "xtls-rprx-vision"/"xtls-rprx-vision-udp443" set it where the inbound supports it (omit or "" to leave it unchanged). The optional limitHwid sets maximum registered devices (0 = unlimited). The optional adTag sets MTProto Telegram sponsor channel ("none" clears). Returns the adjusted count and per-email skip reasons.',
         body: '{\n  "emails": ["alice", "bob"],\n  "addDays": 30,\n  "addBytes": 53687091200,\n  "flow": "xtls-rprx-vision",\n  "limitHwid": 2,\n  "adTag": "0123456789abcdef0123456789abcdef"\n}',
         response:
           '{\n  "success": true,\n  "obj": {\n    "adjusted": 2,\n    "skipped": [\n      { "email": "carol", "reason": "unlimited expiry" }\n    ]\n  }\n}',
@@ -1257,7 +1255,7 @@ export const sections: readonly Section[] = [
         method: 'POST',
         path: '/panel/api/clients/bulkEnable',
         summary:
-          'Enable many clients in one call. Emails are grouped by inbound and applied with a single read-modify-write per inbound; the running Xray (local or remote node) is updated to add each user. Note that enabling a client whose quota is exhausted or whose expiry has passed only flips the flag — the traffic loop will disable it again on the next tick. Returns the changed count and per-email skip reasons.',
+          'Enable many clients in one call. Emails are grouped by inbound and applied with a single read-modify-write per inbound; the running Xray is updated to add each user. Note that enabling a client whose quota is exhausted or whose expiry has passed only flips the flag — the traffic loop will disable it again on the next tick. Returns the changed count and per-email skip reasons.',
         body: '{\n  "emails": ["alice", "bob"]\n}',
         response:
           '{\n  "success": true,\n  "obj": {\n    "changed": 2,\n    "skipped": [\n      { "email": "carol", "reason": "client not found" }\n    ]\n  }\n}',
@@ -1266,7 +1264,7 @@ export const sections: readonly Section[] = [
         method: 'POST',
         path: '/panel/api/clients/bulkDisable',
         summary:
-          'Disable many clients in one call. Emails are grouped by inbound and applied with a single read-modify-write per inbound; the running Xray (local or remote node) is updated to remove each user. Returns the changed count and per-email skip reasons.',
+          'Disable many clients in one call. Emails are grouped by inbound and applied with a single read-modify-write per inbound; the running Xray is updated to remove each user. Returns the changed count and per-email skip reasons.',
         body: '{\n  "emails": ["alice", "bob"]\n}',
         response:
           '{\n  "success": true,\n  "obj": {\n    "changed": 2,\n    "skipped": [\n      { "email": "carol", "reason": "client not found" }\n    ]\n  }\n}',
@@ -1355,7 +1353,7 @@ export const sections: readonly Section[] = [
         method: 'POST',
         path: '/panel/api/clients/bulkResetTraffic',
         summary:
-          'Zero up/down counters for many clients in one call. Loops the single-reset path so each client is re-enabled across its attached inbounds and pushed to Xray/remote nodes. Returns the count of successfully reset clients.',
+          'Zero up/down counters for many clients in one call. Loops the single-reset path so each client is re-enabled across its attached inbounds and pushed to Xray. Returns the count of successfully reset clients.',
         body: '{\n  "emails": ["alice", "bob"]\n}',
         response: '{\n  "success": true,\n  "obj": {\n    "affected": 2\n  }\n}',
       },
@@ -1372,7 +1370,14 @@ export const sections: readonly Section[] = [
         path: '/panel/api/clients/groups/:name/emails',
         summary:
           'Return just the email list of clients that currently belong to the given group. Useful for fanning a single bulk action over an entire group without round-tripping the full client list.',
-        params: [{ name: 'name', in: 'path', type: 'string', desc: 'Group name (URL-encoded).' }],
+        params: [
+          {
+            name: 'name',
+            in: 'path',
+            type: 'string',
+            desc: 'Group name (URL-encoded).',
+          },
+        ],
         response: '{\n  "success": true,\n  "obj": ["alice", "bob", "carol"]\n}',
       },
       {
@@ -1411,7 +1416,7 @@ export const sections: readonly Section[] = [
         method: 'POST',
         path: '/panel/api/clients/resetTraffic/:email',
         summary:
-          'Zero out a single client’s up/down counters. Re-enables the client across every attached inbound and pushes the change to Xray (or the remote node) so depleted users can connect again immediately.',
+          'Zero out a single client’s up/down counters. Re-enables the client across every attached inbound and pushes the change to Xray so depleted users can connect again immediately.',
         params: [{ name: 'email', in: 'path', type: 'string', desc: 'Client email.' }],
       },
       {
@@ -1458,39 +1463,20 @@ export const sections: readonly Section[] = [
           'Remove a single registered HWID device by its id, freeing one slot under the HWID limit.',
         params: [
           { name: 'email', in: 'path', type: 'string', desc: 'Client email.' },
-          { name: 'id', in: 'path', type: 'number', desc: 'Device id, from the list endpoint.' },
+          {
+            name: 'id',
+            in: 'path',
+            type: 'number',
+            desc: 'Device id, from the list endpoint.',
+          },
         ],
       },
       {
         method: 'POST',
         path: '/panel/api/clients/onlines',
         summary:
-          'List the emails of currently connected clients (last seen within the heartbeat window), deduped across every node.',
+          'List the emails of currently connected clients (last seen within the heartbeat window), deduped across all inbounds.',
         response: '{\n  "success": true,\n  "obj": ["user1", "user2"]\n}',
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/clients/onlinesByGuid',
-        summary:
-          'Online client emails grouped by the panelGuid of the node that physically hosts each client. The local panel uses its own GUID; each node (at any depth in a chain) uses its GUID. Lets the inbounds page attribute online status to the real node instead of the intermediate one it syncs through.',
-        response:
-          '{\n  "success": true,\n  "obj": {\n    "a1b2-...": ["user1"],\n    "c3d4-...": ["user1", "user2"]\n  }\n}',
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/clients/clientIpsByGuid',
-        summary:
-          'Per-client source IPs grouped by the panelGuid of the node that observed them. Lets the central panel attribute and enforce per-client IP limits using the real visitor IPs each node sees, instead of the address of the intermediate panel it syncs through.',
-        response:
-          '{\n  "success": true,\n  "obj": {\n    "a1b2-...": {\n      "user1": [\n        { "ip": "1.2.3.4", "timestamp": 1700000000 }\n      ]\n    }\n  }\n}',
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/clients/activeInbounds',
-        summary:
-          "Inbound tags that carried traffic within the heartbeat window, grouped by the hosting node's panelGuid. Pairs with onlinesByGuid so the inbounds page only marks a multi-inbound client online on the inbounds it actually used. Nodes that do not report per-inbound activity are absent.",
-        response:
-          '{\n  "success": true,\n  "obj": {\n    "a1b2-...": ["in-443-tcp", "in-8443-tcp"]\n  }\n}',
       },
       {
         method: 'POST',
@@ -1519,149 +1505,15 @@ export const sections: readonly Section[] = [
         summary:
           'Return every URL for one client across all attached inbounds, one per advertised endpoint: the managed hosts of the inbound, else its streamSettings.externalProxy entries, else its own address. Supported protocols: vmess, vless, trojan, shadowsocks, hysteria, mtproto. Protocols without a URL form (socks, http, mixed, wireguard, dokodemo, tunnel) contribute nothing.',
         params: [
-          { name: 'email', in: 'path', type: 'string', desc: 'Client email (unique identifier).' },
+          {
+            name: 'email',
+            in: 'path',
+            type: 'string',
+            desc: 'Client email (unique identifier).',
+          },
         ],
         response:
           '{\n  "success": true,\n  "obj": [\n    "vless://uuid@host:443?...#user1"\n  ]\n}',
-      },
-    ],
-  },
-
-  {
-    id: 'nodes',
-    title: 'Nodes',
-    description:
-      'Manage remote 3x-ui panels acting as nodes for a central panel. All endpoints under /panel/api/nodes.',
-    endpoints: [
-      {
-        method: 'GET',
-        path: '/panel/api/nodes/list',
-        summary:
-          'List every configured node with its connection details, health, and last heartbeat patch.',
-        responseSchema: 'NodeView',
-        responseSchemaArray: true,
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/nodes/mtls/ca',
-        summary:
-          "This panel's node-auth CA certificate (public, PEM) to paste into a node's mTLS trust setting. Lazily mints the CA and the master client cert on first call. Pair with setting tlsVerifyMode=mtls on the node.",
-        response:
-          '{\n  "success": true,\n  "obj": {\n    "caCert": "-----BEGIN CERTIFICATE-----\\n...\\n-----END CERTIFICATE-----\\n"\n  }\n}',
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/nodes/mtls/trustCA',
-        summary:
-          "Set the CA certificate this panel trusts for incoming node-API client certificates (this panel acting as a node). Paste the managing panel's CA (from nodes/mtls/ca). An empty caCert disables it. A non-empty value must be a PEM certificate. Applied on the next panel restart.",
-        body: '{\n  "caCert": "-----BEGIN CERTIFICATE-----\\n...\\n-----END CERTIFICATE-----\\n"\n}',
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/nodes/mtls/reloadClient',
-        summary:
-          'Validate the stored master mTLS client credential and invalidate cached transports. Each transport closes its old idle pool and rebuilds with the rotated certificate before its next request.',
-      },
-      {
-        method: 'GET',
-        path: '/panel/api/nodes/get/:id',
-        summary: 'Fetch a single node by ID.',
-        params: [{ name: 'id', in: 'path', type: 'number', desc: 'Node ID.' }],
-        responseSchema: 'NodeView',
-      },
-      {
-        method: 'GET',
-        path: '/panel/api/nodes/webCert/:id',
-        summary:
-          'Fetch a node\'s own web TLS certificate/key file paths (proxied to the node). Used by the inbound form\'s "Set Cert from Panel" so a node-assigned inbound gets paths that exist on the node, not the central panel.',
-        params: [{ name: 'id', in: 'path', type: 'number', desc: 'Node ID.' }],
-        response:
-          '{\n  "success": true,\n  "obj": {\n    "webCertFile": "/root/cert/example.com/fullchain.pem",\n    "webKeyFile": "/root/cert/example.com/privkey.pem"\n  }\n}',
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/nodes/add',
-        summary:
-          'Register a new remote node. Provide its URL, write-only apiToken, and optional remark / allowPrivateAddress flag. Responses expose hasApiToken only.',
-        body: '{\n  "name": "de-fra-1",\n  "remark": "",\n  "scheme": "https",\n  "address": "node1.example.com",\n  "port": 2053,\n  "basePath": "/",\n  "apiToken": "abcdef...",\n  "clearApiToken": false,\n  "enable": true,\n  "allowPrivateAddress": false\n}',
-        responseSchema: 'NodeView',
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/nodes/update/:id',
-        summary:
-          'Replace a node\u2019s connection details. apiToken is write-only: omit it or send an empty string to keep the stored token; set clearApiToken=true to clear it.',
-        params: [{ name: 'id', in: 'path', type: 'number', desc: 'Node ID.' }],
-        body: '{\n  "name": "de-fra-1",\n  "remark": "",\n  "scheme": "https",\n  "address": "node1.example.com",\n  "port": 2053,\n  "basePath": "/",\n  "apiToken": "",\n  "clearApiToken": false,\n  "enable": true,\n  "allowPrivateAddress": false\n}',
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/nodes/del/:id',
-        summary: 'Delete a node. Inbounds bound to it are not auto-migrated.',
-        params: [{ name: 'id', in: 'path', type: 'number', desc: 'Node ID.' }],
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/nodes/setEnable/:id',
-        summary: 'Pause or resume traffic sync with this node.',
-        params: [{ name: 'id', in: 'path', type: 'number', desc: 'Node ID.' }],
-        body: '{\n  "enable": true\n}',
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/nodes/test',
-        summary:
-          'Probe a node without saving it. Uses the body as connection details and returns the same heartbeat snapshot a registered node would have.',
-        body: '{\n  "scheme": "https",\n  "address": "node1.example.com",\n  "port": 2053,\n  "basePath": "/",\n  "apiToken": "abcdef..."\n}',
-        responseSchema: 'ProbeResultUI',
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/nodes/certFingerprint',
-        summary:
-          "Connect to the node over HTTPS without verifying its certificate and return the leaf certificate's SHA-256 (base64). Used by the Add/Edit Node dialog to fetch and pin a self-signed certificate. Uses the same body as /test.",
-        body: '{\n  "scheme": "https",\n  "address": "node1.example.com",\n  "port": 2053,\n  "basePath": "/"\n}',
-        response: '{\n  "success": true,\n  "obj": "k3b1...base64-sha256...="\n}',
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/nodes/inbounds',
-        summary:
-          'Use unsaved node connection details to list the remote inbounds available for selective import.',
-        body: '{\n  "name": "de-fra-1",\n  "scheme": "https",\n  "address": "node1.example.com",\n  "port": 2053,\n  "basePath": "/",\n  "apiToken": "abcdef..."\n}',
-        response:
-          '{\n  "success": true,\n  "obj": [\n    { "tag": "inbound-443", "remark": "VLESS", "protocol": "vless", "port": 443 }\n  ]\n}',
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/nodes/probe/:id',
-        summary: 'Probe an existing node, updating its cached health state.',
-        params: [{ name: 'id', in: 'path', type: 'number', desc: 'Node ID.' }],
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/nodes/updatePanel',
-        summary:
-          'Trigger the official panel self-updater on each given node (downloads the latest release and restarts). Only enabled, online nodes are updated; offline/disabled ones are reported as skipped. Set "dev": true to move the nodes to the rolling per-commit dev channel instead of the latest stable release. Returns a per-node result list.',
-        body: '{\n  "ids": [1, 2, 3],\n  "dev": false\n}',
-        response:
-          '{\n  "success": true,\n  "obj": [\n    { "id": 1, "name": "de-1", "ok": true },\n    { "id": 2, "name": "fr-1", "ok": false, "error": "node is offline" }\n  ]\n}',
-      },
-      {
-        method: 'GET',
-        path: '/panel/api/nodes/history/:id/:metric/:bucket',
-        summary:
-          'Aggregated metric history for a node — same shape as /server/history, scoped to one node.',
-        params: [
-          { name: 'id', in: 'path', type: 'number', desc: 'Node ID.' },
-          { name: 'metric', in: 'path', type: 'string', desc: 'cpu | mem.' },
-          {
-            name: 'bucket',
-            in: 'path',
-            type: 'number',
-            desc: 'Bucket size in seconds. Allowed: 2, 30, 60, 120, 180, 300.',
-          },
-        ],
       },
     ],
   },
@@ -1692,14 +1544,28 @@ export const sections: readonly Section[] = [
         method: 'GET',
         path: '/panel/api/hosts/get/:groupId',
         summary: 'Fetch a single host group by Group ID.',
-        params: [{ name: 'groupId', in: 'path', type: 'string', desc: 'Host Group ID.' }],
+        params: [
+          {
+            name: 'groupId',
+            in: 'path',
+            type: 'string',
+            desc: 'Host Group ID.',
+          },
+        ],
         responseSchema: 'HostGroup',
       },
       {
         method: 'GET',
         path: '/panel/api/hosts/byInbound/:inboundId',
         summary: "Fetch one inbound's hosts, grouped by host group.",
-        params: [{ name: 'inboundId', in: 'path', type: 'number', desc: 'Inbound ID.' }],
+        params: [
+          {
+            name: 'inboundId',
+            in: 'path',
+            type: 'number',
+            desc: 'Inbound ID.',
+          },
+        ],
         responseSchema: 'HostGroup',
         responseSchemaArray: true,
       },
@@ -1721,7 +1587,14 @@ export const sections: readonly Section[] = [
         method: 'POST',
         path: '/panel/api/hosts/update/:groupId',
         summary: 'Replace a host group’s content.',
-        params: [{ name: 'groupId', in: 'path', type: 'string', desc: 'Host Group ID.' }],
+        params: [
+          {
+            name: 'groupId',
+            in: 'path',
+            type: 'string',
+            desc: 'Host Group ID.',
+          },
+        ],
         body: '{\n  "inboundIds": [1],\n  "remark": "cdn-front",\n  "hosts": ["cdn.example.com"],\n  "port": 8443,\n  "security": "same",\n  "tags": ["CDN"]\n}',
         responseSchema: 'Host',
         responseSchemaArray: true,
@@ -1730,13 +1603,27 @@ export const sections: readonly Section[] = [
         method: 'POST',
         path: '/panel/api/hosts/del/:groupId',
         summary: 'Delete a host group.',
-        params: [{ name: 'groupId', in: 'path', type: 'string', desc: 'Host Group ID.' }],
+        params: [
+          {
+            name: 'groupId',
+            in: 'path',
+            type: 'string',
+            desc: 'Host Group ID.',
+          },
+        ],
       },
       {
         method: 'POST',
         path: '/panel/api/hosts/setEnable/:groupId',
         summary: 'Enable or disable a host group.',
-        params: [{ name: 'groupId', in: 'path', type: 'string', desc: 'Host Group ID.' }],
+        params: [
+          {
+            name: 'groupId',
+            in: 'path',
+            type: 'string',
+            desc: 'Host Group ID.',
+          },
+        ],
         body: '{\n  "enable": true\n}',
       },
       {
@@ -1768,7 +1655,6 @@ export const sections: readonly Section[] = [
       },
     ],
   },
-
 
   {
     id: 'settings',
@@ -1817,10 +1703,30 @@ export const sections: readonly Section[] = [
         summary:
           'Change the panel admin username and password. Requires the current credentials for verification. The session is refreshed with the new values on success.',
         params: [
-          { name: 'oldUsername', in: 'body', type: 'string', desc: 'Current admin username.' },
-          { name: 'oldPassword', in: 'body', type: 'string', desc: 'Current admin password.' },
-          { name: 'newUsername', in: 'body', type: 'string', desc: 'Desired new username.' },
-          { name: 'newPassword', in: 'body', type: 'string', desc: 'Desired new password.' },
+          {
+            name: 'oldUsername',
+            in: 'body',
+            type: 'string',
+            desc: 'Current admin username.',
+          },
+          {
+            name: 'oldPassword',
+            in: 'body',
+            type: 'string',
+            desc: 'Current admin password.',
+          },
+          {
+            name: 'newUsername',
+            in: 'body',
+            type: 'string',
+            desc: 'Desired new username.',
+          },
+          {
+            name: 'newPassword',
+            in: 'body',
+            type: 'string',
+            desc: 'Desired new password.',
+          },
         ],
         body: '{\n  "oldUsername": "admin",\n  "oldPassword": "admin",\n  "newUsername": "newadmin",\n  "newPassword": "newpass"\n}',
       },
@@ -1851,7 +1757,6 @@ export const sections: readonly Section[] = [
     id: 'api-tokens',
     title: 'API Tokens',
     description:
-      'Manage scoped Bearer tokens for programmatic auth. admin grants the full panel API; monitor is read-only for status and metrics; node-sync manages node configuration without panel updates; node-admin adds panel self-update to node-sync. Tokens may expire and are stored as SHA-256 hashes. The plaintext is returned only once at creation.',
     endpoints: [
       {
         method: 'GET',
@@ -1877,8 +1782,6 @@ export const sections: readonly Section[] = [
             name: 'scope',
             in: 'body',
             type: 'string',
-            desc: 'admin (default), monitor, node-sync, or node-admin. node-admin inherits node-sync and may also start a panel update.',
-            enum: ['admin', 'monitor', 'node-sync', 'node-admin'],
             optional: true,
           },
           {
@@ -1889,7 +1792,6 @@ export const sections: readonly Section[] = [
             optional: true,
           },
         ],
-        body: '{\n  "name": "central-panel-a",\n  "scope": "node-admin",\n  "expiresAt": 1798761600000\n}',
         responseSchema: 'ApiTokenView',
         errorResponse:
           '{\n  "success": false,\n  "msg": "a token with that name already exists"\n}',
@@ -1908,7 +1810,7 @@ export const sections: readonly Section[] = [
             desc: 'Stored scope expected by the operator.',
           },
         ],
-        body: '{\n  "expectedScope": "node-sync"\n}',
+        body: '{\n  "expectedScope": "monitor"\n}',
         response: '{\n  "success": true\n}',
       },
       {
@@ -1918,7 +1820,12 @@ export const sections: readonly Section[] = [
           'Toggle a token enabled/disabled without deleting it. Disabled tokens are rejected by checkAPIAuth on the next request.',
         params: [
           { name: 'id', in: 'path', type: 'number', desc: 'Token row ID.' },
-          { name: 'enabled', in: 'body', type: 'boolean', desc: 'New enabled state.' },
+          {
+            name: 'enabled',
+            in: 'body',
+            type: 'boolean',
+            desc: 'New enabled state.',
+          },
           {
             name: 'expectedScope',
             in: 'body',
@@ -1926,7 +1833,7 @@ export const sections: readonly Section[] = [
             desc: 'Stored scope expected by the operator.',
           },
         ],
-        body: '{\n  "enabled": false,\n  "expectedScope": "node-sync"\n}',
+        body: '{\n  "enabled": false,\n  "expectedScope": "monitor"\n}',
         response: '{\n  "success": true\n}',
       },
     ],
@@ -2194,7 +2101,12 @@ export const sections: readonly Section[] = [
         summary:
           'Force a balancer in the running core to always pick one outbound (RoutingService.OverrideBalancerTarget). Applied live without a restart and kept across config saves; cleared when Xray restarts or the target outbound is removed.',
         params: [
-          { name: 'tag', in: 'body (form)', type: 'string', desc: 'Balancer tag (required).' },
+          {
+            name: 'tag',
+            in: 'body (form)',
+            type: 'string',
+            desc: 'Balancer tag (required).',
+          },
           {
             name: 'target',
             in: 'body (form)',
@@ -2373,8 +2285,6 @@ export const sections: readonly Section[] = [
     ],
   },
 
-
-
   {
     id: 'websocket',
     title: 'WebSocket',
@@ -2387,7 +2297,9 @@ export const sections: readonly Section[] = [
         summary:
           'Upgrade an HTTP connection to a WebSocket. Requires an authenticated session cookie (Bearer token auth is not supported here). Returns 101 Switching Protocols on success. The server then pushes JSON messages described below.',
         responses: {
-          '101': { description: 'Switching Protocols. WebSocket messages use WebSocketEnvelope.' },
+          '101': {
+            description: 'Switching Protocols. WebSocket messages use WebSocketEnvelope.',
+          },
           '401': { description: 'No authenticated panel session cookie.' },
         },
         security: [{ cookieAuth: [] }],

@@ -139,12 +139,8 @@ export const InboundOptionSchema = z
     awgServer: AwgServerOptionSchema.nullable().optional(),
     tuicServer: TuicServerOptionSchema.nullable().optional(),
     mtprotoDomain: z.string().optional(),
-    // Hosting node id; absent/null for this panel's own inbounds (#4997).
-    nodeId: z.number().nullable().optional(),
-    // Share-host resolution inputs, mirroring the backend resolveInboundAddress so
-    // the clients page picks the same WireGuard endpoint host as the subscription:
-    // the hosting node address, the inbound listen, and its share-address strategy.
-    nodeAddress: z.string().optional(),
+    // Share-host resolution inputs, mirroring the backend resolveInboundAddress
+    // so the clients page picks the same WireGuard endpoint host as subscriptions.
     listen: z.string().optional(),
     shareAddr: z.string().optional(),
     shareAddrStrategy: z.string().optional(),
@@ -270,16 +266,6 @@ export const BulkDetachResultSchema = z.object({
 });
 
 export const OnlinesSchema = nullableStringArray;
-
-export const OnlineByNodeSchema = z
-  .record(z.string(), nullableStringArray)
-  .nullable()
-  .transform((v) => v ?? {});
-
-export const ActiveInboundsByNodeSchema = z
-  .record(z.string(), nullableStringArray)
-  .nullable()
-  .transform((v) => v ?? {});
 
 export const GroupSummarySchema = z.object({
   name: z.string(),

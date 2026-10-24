@@ -202,7 +202,7 @@ func TestUpdateInbound_RejectsFinalMaskRealityCombo(t *testing.T) {
 }
 
 // GetXrayConfig must heal a row that already carries finalmask+reality in the
-// DB (saved before this guard existed - an upgrade, a node sync, a restored
+// DB (saved before this guard existed - an upgrade, a restored
 // backup, or a direct DB edit) rather than handing xray-core a config that
 // panics it on the first connection. Bypasses AddInbound/UpdateInbound
 // entirely by writing the row directly, the same way a pre-existing bad row

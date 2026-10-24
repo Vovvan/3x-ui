@@ -26,8 +26,6 @@ function seedInbounds() {
   const queryClient = makeTestQueryClient();
   queryClient.setQueryData(keys.inbounds.slim(), rows);
   queryClient.setQueryData(keys.clients.onlines(), []);
-  queryClient.setQueryData(keys.clients.onlinesByGuid(), {});
-  queryClient.setQueryData(keys.clients.activeInbounds(), {});
   queryClient.setQueryData(keys.clients.lastOnline(), {});
   queryClient.setQueryData(keys.settings.defaults(), {});
   const wrapper = ({ children }: { children: ReactNode }) => (
@@ -87,21 +85,5 @@ describe('inbound websocket merges keep unchanged state', () => {
     expect(first.up).toBe(99);
     expect(second).not.toBe(before[1]);
     expect(second.clientStats?.[0]?.up).toBe(5);
-  });
-
-  it('keeps the client rollup when a traffic push repeats the same online sets', async () => {
-    const { result } = await renderInbounds();
-    const push = () =>
-      result.current.applyTrafficEvent({
-        onlineClients: ['c1@x'],
-        onlineByGuid: { 'node:1': ['c1@x'] },
-        activeInbounds: { 'node:1': ['in-1'] },
-      });
-    act(push);
-    const rollup = result.current.clientCount;
-
-    act(push);
-
-    expect(result.current.clientCount).toBe(rollup);
   });
 });

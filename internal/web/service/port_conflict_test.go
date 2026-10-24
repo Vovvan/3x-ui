@@ -35,11 +35,6 @@ func setupConflictDB(t *testing.T) {
 
 func seedInboundConflict(t *testing.T, tag, listen string, port int, protocol model.Protocol, streamSettings, settings string) {
 	t.Helper()
-	seedInboundConflictNode(t, tag, listen, port, protocol, streamSettings, settings, nil)
-}
-
-func seedInboundConflictNode(t *testing.T, tag, listen string, port int, protocol model.Protocol, streamSettings, settings string, nodeID *int) {
-	t.Helper()
 	in := &model.Inbound{
 		Tag:            tag,
 		Enable:         true,
@@ -48,7 +43,6 @@ func seedInboundConflictNode(t *testing.T, tag, listen string, port int, protoco
 		Protocol:       protocol,
 		StreamSettings: streamSettings,
 		Settings:       settings,
-		NodeID:         nodeID,
 	}
 	if err := database.GetDB().Create(in).Error; err != nil {
 		t.Fatalf("seed inbound %s: %v", tag, err)
@@ -354,56 +348,12 @@ func TestGenerateInboundTag_ListenIgnoredTransportDisambiguates(t *testing.T) {
 	}
 }
 
-// inbounds bound to different nodes run on different physical machines,
-// so the same port + transport must be allowed across nodes. covers
-// local-vs-remote, remote-A-vs-remote-B, and the still-clashing
-// same-node case.
-func TestCheckPortConflict_NodeScope(t *testing.T) {
-	setupConflictDB(t)
-	seedInboundConflictNode(t, "local-443-tcp", "0.0.0.0", 443, model.VLESS, `{"network":"tcp"}`, `{}`, nil)
-	seedInboundConflictNode(t, "node1-443-tcp", "0.0.0.0", 443, model.VLESS, `{"network":"tcp"}`, `{}`, new(1))
-
-	svc := &InboundService{}
-
-	cases := []struct {
-		name   string
-		nodeID *int
-		want   bool
-	}{
-		{"new local same port + tcp clashes with local", nil, true},
-		{"new remote on different node from local is fine", new(2), false},
-		{"new remote on existing node 1 clashes", new(1), true},
-	}
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			candidate := &model.Inbound{
-				Listen:         "0.0.0.0",
-				Port:           443,
-				Protocol:       model.VLESS,
-				StreamSettings: `{"network":"tcp"}`,
-				NodeID:         c.nodeID,
-			}
-			got, err := svc.checkPortConflict(candidate, 0)
-			if err != nil {
-				t.Fatalf("checkPortConflict: %v", err)
-			}
-			if (got != nil) != c.want {
-				t.Fatalf("got conflict=%v, want %v", got != nil, c.want)
-			}
-		})
-	}
-}
-
 // when the caller passes an explicit non-empty Tag that doesn't collide,
-// resolveInboundTag returns it verbatim. this is the cross-panel path:
-// the central panel picks a tag, pushes the inbound to a node, and the
-// node must keep that exact tag so the eventual traffic sync-back can
-// match the row by tag. previously the node regenerated and the two
-// panels diverged, causing a UNIQUE constraint failure on sync.
+// resolveInboundTag returns it verbatim.
 func TestResolveInboundTag_RespectsCallerTagWhenFree(t *testing.T) {
 	setupConflictDB(t)
-	seedInboundConflictNode(t, "in-5000-tcp", "0.0.0.0", 5000, model.VLESS, `{"network":"tcp"}`, `{}`, nil)
-	seedInboundConflictNode(t, "in-5000-udp", "0.0.0.0", 5000, model.Hysteria, ``, ``, nil)
+	seedInboundConflict(t, "in-5000-tcp", "0.0.0.0", 5000, model.VLESS, `{"network":"tcp"}`, `{}`)
+	seedInboundConflict(t, "in-5000-udp", "0.0.0.0", 5000, model.Hysteria, ``, ``)
 
 	svc := &InboundService{}
 	pushed := &model.Inbound{
@@ -412,7 +362,6 @@ func TestResolveInboundTag_RespectsCallerTagWhenFree(t *testing.T) {
 		Port:           5000,
 		Protocol:       model.VLESS,
 		StreamSettings: `{"network":"tcp"}`,
-		NodeID:         new(1),
 	}
 	got, err := svc.resolveInboundTag(pushed, 0)
 	if err != nil {
@@ -444,14 +393,12 @@ func TestResolveInboundTag_GeneratesWhenTagEmpty(t *testing.T) {
 	}
 }
 
-// when the caller's Tag collides (e.g. a node that was used standalone
-// happens to already own the tag the central panel picked),
-// resolveInboundTag falls back to generateInboundTag rather than
-// failing — the inbound still lands, just under a slightly different
-// tag that the central will pick up via the AddInbound response.
+// When the caller's tag collides, resolveInboundTag falls back to
+// generateInboundTag rather than failing: the inbound still lands under a
+// slightly different tag.
 func TestResolveInboundTag_RegeneratesOnCollision(t *testing.T) {
 	setupConflictDB(t)
-	seedInboundConflictNode(t, "in-5000-tcp", "0.0.0.0", 5000, model.VLESS, `{"network":"tcp"}`, `{}`, nil)
+	seedInboundConflict(t, "in-5000-tcp", "0.0.0.0", 5000, model.VLESS, `{"network":"tcp"}`, `{}`)
 
 	svc := &InboundService{}
 	pushed := &model.Inbound{
@@ -468,51 +415,6 @@ func TestResolveInboundTag_RegeneratesOnCollision(t *testing.T) {
 	}
 	if got == "in-5000-tcp" {
 		t.Fatalf("colliding caller tag must be replaced, but resolver kept %q", got)
-	}
-}
-
-// inbounds bound to a remote node get the canonical tag prefixed with
-// "n<id>-" so the same listen+port+transport can live on the central
-// panel and on the node simultaneously without bumping the global
-// UNIQUE(inbounds.tag) constraint.
-func TestGenerateInboundTag_NodePrefix(t *testing.T) {
-	setupConflictDB(t)
-
-	svc := &InboundService{}
-	in := &model.Inbound{
-		Listen:   "0.0.0.0",
-		Port:     443,
-		Protocol: model.VLESS,
-		NodeID:   new(1),
-	}
-	got, err := svc.generateInboundTag(in, 0)
-	if err != nil {
-		t.Fatalf("generateInboundTag: %v", err)
-	}
-	if got != "n1-in-443-tcp" {
-		t.Fatalf("expected n1-in-443-tcp, got %q", got)
-	}
-}
-
-// a node-prefixed inbound shouldn't collide with a same-port local one:
-// the prefix scopes the tag to that specific node.
-func TestGenerateInboundTag_NodePrefixedDoesNotCollideWithLocal(t *testing.T) {
-	setupConflictDB(t)
-	seedInboundConflict(t, "in-443-tcp", "0.0.0.0", 443, model.VLESS, `{"network":"tcp"}`, `{}`)
-
-	svc := &InboundService{}
-	in := &model.Inbound{
-		Listen:   "0.0.0.0",
-		Port:     443,
-		Protocol: model.VLESS,
-		NodeID:   new(1),
-	}
-	got, err := svc.generateInboundTag(in, 0)
-	if err != nil {
-		t.Fatalf("generateInboundTag: %v", err)
-	}
-	if got != "n1-in-443-tcp" {
-		t.Fatalf("expected n1-in-443-tcp, got %q", got)
 	}
 }
 
@@ -645,27 +547,25 @@ func TestCheckPortConflict_DetailMessage(t *testing.T) {
 func TestIsAutoGeneratedTag(t *testing.T) {
 	tcp := transportTCP
 	cases := []struct {
-		name   string
-		tag    string
-		port   int
-		nodeID *int
-		bits   transportBits
-		want   bool
+		name string
+		tag  string
+		port int
+		bits transportBits
+		want bool
 	}{
-		{"canonical", "in-443-tcp", 443, nil, tcp, true},
-		{"canonical udp", "in-443-udp", 443, nil, transportUDP, true},
-		{"dedup suffix", "in-443-tcp-2", 443, nil, tcp, true},
-		{"node prefixed", "n1-in-443-tcp", 443, new(1), tcp, true},
-		{"legacy listen-scoped is now custom", "in-127.0.0.1:443-tcp", 443, nil, tcp, false},
-		{"custom tag", "my-cool-tag", 443, nil, tcp, false},
-		{"stale port", "in-443-tcp", 8443, nil, tcp, false},
-		{"stale transport", "in-443-tcp", 443, nil, transportUDP, false},
-		{"non-numeric suffix", "in-443-tcp-x", 443, nil, tcp, false},
-		{"empty suffix", "in-443-tcp-", 443, nil, tcp, false},
+		{"canonical", "in-443-tcp", 443, tcp, true},
+		{"canonical udp", "in-443-udp", 443, transportUDP, true},
+		{"dedup suffix", "in-443-tcp-2", 443, tcp, true},
+		{"legacy listen-scoped is now custom", "in-127.0.0.1:443-tcp", 443, tcp, false},
+		{"custom tag", "my-cool-tag", 443, tcp, false},
+		{"stale port", "in-443-tcp", 8443, tcp, false},
+		{"stale transport", "in-443-tcp", 443, transportUDP, false},
+		{"non-numeric suffix", "in-443-tcp-x", 443, tcp, false},
+		{"empty suffix", "in-443-tcp-", 443, tcp, false},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			if got := isAutoGeneratedTag(c.tag, c.port, c.nodeID, c.bits); got != c.want {
+			if got := isAutoGeneratedTag(c.tag, c.port, c.bits); got != c.want {
 				t.Fatalf("isAutoGeneratedTag(%q) = %v, want %v", c.tag, got, c.want)
 			}
 		})
@@ -695,25 +595,6 @@ func TestCheckPortConflict_ReservedAPIPortBlockedLocal(t *testing.T) {
 	}
 	if msg := got.String(); !strings.Contains(msg, "api") {
 		t.Fatalf("conflict message should name the api inbound; got %q", msg)
-	}
-}
-
-// nodes run their own Xray with their own API port, so a node inbound on the
-// central panel's reserved API port must be allowed.
-func TestCheckPortConflict_ReservedAPIPortAllowedOnNode(t *testing.T) {
-	setupConflictDB(t)
-
-	svc := &InboundService{}
-	candidate := &model.Inbound{
-		Tag:            "node-62789",
-		Listen:         "0.0.0.0",
-		Port:           defaultXrayAPIPort,
-		Protocol:       model.VLESS,
-		StreamSettings: `{"network":"tcp"}`,
-		NodeID:         new(1),
-	}
-	if got, err := svc.checkPortConflict(candidate, 0); err != nil || got != nil {
-		t.Fatalf("node inbound on the reserved API port must be allowed; got=%v err=%v", got, err)
 	}
 }
 
@@ -848,32 +729,6 @@ func TestCheckPortConflict_KernelAmneziaWGAllowsItsUDPPortToMatchRelayRange(t *t
 	awgInbound.Port = amneziawgnet.SOCKSPortForInbound(awgInbound.Id)
 	if got, err := (&InboundService{}).checkPortConflict(&awgInbound, awgInbound.Id); err != nil || got != nil {
 		t.Fatalf("kernel-mode AmneziaWG UDP port may use a port in the embedded TCP relay range; got=%v err=%v", got, err)
-	}
-}
-
-// Nodes run their own Xray, so a node inbound landing on the central panel's
-// AmneziaWG relay port must be allowed -- the relay inbound only ever binds
-// 127.0.0.1 on the local panel's own Xray.
-func TestCheckPortConflict_AmneziawgnetSocksRelayAllowedOnNode(t *testing.T) {
-	setupConflictDB(t)
-	seedInboundConflict(t, "awg-1", "0.0.0.0", 51820, model.AmneziaWG, ``, amneziawgRoutedSettings)
-
-	var awgInbound model.Inbound
-	if err := database.GetDB().Where("tag = ?", "awg-1").First(&awgInbound).Error; err != nil {
-		t.Fatalf("read seeded row: %v", err)
-	}
-	relayPort := amneziawgnet.SOCKSPortForInbound(awgInbound.Id)
-
-	svc := &InboundService{}
-	candidate := &model.Inbound{
-		Tag:      "node-bridge",
-		Listen:   "0.0.0.0",
-		Port:     relayPort,
-		Protocol: model.VLESS,
-		NodeID:   new(1),
-	}
-	if got, err := svc.checkPortConflict(candidate, 0); err != nil || got != nil {
-		t.Fatalf("a node inbound on the local AmneziaWG relay port must be allowed; got=%v err=%v", got, err)
 	}
 }
 

@@ -126,10 +126,9 @@ func TestRecreateByNameAppliesGivenScope(t *testing.T) {
 		want      string
 		wantErr   string
 	}{
-		{name: "replaces a monitor token as node-sync", seedScope: model.ApiScopeMonitor, scope: model.ApiScopeNodeSync, want: model.ApiScopeNodeSync},
-		{name: "replaces a monitor token as node-admin", seedScope: model.ApiScopeMonitor, scope: model.ApiScopeNodeAdmin, want: model.ApiScopeNodeAdmin},
+		{name: "replaces a monitor token as admin", seedScope: model.ApiScopeMonitor, scope: model.ApiScopeAdmin, want: model.ApiScopeAdmin},
 		{name: "creates a new token as monitor", scope: model.ApiScopeMonitor, want: model.ApiScopeMonitor},
-		{name: "refuses an unknown scope", seedScope: model.ApiScopeMonitor, scope: "root", want: model.ApiScopeMonitor, wantErr: "scope must be 'admin', 'monitor', 'node-sync', or 'node-admin'"},
+		{name: "refuses an unknown scope", seedScope: model.ApiScopeMonitor, scope: "root", want: model.ApiScopeMonitor, wantErr: "scope must be 'admin' or 'monitor'"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -174,12 +173,12 @@ func TestRecreateByNameRefusesUnknownStoredScope(t *testing.T) {
 	dbtest.InitDB(t, config.GetDBPath())
 
 	db := database.GetDB()
-	stored := model.ApiToken{Name: "remote", Token: "stored-hash", Enabled: true, Scope: "future-node-scope"}
+	stored := model.ApiToken{Name: "remote", Token: "stored-hash", Enabled: true, Scope: "root"}
 	if err := db.Create(&stored).Error; err != nil {
 		t.Fatalf("seed remote: %v", err)
 	}
 
-	const wantErr = `token "remote" has unknown scope "future-node-scope"`
+	const wantErr = `token "remote" has unknown scope "root"`
 	_, err := (&ApiTokenService{}).RecreateByName("remote", "")
 	if err == nil || strings.TrimSpace(err.Error()) != wantErr {
 		t.Fatalf("error = %v, want %q", err, wantErr)
@@ -196,7 +195,7 @@ func TestRecreateByNameRefusesUnknownStoredScope(t *testing.T) {
 // Rotating a token issued with an expiry through the API handed back one that
 // never expires, since the replacement row took ExpiresAt 0.
 func TestRecreateByNameKeepsReplacedTokenExpiry(t *testing.T) {
-	for _, scope := range []string{"", model.ApiScopeNodeSync} {
+	for _, scope := range []string{"", model.ApiScopeAdmin} {
 		t.Run("scope="+scope, func(t *testing.T) {
 			t.Setenv("XUI_DB_FOLDER", t.TempDir())
 			dbtest.InitDB(t, config.GetDBPath())

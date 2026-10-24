@@ -27,9 +27,14 @@ export default function TuicFields() {
   const [loadingPanelCert, setLoadingPanelCert] = useState(false);
 
   const sni = (useWatch({ control, name: 'settings.server.sni' }) ?? '') as string;
-  const certificate = (useWatch({ control, name: 'settings.server.certificate' }) ?? '') as string;
-  const privateKey = (useWatch({ control, name: 'settings.server.private_key' }) ?? '') as string;
-  const nodeId = useWatch({ control, name: 'nodeId' }) as number | null | undefined;
+  const certificate = (useWatch({
+    control,
+    name: 'settings.server.certificate',
+  }) ?? '') as string;
+  const privateKey = (useWatch({
+    control,
+    name: 'settings.server.private_key',
+  }) ?? '') as string;
 
   const handleSniChange = (newSni: string) => {
     setValue('settings.server.sni', newSni);
@@ -48,10 +53,9 @@ export default function TuicFields() {
   const setCertFromPanel = async () => {
     setLoadingPanelCert(true);
     try {
-      const msg =
-        typeof nodeId === 'number'
-          ? await HttpUtil.get(`/panel/api/nodes/webCert/${nodeId}`, undefined, { silent: true })
-          : await HttpUtil.post('/panel/api/setting/all', undefined, { silent: true });
+      const msg = await HttpUtil.post('/panel/api/setting/all', undefined, {
+        silent: true,
+      });
       if (!msg?.success) {
         messageApi.warning(msg?.msg || t('pages.inbounds.setDefaultCertEmpty'));
         return;

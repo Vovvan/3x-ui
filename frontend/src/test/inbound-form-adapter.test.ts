@@ -36,7 +36,6 @@ const vlessRow: RawInboundRow = {
   trafficResetDay: 15,
   lastTrafficResetTime: 0,
   tag: 'inbound-1',
-  nodeId: null,
   settings: {
     clients: [
       {
@@ -109,7 +108,7 @@ describe('rawInboundToFormValues', () => {
       if (name === 'empty stream settings drop to undefined') {
         expect(values.streamSettings).toBeUndefined();
       }
-      expect(values.shareAddrStrategy).toBe('node');
+      expect(values.shareAddrStrategy).toBe('listen');
       expect(values.shareAddr).toBe('');
     });
   }
@@ -228,18 +227,6 @@ describe('formValuesToWirePayload', () => {
     expect(payload.sniffing).toBe('');
   });
 
-  it('omits nodeId when null', () => {
-    const values = rawInboundToFormValues({ ...vlessRow, nodeId: null });
-    const payload = formValuesToWirePayload(values);
-    expect('nodeId' in payload).toBe(false);
-  });
-
-  it('includes nodeId when set', () => {
-    const values = rawInboundToFormValues({ ...vlessRow, nodeId: 42 });
-    const payload = formValuesToWirePayload(values);
-    expect(payload.nodeId).toBe(42);
-  });
-
   it('round-trips share address strategy fields', () => {
     const values = rawInboundToFormValues({
       ...vlessRow,
@@ -275,7 +262,6 @@ describe('formValuesToWirePayload', () => {
       trafficReset: payload.trafficReset,
       trafficResetDay: payload.trafficResetDay,
       lastTrafficResetTime: payload.lastTrafficResetTime,
-      nodeId: payload.nodeId ?? null,
     });
     expect(replay.protocol).toBe(original.protocol);
     expect(replay.port).toBe(original.port);

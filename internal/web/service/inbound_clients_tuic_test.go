@@ -69,9 +69,10 @@ func TestAddInboundTuicClientValidation(t *testing.T) {
 func TestTuicClientMutationsRequestRelayReconciliation(t *testing.T) {
 	setupConflictDB(t)
 	resyncs := 0
+	prev := runtime.GetManager()
 	mgr := runtime.NewManager(runtime.LocalDeps{APIPort: func() int { return 0 }, RequestReconcile: func() { resyncs++ }})
 	runtime.SetManager(mgr)
-	t.Cleanup(func() { runtime.SetManager(nil) })
+	t.Cleanup(func() { runtime.SetManager(prev) })
 
 	inboundSvc := &InboundService{}
 	clientSvc := &ClientService{}

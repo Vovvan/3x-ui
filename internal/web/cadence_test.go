@@ -15,14 +15,12 @@ import (
 // repo build flow.
 func TestJobCadencesAreValidCronSpecs(t *testing.T) {
 	cadences := map[string]string{
-		"cadenceXrayRunning":   cadenceXrayRunning,
-		"cadenceXrayRestart":   cadenceXrayRestart,
-		"cadenceXrayTraffic":   cadenceXrayTraffic,
-		"cadenceMtproto":       cadenceMtproto,
-		"cadenceClientIPScan":  cadenceClientIPScan,
-		"cadenceNodeHeartbeat": cadenceNodeHeartbeat,
-		"cadenceNodeTraffic":   cadenceNodeTraffic,
-		"cadenceCPUAlarm":      cadenceCPUAlarm,
+		"cadenceXrayRunning":  cadenceXrayRunning,
+		"cadenceXrayRestart":  cadenceXrayRestart,
+		"cadenceXrayTraffic":  cadenceXrayTraffic,
+		"cadenceMtproto":      cadenceMtproto,
+		"cadenceClientIPScan": cadenceClientIPScan,
+		"cadenceCPUAlarm":     cadenceCPUAlarm,
 	}
 	for name, spec := range cadences {
 		if _, err := cron.ParseStandard(spec); err != nil {

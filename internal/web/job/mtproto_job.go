@@ -30,9 +30,7 @@ func (j *MtprotoJob) Run() {
 	}
 
 	routedTags := make(map[string]bool)
-	activeTags := make([]string, 0, len(desired))
 	for _, inst := range desired {
-		activeTags = append(activeTags, inst.Tag)
 		if inst.RouteThroughXray {
 			routedTags[inst.Tag] = true
 		}
@@ -77,5 +75,5 @@ func (j *MtprotoJob) Run() {
 		}
 	}
 
-	j.inboundService.RefreshLocalOnlineClients(onlineEmails, activeTags)
+	j.inboundService.RefreshLocalOnlineClients(onlineEmails)
 }

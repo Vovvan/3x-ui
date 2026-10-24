@@ -47,11 +47,6 @@ func TestGetFactoryDefaultsOmitsSensitiveMaterial(t *testing.T) {
 	for _, key := range []string{
 		"secret",
 		"panelGuid",
-		"nodeMtlsCaCertPem",
-		"nodeMtlsCaKeyPem",
-		"nodeMtlsClientCertPem",
-		"nodeMtlsClientKeyPem",
-		"nodeMtlsClientCertSha256",
 		"xrayTemplateConfig",
 		"tgBotToken",
 		"twoFactorToken",

@@ -28,9 +28,10 @@ func TestManualClientDisableHonoursRestartSetting(t *testing.T) {
 			setRestartOnClientDisable(t, tc.setting)
 
 			mgr := runtime.NewManager(runtime.LocalDeps{APIPort: func() int { return 0 }})
-			mgr.SetLocalRuntimeOverride(&fakeNodeRuntime{})
+			mgr.SetLocalRuntimeOverride(&fakeRuntime{})
+			prev := runtime.GetManager()
 			runtime.SetManager(mgr)
-			t.Cleanup(func() { runtime.SetManager(nil) })
+			t.Cleanup(func() { runtime.SetManager(prev) })
 
 			seedInboundConflict(t, "manual-disable", "0.0.0.0", 50055, model.VLESS, `{"network":"tcp"}`,
 				`{"clients":[{"email":"`+email+`","id":"5f2eb9d6-3a2f-4a55-9812-6ea1e2f7a333","enable":true}]}`)

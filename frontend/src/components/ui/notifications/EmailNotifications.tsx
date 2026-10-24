@@ -2,7 +2,6 @@ import { InputNumber } from 'antd';
 import {
   CloudServerOutlined,
   ThunderboltOutlined,
-  DesktopOutlined,
   DashboardOutlined,
   SafetyOutlined,
 } from '@ant-design/icons';
@@ -40,30 +39,6 @@ const GROUPS: NotificationGroupConfig[] = [
     icon: <ThunderboltOutlined aria-hidden />,
     title: 'eventGroupXray',
     events: [{ key: 'xray.crash', label: 'eventXrayCrash', settingKey: '' }],
-  },
-  {
-    icon: <DesktopOutlined aria-hidden />,
-    title: 'eventGroupNode',
-    events: [
-      {
-        key: 'node.down',
-        label: 'eventNodeDown',
-        settingKey: 'nodeDownThreshold',
-        hint: 'eventDownThresholdHint',
-        extra: ({ value, onChange, ariaLabel }) => (
-          <InputNumber
-            size="small"
-            min={1}
-            max={100}
-            value={value}
-            onChange={onChange}
-            aria-label={ariaLabel}
-            style={{ width: 80 }}
-          />
-        ),
-      },
-      { key: 'node.up', label: 'eventNodeUp', settingKey: '' },
-    ],
   },
   {
     icon: <DashboardOutlined aria-hidden />,

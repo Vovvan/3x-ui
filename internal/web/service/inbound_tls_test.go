@@ -32,22 +32,22 @@ func TestValidateInboundTLSCertificates(t *testing.T) {
 		{"whitespace file fields", `{"security":"tls","tlsSettings":{"certificates":[{"certificateFile":" \t","keyFile":" \n"}]}}`, true},
 		{"whitespace inline certificate", `{"security":"tls","tlsSettings":{"certificates":[{"certificate":[" ","\t"],"key":["private key"]}]}}`, true},
 		{"whitespace inline key", `{"security":"tls","tlsSettings":{"certificates":[{"certificate":["certificate"],"key":[" ","\n"]}]}}`, true},
-		{"missing private key", `{"security":"tls","tlsSettings":{"certificates":[{"certificateFile":"/node/cert.pem"}]}}`, true},
+		{"missing private key", `{"security":"tls","tlsSettings":{"certificates":[{"certificateFile":"/certs/cert.pem"}]}}`, true},
 		{"missing certificate", `{"security":"tls","tlsSettings":{"certificates":[{"keyFile":"/node/key.pem"}]}}`, true},
 		{"verify only", `{"security":"tls","tlsSettings":{"certificates":[{"usage":"verify","certificateFile":"/node/ca.pem"}]}}`, true},
 		{"verify with private key still needs server certificate", `{"security":"tls","tlsSettings":{"certificates":[{"usage":"verify","certificateFile":"/node/ca.pem","keyFile":"/node/key.pem"}]}}`, true},
 		{"issue needs private key", `{"security":"tls","tlsSettings":{"certificates":[{"usage":"issue","certificateFile":"/node/ca.pem"}]}}`, true},
-		{"file credentials with default usage", `{"security":"tls","tlsSettings":{"certificates":[{"certificateFile":"/node/cert.pem","keyFile":"/node/key.pem"}]}}`, false},
+		{"file credentials with default usage", `{"security":"tls","tlsSettings":{"certificates":[{"certificateFile":"/certs/cert.pem","keyFile":"/node/key.pem"}]}}`, false},
 		{"inline credentials", `{"security":"tls","tlsSettings":{"certificates":[{"certificate":["certificate"],"key":["private key"]}]}}`, false},
-		{"certificate file and inline key", `{"security":"tls","tlsSettings":{"certificates":[{"certificateFile":"/node/cert.pem","key":["private key"]}]}}`, false},
+		{"certificate file and inline key", `{"security":"tls","tlsSettings":{"certificates":[{"certificateFile":"/certs/cert.pem","key":["private key"]}]}}`, false},
 		{"inline certificate and key file", `{"security":"tls","tlsSettings":{"certificates":[{"certificate":["certificate"],"keyFile":"/node/key.pem"}]}}`, false},
-		{"encipherment usage", `{"security":"tls","tlsSettings":{"certificates":[{"usage":"encipherment","certificateFile":"/node/cert.pem","keyFile":"/node/key.pem"}]}}`, false},
+		{"encipherment usage", `{"security":"tls","tlsSettings":{"certificates":[{"usage":"encipherment","certificateFile":"/certs/cert.pem","keyFile":"/node/key.pem"}]}}`, false},
 		{"issue usage", `{"security":"tls","tlsSettings":{"certificates":[{"usage":"issue","certificateFile":"/node/ca.pem","keyFile":"/node/ca-key.pem"}]}}`, false},
-		{"unknown usage defaults to encipherment like Xray", `{"security":"tls","tlsSettings":{"certificates":[{"usage":"custom","certificateFile":"/node/cert.pem","keyFile":"/node/key.pem"}]}}`, false},
-		{"verify and server certificates", `{"security":"tls","tlsSettings":{"certificates":[{"usage":"verify","certificateFile":"/node/ca.pem"},{"certificateFile":"/node/cert.pem","keyFile":"/node/key.pem"}]}}`, false},
-		{"verify usage is case insensitive", `{"security":"tls","tlsSettings":{"certificates":[{"usage":"VERIFY","certificateFile":"/node/ca.pem"},{"certificateFile":"/node/cert.pem","keyFile":"/node/key.pem"}]}}`, false},
-		{"empty extra certificate row", `{"security":"tls","tlsSettings":{"certificates":[{"certificateFile":"/node/cert.pem","keyFile":"/node/key.pem"},{}]}}`, true},
-		{"empty extra verify certificate", `{"security":"tls","tlsSettings":{"certificates":[{"certificateFile":"/node/cert.pem","keyFile":"/node/key.pem"},{"usage":"verify"}]}}`, true},
+		{"unknown usage defaults to encipherment like Xray", `{"security":"tls","tlsSettings":{"certificates":[{"usage":"custom","certificateFile":"/certs/cert.pem","keyFile":"/node/key.pem"}]}}`, false},
+		{"verify and server certificates", `{"security":"tls","tlsSettings":{"certificates":[{"usage":"verify","certificateFile":"/node/ca.pem"},{"certificateFile":"/certs/cert.pem","keyFile":"/node/key.pem"}]}}`, false},
+		{"verify usage is case insensitive", `{"security":"tls","tlsSettings":{"certificates":[{"usage":"VERIFY","certificateFile":"/node/ca.pem"},{"certificateFile":"/certs/cert.pem","keyFile":"/node/key.pem"}]}}`, false},
+		{"empty extra certificate row", `{"security":"tls","tlsSettings":{"certificates":[{"certificateFile":"/certs/cert.pem","keyFile":"/node/key.pem"},{}]}}`, true},
+		{"empty extra verify certificate", `{"security":"tls","tlsSettings":{"certificates":[{"certificateFile":"/certs/cert.pem","keyFile":"/node/key.pem"},{"usage":"verify"}]}}`, true},
 		{"whitespace certificate file overrides inline content", `{"security":"tls","tlsSettings":{"certificates":[{"certificateFile":" ","certificate":["certificate"],"key":["private key"]}]}}`, true},
 		{"whitespace key file overrides inline content", `{"security":"tls","tlsSettings":{"certificates":[{"certificate":["certificate"],"keyFile":" ","key":["private key"]}]}}`, true},
 		{"malformed stream", `{"security":"tls"`, true},
@@ -66,7 +66,7 @@ func TestValidateInboundTLSCertificates(t *testing.T) {
 }
 
 func TestValidateInboundTLSCertificatesIdentifiesIncompleteRow(t *testing.T) {
-	err := validateInboundTLSCertificates(`{"security":"tls","tlsSettings":{"certificates":[{"certificateFile":"/node/cert.pem","keyFile":"/node/key.pem"},{"certificateFile":"/node/other.pem"}]}}`)
+	err := validateInboundTLSCertificates(`{"security":"tls","tlsSettings":{"certificates":[{"certificateFile":"/certs/cert.pem","keyFile":"/node/key.pem"},{"certificateFile":"/node/other.pem"}]}}`)
 	if err == nil || !strings.Contains(err.Error(), "TLS certificate 2") || !strings.Contains(err.Error(), "private key") {
 		t.Fatalf("expected actionable error for the second certificate's private key, got %v", err)
 	}
@@ -75,7 +75,7 @@ func TestValidateInboundTLSCertificatesIdentifiesIncompleteRow(t *testing.T) {
 func TestAddInboundRejectsMissingTLSCertificates(t *testing.T) {
 	setupConflictDB(t)
 	mgr := useTestRuntimeManager(t)
-	fake := &fakeNodeRuntime{}
+	fake := &fakeRuntime{}
 	mgr.SetLocalRuntimeOverride(fake)
 
 	inbound := &model.Inbound{
@@ -109,11 +109,11 @@ func TestAddInboundRejectsMissingTLSCertificates(t *testing.T) {
 func TestUpdateInboundRejectsMissingTLSCertificates(t *testing.T) {
 	setupConflictDB(t)
 	mgr := useTestRuntimeManager(t)
-	fake := &fakeNodeRuntime{}
+	fake := &fakeRuntime{}
 	mgr.SetLocalRuntimeOverride(fake)
 
 	seedInboundConflict(t, "tls-existing-44311", "0.0.0.0", 44311, model.VLESS,
-		`{"network":"tcp","security":"tls","tlsSettings":{"certificates":[{"certificateFile":"/node/cert.pem","keyFile":"/node/key.pem"}]}}`, `{"clients":[]}`)
+		`{"network":"tcp","security":"tls","tlsSettings":{"certificates":[{"certificateFile":"/certs/cert.pem","keyFile":"/node/key.pem"}]}}`, `{"clients":[]}`)
 	var existing model.Inbound
 	if err := database.GetDB().Where("tag = ?", "tls-existing-44311").First(&existing).Error; err != nil {
 		t.Fatalf("load existing inbound: %v", err)
@@ -121,7 +121,7 @@ func TestUpdateInboundRejectsMissingTLSCertificates(t *testing.T) {
 	update := existing
 	update.Remark = "must not be saved"
 	update.Port = 44312
-	update.StreamSettings = `{"network":"tcp","security":"tls","tlsSettings":{"certificates":[{"certificateFile":"/node/cert.pem"}]}}`
+	update.StreamSettings = `{"network":"tcp","security":"tls","tlsSettings":{"certificates":[{"certificateFile":"/certs/cert.pem"}]}}`
 	_, needRestart, err := (&InboundService{}).UpdateInbound(&update)
 	if err == nil || !strings.Contains(err.Error(), "TLS") {
 		t.Fatalf("UpdateInbound: expected TLS validation error, got %v", err)
@@ -151,15 +151,15 @@ func TestUpdateInboundAllowsUntouchedLegacyTLSCertificates(t *testing.T) {
 		streamSettings string
 	}{
 		{"remark-only edit resends the stored block", legacyStream},
-		{"node push re-encodes the same block", `{"network":"tcp","security":"tls","tlsSettings":{"certificates":[{"key":[],"certificate":[],"keyFile":"","certificateFile":""}]}}`},
-		{"a partial fix to the stored credentials is tolerated", `{"network":"tcp","security":"tls","tlsSettings":{"certificates":[{"certificateFile":"/node/cert.pem"}]}}`},
-		{"completing the credentials is accepted", `{"network":"tcp","security":"tls","tlsSettings":{"certificates":[{"certificateFile":"/node/cert.pem","keyFile":"/node/key.pem"}]}}`},
+		{"runtime re-encode keeps the same block", `{"network":"tcp","security":"tls","tlsSettings":{"certificates":[{"key":[],"certificate":[],"keyFile":"","certificateFile":""}]}}`},
+		{"a partial fix to the stored credentials is tolerated", `{"network":"tcp","security":"tls","tlsSettings":{"certificates":[{"certificateFile":"/certs/cert.pem"}]}}`},
+		{"completing the credentials is accepted", `{"network":"tcp","security":"tls","tlsSettings":{"certificates":[{"certificateFile":"/certs/cert.pem","keyFile":"/node/key.pem"}]}}`},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			setupConflictDB(t)
 			mgr := useTestRuntimeManager(t)
-			mgr.SetLocalRuntimeOverride(&fakeNodeRuntime{})
+			mgr.SetLocalRuntimeOverride(&fakeRuntime{})
 
 			seedInboundConflict(t, "tls-legacy-44321", "0.0.0.0", 44321, model.VLESS, legacyStream, `{"clients":[]}`)
 			var existing model.Inbound

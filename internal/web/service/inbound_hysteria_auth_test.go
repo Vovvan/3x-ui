@@ -41,46 +41,6 @@ func TestUpdateInbound_RejectsHysteriaClientWithoutAuth(t *testing.T) {
 	}
 }
 
-func TestUpdateInbound_PreservesHysteriaClientAuth(t *testing.T) {
-	setupConflictDB(t)
-	seedInboundConflict(t, "in-45002-udp", "0.0.0.0", 45002, model.Hysteria,
-		`{"network":"hysteria"}`, `{"clients":[]}`)
-
-	var existing model.Inbound
-	if err := database.GetDB().Where("tag = ?", "in-45002-udp").First(&existing).Error; err != nil {
-		t.Fatalf("read seeded row: %v", err)
-	}
-
-	const wantAuth = "hysteria-auth"
-	const password = "not-hysteria-auth"
-	update := existing
-	update.Settings = `{"clients":[{"email":"hysteria@x","enable":true,"password":"` + password + `","auth":"` + wantAuth + `"}]}`
-
-	// Only a master's push still carries clients through an inbound save.
-	svc := &InboundService{FromNodeSync: true}
-	if _, _, err := svc.UpdateInbound(&update); err != nil {
-		t.Fatalf("UpdateInbound: %v", err)
-	}
-
-	var reloaded model.Inbound
-	if err := database.GetDB().First(&reloaded, existing.Id).Error; err != nil {
-		t.Fatalf("reload: %v", err)
-	}
-	clients, err := ParseInboundSettingsClients(reloaded.Settings)
-	if err != nil {
-		t.Fatalf("parse persisted clients: %v", err)
-	}
-	if len(clients) != 1 {
-		t.Fatalf("persisted clients = %d, want 1", len(clients))
-	}
-	if clients[0].Auth != wantAuth {
-		t.Fatalf("persisted auth = %q, want %q", clients[0].Auth, wantAuth)
-	}
-	if clients[0].Password != password {
-		t.Fatalf("persisted password = %q, want %q", clients[0].Password, password)
-	}
-}
-
 func TestUpdateInbound_AllowsHysteriaWithoutClients(t *testing.T) {
 	setupConflictDB(t)
 	seedInboundConflict(t, "in-45003-udp", "0.0.0.0", 45003, model.Hysteria,

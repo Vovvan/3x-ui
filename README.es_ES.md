@@ -17,12 +17,12 @@
   <a href="https://docs.sanaei.dev"><img src="https://img.shields.io/badge/docs-docs.sanaei.dev-22d3ee" alt="Documentation"></a>
 </p>
 
-**3X-UI** es un panel de control web avanzado y de código abierto para gestionar servidores [Xray-core](https://github.com/XTLS/Xray-core). Ofrece una interfaz limpia y multilingüe para desplegar, configurar y monitorear una amplia gama de protocolos de proxy y VPN — desde un único VPS hasta despliegues multinodo.
+**3X-UI** es un panel de control web avanzado y de código abierto para gestionar servidores [Xray-core](https://github.com/XTLS/Xray-core). Ofrece una interfaz limpia y multilingüe para desplegar, configurar y monitorear una amplia gama de protocolos de proxy y VPN — en un único VPS o en un despliegue mayor con un solo panel.
 
 Construido como un fork mejorado del proyecto X-UI original, 3X-UI añade un soporte de protocolos más amplio, mayor estabilidad, contabilidad de tráfico por cliente y muchas funciones que mejoran la experiencia de uso.
 
 > [!NOTE]
-> Este fork elimina el servidor de suscripciones integrado, su interfaz web y formatos (Happ/Incy, Clash/JSON), los balanceadores de suscripciones, las suscripciones de salida y los bots de Telegram y Discord. La generación de enlaces de compartición y códigos QR por cliente se mantiene.
+> Este fork elimina el servidor de suscripciones integrado, su interfaz web y formatos (Happ/Incy, Clash/JSON), los balanceadores de suscripciones, las suscripciones de salida, los bots de Telegram y Discord y la gestión multinodo. La generación de enlaces de compartición y códigos QR por cliente se mantiene.
 
 > [!IMPORTANT]
 > Este proyecto está destinado únicamente al uso personal. Por favor, no lo uses para fines ilegales ni en un entorno de producción.
@@ -37,7 +37,6 @@ Construido como un fork mejorado del proyecto X-UI original, 3X-UI añade un sop
 - **Fallbacks** — sirve varios protocolos en un solo puerto (p. ej. VLESS y Trojan en el 443) usando la función de fallback de Xray.
 - **Gestión por cliente** — cuotas de tráfico, fechas de caducidad, límites de IP con exenciones para direcciones de confianza, límites de dispositivos (HWID), ciclos de renovación programados, estado en línea en tiempo real y enlaces de compartición y códigos QR con un solo clic.
 - **Estadísticas de tráfico** — por entrada, por cliente y por salida, con controles de reinicio.
-- **Soporte multinodo** — gestiona y escala a través de varios servidores desde un único panel, incluida la clonación de entradas en otros nodos.
 - **Salida y enrutamiento** — WARP, NordVPN, PIA, reglas de enrutamiento personalizadas, balanceadores de carga con conmutación por error entre balanceadores y encadenamiento de proxy de salida. Las categorías geosite y geoip incluidas se pueden explorar directamente desde el editor de reglas.
 - **API RESTful** con tokens de alcance limitado y caducidad opcional, y una referencia de la API dentro del panel.
 - **Panel instalable (PWA)** — ancla 3X-UI al escritorio o a la pantalla de inicio del móvil.
@@ -65,10 +64,6 @@ Construido como un fork mejorado del proyecto X-UI original, 3X-UI añade un sop
   <img alt="Add client" src="./media/03-add-client-light.png">
 </picture>
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="./media/05-add-nodes-dark.png">
-  <img alt="Configs" src="./media/05-add-nodes-light.png">
-</picture>
 
 </details>
 
@@ -117,7 +112,7 @@ ninguna pregunta, generando credenciales aleatorias y escribiéndolas en
 3X-UI admite dos backends, que se eligen durante la instalación:
 
 - **SQLite** (predeterminado) — un único archivo en `/etc/x-ui/x-ui.db`. Sin configuración, ideal para despliegues pequeños y medianos.
-- **PostgreSQL** — recomendado para un gran número de clientes o configuraciones multinodo. El instalador puede instalar PostgreSQL localmente por ti, o aceptar un DSN a un servidor existente.
+- **PostgreSQL** — recomendado para un gran número de clientes. El instalador puede instalar PostgreSQL localmente por ti, o aceptar un DSN a un servidor existente.
 
 En tiempo de ejecución, el backend se selecciona mediante variables de entorno (el instalador las escribe por ti en `/etc/default/x-ui`):
 
@@ -170,7 +165,7 @@ docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/mhsanaei/3x-ui
 | `XUI_TUNNEL_HEALTH_TIMEOUT` | Tiempo de espera por sondeo | `10s` |
 | `XUI_TUNNEL_HEALTH_FAILURES` | Fallos consecutivos antes de que se active un reinicio | `3` |
 | `XUI_TUNNEL_HEALTH_COOLDOWN` | Retardo mínimo entre reinicios consecutivos | `5m` |
-| `NODE_TOKEN_ENCRYPTION` | Cifrado en reposo de los tokens de API de los nodos: `off`, `migration` o `required` (sin el prefijo `XUI_`) | `off` |
+| `NODE_TOKEN_ENCRYPTION` | Cifrado en reposo de los tokens de proveedores almacenados (PIA): `off`, `migration` o `required` (sin el prefijo `XUI_`) | `off` |
 | `XUI_NODE_TOKEN_KEY_FILE` | Llavero JSON (modo `0600`) con el id de la clave activa y sus claves de 32 bytes en base64 | `/etc/x-ui/node_token_key.json` |
 | `XUI_NODE_TOKEN_KEY` | Una única clave de 32 bytes en base64, usada solo si no se puede cargar el archivo de claves | — |
 
@@ -200,7 +195,7 @@ Las contribuciones son bienvenidas. Por favor, lee la [Guía de contribución](/
 Herramientas e integraciones construidas por la comunidad alrededor de 3x-ui.
 
 - [terraform-provider-3x-ui](https://github.com/batonogov/terraform-provider-threexui) (Licencia: **MIT**): _Gestiona inbounds, clientes, configuración del panel y configuración de Xray como código con Terraform / OpenTofu._
-- [3X-UI Manager](https://github.com/yukh975/3X-UI-Manager) (Licencia: **MIT**): _Cliente nativo de Android para 3x-ui — panel de control, inbounds, clientes con compartición por QR, nodos y gestión de múltiples paneles. Disponible en F-Droid._
+- [3X-UI Manager](https://github.com/yukh975/3X-UI-Manager) (Licencia: **MIT**): _Cliente nativo de Android para 3x-ui — panel de control, inbounds, clientes con compartición por QR y gestión de múltiples paneles. Disponible en F-Droid._
 
 ## Apoyar el Proyecto
 

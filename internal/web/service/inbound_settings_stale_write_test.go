@@ -1,11 +1,7 @@
 package service
 
 import (
-	"context"
 	"encoding/json"
-	"net/http"
-	"net/http/httptest"
-	"net/url"
 	"reflect"
 	"strconv"
 	"testing"
@@ -13,7 +9,6 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
 	"gorm.io/gorm"
@@ -53,7 +48,7 @@ func commitTickBetweenReadAndWrite(t *testing.T, tick func(tx *gorm.DB) error, o
 
 // seedRenewableNeighbour builds an inbound holding a healthy client X and a
 // quota-disabled client Y whose auto-renew is due, as the traffic job sees them.
-func seedRenewableNeighbour(t *testing.T, port int, nodeID *int) *model.Inbound {
+func seedRenewableNeighbour(t *testing.T, port int) *model.Inbound {
 	t.Helper()
 	past := time.Now().Add(-time.Hour).UnixMilli()
 	future := time.Now().Add(30 * 24 * time.Hour).UnixMilli()
@@ -63,7 +58,7 @@ func seedRenewableNeighbour(t *testing.T, port int, nodeID *int) *model.Inbound 
 	}
 	ib := &model.Inbound{
 		Tag: "stale-" + strconv.Itoa(port), Enable: true, Port: port, Protocol: model.VLESS,
-		Settings: clientsSettings(t, clients), NodeID: nodeID,
+		Settings: clientsSettings(t, clients),
 	}
 	if err := database.GetDB().Create(ib).Error; err != nil {
 		t.Fatalf("create inbound: %v", err)
@@ -86,8 +81,7 @@ func autoRenewTick(tx *gorm.DB) error {
 	return err
 }
 
-// renewYTick writes the renewal autoRenewClients would commit for y@stale; it
-// skips clients hosted only on a node, so the node case applies it directly.
+// renewYTick writes the renewal autoRenewClients would commit for y@stale.
 func renewYTick(inboundId int) func(tx *gorm.DB) error {
 	return func(tx *gorm.DB) error {
 		var ib model.Inbound
@@ -144,14 +138,11 @@ func requireNeighbourRenewed(t *testing.T, inboundId int) model.Client {
 
 type staleClientOp struct {
 	name string
-	// advancesNodeFingerprint: on a node inbound the op pushes per client and
-	// then advances the reconcile-skip fingerprint.
-	advancesNodeFingerprint bool
-	run                     func(t *testing.T, ib *model.Inbound) error
+	run  func(t *testing.T, ib *model.Inbound) error
 }
 
 var staleClientOps = []staleClientOp{
-	{"edit", true, func(t *testing.T, ib *model.Inbound) error {
+	{"edit", func(t *testing.T, ib *model.Inbound) error {
 		rec := lookupClientRecord(t, "x@stale")
 		edited := rec.ToClient()
 		edited.Comment = "edited"
@@ -160,29 +151,29 @@ var staleClientOps = []staleClientOp{
 		}, "x@stale")
 		return err
 	}},
-	{"add", true, func(t *testing.T, ib *model.Inbound) error {
+	{"add", func(t *testing.T, ib *model.Inbound) error {
 		_, err := (&ClientService{}).AddInboundClient(&InboundService{}, &model.Inbound{
 			Id: ib.Id, Settings: clientsSettings(t, []model.Client{{Email: "z@stale", ID: "aaaaaaaa-0000-0000-0000-00000000000c", Enable: true}}),
 		})
 		return err
 	}},
-	{"delete", true, func(t *testing.T, ib *model.Inbound) error {
+	{"delete", func(t *testing.T, ib *model.Inbound) error {
 		_, err := (&ClientService{}).DelInboundClientByEmail(&InboundService{}, ib.Id, "x@stale", false, true)
 		return err
 	}},
-	{"bulk detach", true, func(t *testing.T, ib *model.Inbound) error {
+	{"bulk detach", func(t *testing.T, ib *model.Inbound) error {
 		_, _, err := (&ClientService{}).BulkDetach(&InboundService{}, []string{"x@stale"}, []int{ib.Id})
 		return err
 	}},
-	{"bulk adjust", false, func(t *testing.T, ib *model.Inbound) error {
+	{"bulk adjust", func(t *testing.T, ib *model.Inbound) error {
 		_, _, err := (&ClientService{}).BulkAdjust(&InboundService{}, []string{"x@stale"}, 1, 0, "", nil, "")
 		return err
 	}},
-	{"bulk delete", false, func(t *testing.T, ib *model.Inbound) error {
+	{"bulk delete", func(t *testing.T, ib *model.Inbound) error {
 		_, _, err := (&ClientService{}).BulkDelete(&InboundService{}, []string{"x@stale"}, false)
 		return err
 	}},
-	{"bulk set enable", true, func(t *testing.T, ib *model.Inbound) error {
+	{"bulk set enable", func(t *testing.T, ib *model.Inbound) error {
 		_, _, err := (&ClientService{}).BulkSetEnable(&InboundService{}, []string{"x@stale"}, false)
 		return err
 	}},
@@ -194,7 +185,7 @@ func TestClientOpsKeepNeighbourRenewedMidOp(t *testing.T) {
 	for i, op := range staleClientOps {
 		t.Run(op.name, func(t *testing.T) {
 			setupBulkDB(t)
-			ib := seedRenewableNeighbour(t, 23101+i, nil)
+			ib := seedRenewableNeighbour(t, 23101+i)
 			commitTickBetweenReadAndWrite(t, autoRenewTick, func() {
 				if err := op.run(t, ib); err != nil {
 					t.Errorf("%s: %v", op.name, err)
@@ -208,7 +199,7 @@ func TestClientOpsKeepNeighbourRenewedMidOp(t *testing.T) {
 // An op on the renewed client itself keeps the fields it did not change.
 func TestBulkAdjustOnRenewedClientKeepsRenewal(t *testing.T) {
 	setupBulkDB(t)
-	ib := seedRenewableNeighbour(t, 23120, nil)
+	ib := seedRenewableNeighbour(t, 23120)
 	commitTickBetweenReadAndWrite(t, autoRenewTick, func() {
 		if _, _, err := (&ClientService{}).BulkAdjust(&InboundService{}, []string{"y@stale"}, 0, 500, "", nil, ""); err != nil {
 			t.Errorf("BulkAdjust: %v", err)
@@ -219,60 +210,8 @@ func TestBulkAdjustOnRenewedClientKeepsRenewal(t *testing.T) {
 	}
 }
 
-// The node got only the per-client push, so the skip fingerprint must not claim
-// it also holds the renewal the traffic writer committed mid-op.
-func TestNodeClientOpsMidRenewalStillReconcileRenewal(t *testing.T) {
-	for i, op := range staleClientOps {
-		if !op.advancesNodeFingerprint {
-			continue
-		}
-		t.Run(op.name, func(t *testing.T) {
-			setupBulkDB(t)
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-				w.Header().Set("Content-Type", "application/json")
-				_, _ = w.Write([]byte(`{"success":true}`))
-			}))
-			t.Cleanup(srv.Close)
-			u, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatalf("parse url: %v", err)
-			}
-			port, _ := strconv.Atoi(u.Port())
-			node := &model.Node{
-				Name: "stale-node", Scheme: "http", Address: u.Hostname(), Port: port, BasePath: "/",
-				ApiToken: "tok", Enable: true, Status: "online", AllowPrivateAddress: true,
-			}
-			if err := database.GetDB().Create(node).Error; err != nil {
-				t.Fatalf("create node: %v", err)
-			}
-			remote := runtime.NewRemote(node, nil)
-			useTestRuntimeManager(t).SetRuntimeOverride(node.Id, remote)
-
-			ib := seedRenewableNeighbour(t, 23131+i, &node.Id)
-			remote.AdoptInboundAlias(ib, runtime.RemoteInboundOption{Id: 7, Tag: ib.Tag})
-
-			commitTickBetweenReadAndWrite(t, renewYTick(ib.Id), func() {
-				if err := op.run(t, ib); err != nil {
-					t.Errorf("%s: %v", op.name, err)
-				}
-			})
-			requireNeighbourRenewed(t, ib.Id)
-
-			saved, err := (&InboundService{}).GetInbound(ib.Id)
-			if err != nil {
-				t.Fatalf("GetInbound: %v", err)
-			}
-			pushed, err := remote.ReconcileInbound(context.Background(), saved, true)
-			if err != nil {
-				t.Fatalf("ReconcileInbound: %v", err)
-			}
-			if !pushed {
-				t.Fatal("reconcile skipped the inbound: the node never receives y@stale's renewal")
-			}
-		})
-	}
-}
-
+// The three-way merge must keep the renewal the traffic writer committed
+// between this op's read and its write.
 func TestRebaseClientSettings(t *testing.T) {
 	const base = `{"decryption":"none","clients":[{"email":"a","enable":true,"totalGB":1},{"email":"b","enable":false,"expiryTime":1}]}`
 	cases := []struct {

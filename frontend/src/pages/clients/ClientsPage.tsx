@@ -58,7 +58,6 @@ import { formatInboundLabel } from '@/lib/inbounds/label';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { useClients } from '@/hooks/useClients';
-import { useNodesQuery } from '@/api/queries/useNodesQuery';
 import { useHostsQuery } from '@/api/queries/useHostsQuery';
 import { useDatepicker } from '@/hooks/useDatepicker';
 import type {
@@ -230,7 +229,6 @@ function readFilterState(): PersistedFilterState {
         buckets: Array.isArray(fromRaw.buckets) ? fromRaw.buckets : [],
         protocols: Array.isArray(fromRaw.protocols) ? fromRaw.protocols : [],
         inboundIds: Array.isArray(fromRaw.inboundIds) ? fromRaw.inboundIds : [],
-        nodeIds: Array.isArray(fromRaw.nodeIds) ? fromRaw.nodeIds : [],
         groups: Array.isArray(fromRaw.groups) ? fromRaw.groups : [],
       },
       sort: typeof raw.sort === 'string' ? raw.sort : '',
@@ -377,9 +375,6 @@ export default function ClientsPage() {
     client_stats: applyClientStatsEvent,
   });
 
-  // Node list for the Nodes filter; the section only renders when the panel
-  // actually manages nodes (#4997).
-  const { nodes } = useNodesQuery();
   // Tunnel configs advertise these Hosts, so an empty list must mean "no hosts"
   // and not "not loaded yet" — the page gate waits for it.
   const {
@@ -489,20 +484,7 @@ export default function ClientsPage() {
     setCurrentPage(1);
   }, [debouncedSearch, filters, sortColumn, sortOrder]);
 
-  // The node filter maps onto inbound ids client-side (#4997): the paging API
-  // already accepts an inbound CSV, so nodes never have to reach the backend.
-  // Sentinel 0 = "local panel" (inbounds without a nodeId).
-  const effectiveInboundCsv = useMemo(() => {
-    if (!filters.nodeIds.length) return filters.inboundIds.join(',');
-    const nodeSet = new Set(filters.nodeIds);
-    const nodeInboundIds = inbounds.filter((ib) => nodeSet.has(ib.nodeId ?? 0)).map((ib) => ib.id);
-    const pool = filters.inboundIds.length
-      ? nodeInboundIds.filter((id) => filters.inboundIds.includes(id))
-      : nodeInboundIds;
-    // Nothing matches the selected nodes: send an impossible id so the filter
-    // yields an honest empty result instead of being silently ignored.
-    return pool.length ? pool.join(',') : '-1';
-  }, [filters.nodeIds, filters.inboundIds, inbounds]);
+  const effectiveInboundCsv = filters.inboundIds.join(',');
 
   useEffect(() => {
     // With no remembered size and no settings yet, any query we build would be a
@@ -897,7 +879,10 @@ export default function ClientsPage() {
           messageApi.warning(
             firstError
               ? `${t('pages.clients.toasts.importedMixed', { ok: created, failed: skipped.length })} — ${firstError}`
-              : t('pages.clients.toasts.importedMixed', { ok: created, failed: skipped.length }),
+              : t('pages.clients.toasts.importedMixed', {
+                  ok: created,
+                  failed: skipped.length,
+                }),
           );
         }
         return true;
@@ -972,7 +957,9 @@ export default function ClientsPage() {
     const emails = [...selectedRowKeys];
     if (emails.length === 0) return;
     modal.confirm({
-      title: t('pages.clients.bulkDeleteConfirmTitle', { count: emails.length }),
+      title: t('pages.clients.bulkDeleteConfirmTitle', {
+        count: emails.length,
+      }),
       content: t('pages.clients.bulkDeleteConfirmContent'),
       okText: t('delete'),
       okType: 'danger',
@@ -1406,9 +1393,15 @@ export default function ClientsPage() {
                               color="blue"
                               closable
                               onClose={() => setSelectedRowKeys([])}
-                              style={{ marginInlineEnd: 0, padding: '4px 8px', fontSize: 13 }}
+                              style={{
+                                marginInlineEnd: 0,
+                                padding: '4px 8px',
+                                fontSize: 13,
+                              }}
                             >
-                              {t('pages.clients.selectedCount', { count: selectedRowKeys.length })}
+                              {t('pages.clients.selectedCount', {
+                                count: selectedRowKeys.length,
+                              })}
                             </Tag>
                           )}
                           <Dropdown
@@ -1574,7 +1567,10 @@ export default function ClientsPage() {
                         )}
                         {(activeCount > 0 || debouncedSearch.trim().length > 0) && (
                           <span className="filter-count">
-                            {t('pages.clients.showingCount', { shown: filtered, total })}
+                            {t('pages.clients.showingCount', {
+                              shown: filtered,
+                              total,
+                            })}
                           </span>
                         )}
                       </div>
@@ -1970,7 +1966,11 @@ export default function ClientsPage() {
               const msg = await bulkAddToGroup([...selectedRowKeys], group);
               if (msg?.success) {
                 setSelectedRowKeys([]);
-                return (msg.obj as { affected?: number } | undefined) ?? { affected: 0 };
+                return (
+                  (msg.obj as { affected?: number } | undefined) ?? {
+                    affected: 0,
+                  }
+                );
               }
               return null;
             }}
@@ -2017,7 +2017,6 @@ export default function ClientsPage() {
             inbounds={inbounds}
             protocols={protocolOptions}
             groups={groupOptions}
-            nodes={nodes}
           />
         </LazyMount>
         <LazyMount when={textOpen}>

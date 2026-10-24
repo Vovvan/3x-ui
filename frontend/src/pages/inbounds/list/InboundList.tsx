@@ -7,7 +7,6 @@ import {
   Checkbox,
   Dropdown,
   Input,
-  Select,
   Space,
   Switch,
   Table,
@@ -56,8 +55,6 @@ export default function InboundList({
   trafficDiff,
   pageSize,
   isMobile,
-  nodesById,
-  hasActiveNode,
   hosts,
   onAddInbound,
   onGeneralAction,
@@ -67,9 +64,6 @@ export default function InboundList({
   const { t } = useTranslation();
   const [statsRecord, setStatsRecord] = useState<DBInboundRecord | null>(null);
   const [selectedRowKeys, setSelectedRowKeys] = useState<number[]>([]);
-  // Node filter (#4997): 'all' shows everything, 0 is the local-panel
-  // sentinel (inbounds without a nodeId), otherwise a node id. Session-only.
-  const [nodeFilter, setNodeFilter] = useState<number | 'all'>('all');
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const searchParam = searchParams.get('search');
@@ -83,26 +77,10 @@ export default function InboundList({
     }
   }
 
-  const showNodeFilter = useMemo(
-    () => nodesById.size > 0 || dbInbounds.some((ib) => ib.nodeId != null),
-    [nodesById, dbInbounds],
-  );
-
-  const nodeFilterOptions = useMemo(
-    () => [
-      { value: 'all' as const, label: t('pages.clients.filters.nodes') },
-      { value: 0, label: t('pages.clients.filters.localPanel') },
-      ...Array.from(nodesById.values()).map((n) => ({ value: n.id, label: n.name || `#${n.id}` })),
-    ],
-    [nodesById, t],
-  );
-
   const hostRemarksByInboundId = useMemo(() => buildHostRemarksByInboundId(hosts), [hosts]);
 
   const visibleInbounds = useMemo(() => {
     let list = dbInbounds;
-    if (nodeFilter === 0) list = list.filter((ib) => ib.nodeId == null);
-    else if (nodeFilter !== 'all') list = list.filter((ib) => ib.nodeId === nodeFilter);
     const q = searchKey.trim().toLowerCase();
     if (!q) return list;
     return list.filter((ib) => {
@@ -112,7 +90,7 @@ export default function InboundList({
       const hostRemarks = hostRemarksByInboundId.get(ib.id) ?? [];
       return hostRemarks.some((remark) => remark.toLowerCase().includes(q));
     });
-  }, [dbInbounds, nodeFilter, searchKey, hostRemarksByInboundId]);
+  }, [dbInbounds, searchKey, hostRemarksByInboundId]);
 
   const onSwitchEnable = useCallback(async (dbInbound: DBInboundRecord, next: boolean) => {
     const previous = dbInbound.enable;
@@ -168,12 +146,10 @@ export default function InboundList({
   const columns = useInboundColumns({
     hasAnyRemark,
     hasAnySubSortIndex,
-    hasActiveNode,
-    nodesById,
     hostRemarksByInboundId,
     clientCount,
     inboundSpeed,
-      expireDiff,
+    expireDiff,
     trafficDiff,
     onRowAction,
     onSwitchEnable,
@@ -228,17 +204,6 @@ export default function InboundList({
               {!isMobile && t('pages.inbounds.generalActions')}
             </Button>
           </Dropdown>
-          {showNodeFilter && (
-            <Select
-              value={nodeFilter}
-              onChange={(v) => setNodeFilter(v)}
-              options={nodeFilterOptions}
-              showSearch
-              popupMatchSelectWidth={false}
-              style={{ minWidth: isMobile ? 90 : 140 }}
-              aria-label={t('pages.clients.filters.nodes')}
-            />
-          )}
           <Input
             value={searchKey}
             onChange={(e) => setSearchKey(e.target.value)}
@@ -331,7 +296,7 @@ export default function InboundList({
                           menu={{
                             items: buildRowActionsMenu({
                               record,
-                                                          t,
+                              t,
                               isMobile: true,
                               hasClients: (clientCount[record.id]?.clients || 0) > 0,
                             }),
@@ -382,8 +347,6 @@ export default function InboundList({
       <InboundStatsModal
         open={isMobile && !!statsRecord}
         record={statsRecord}
-        hasActiveNode={hasActiveNode}
-        nodesById={nodesById}
         clientCount={clientCount}
         inboundSpeed={inboundSpeed}
         trafficDiff={trafficDiff}

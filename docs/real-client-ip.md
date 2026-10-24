@@ -7,7 +7,7 @@ That intermediary IP is what shows up in the panel's online/IP view and what the
 
 Xray-core can recover the real visitor IP. 3x-ui exposes the two mechanisms in the inbound form
 and feeds the recovered IP into the same pipeline that drives IP-limit enforcement, the online
-list, and multi-node sync — so once it is set, everything downstream just works.
+list — so once it is set, everything downstream just works.
 
 ## Where to set it
 
@@ -78,19 +78,6 @@ The form shows a warning when you select a preset that the current transport can
 > `trustedXForwardedFor` would override (and defeat) a PROXY-protocol setup. The presets are
 > mutually exclusive and clear the other field for you; only mix them by hand if you know your
 > upstream chain needs it.
-
-## Multi-node
-
-No extra configuration is needed. The inbound's `streamSettings` (including these sockopt
-fields) is pushed to child nodes verbatim, so the node's Xray records the real IP, and the
-parent panel pulls each node's per-client IPs roughly every 10 seconds. The real visitor IP
-shows up on the parent automatically.
-
-Reports retain each address's newest timestamp within the 30-minute retention window.
-Flat and per-node IP blobs use a stable timestamp-ascending order, with IP text breaking
-ties, so equivalent reports preserve the same bytes and skip redundant writes. Flat-row
-merges use compare-and-set retries to preserve concurrent observations; advancing a
-timestamp remains a real change. GUID attribution stays separate from the flat union.
 
 ## Security note
 

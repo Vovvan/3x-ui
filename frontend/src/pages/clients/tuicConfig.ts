@@ -26,8 +26,7 @@ export function buildTuicClientConfig(
   hostEndpoint?: HostEndpoint,
 ): string {
   const endpointHost =
-    hostEndpoint?.dest ||
-    resolveShareHost(inbound ?? {}, inbound?.nodeAddress ?? '', preferPublicHost(host, publicHost));
+    hostEndpoint?.dest || resolveShareHost(inbound ?? {}, preferPublicHost(host, publicHost));
   const inboundName = inbound ? formatInboundLabel(inbound.tag, inbound.remark) : '';
   const remark =
     [inboundName, hostEndpoint?.remark, client.email].filter(Boolean).join(' - ') || 'tuic-client';

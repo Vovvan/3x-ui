@@ -96,7 +96,6 @@ describe('generated OpenAPI runtime contracts', () => {
       'client_stats',
       'inbounds',
       'outbounds',
-      'nodes',
       'notification',
       'xray_state',
       'invalidate',
@@ -235,5 +234,4 @@ describe('generated OpenAPI runtime contracts', () => {
       items: { type: 'string' },
     });
   });
-
 });

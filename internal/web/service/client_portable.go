@@ -292,8 +292,6 @@ func (s *ClientService) DeleteOrphans() (int, error) {
 		}
 		subIDs = append(subIDs, rows[i].SubID)
 	}
-	tombstoneClientEmails(emails)
-
 	if err := runSerializedTx(func(tx *gorm.DB) error {
 		if e := adjustGroupBaselinesForRemovedTraffic(tx, emails); e != nil {
 			return e
@@ -317,9 +315,6 @@ func (s *ClientService) DeleteOrphans() (int, error) {
 				if e := tx.Where("client_email IN ?", batch).Delete(&model.InboundClientIps{}).Error; e != nil {
 					return e
 				}
-			}
-			if e := clearGlobalTraffic(tx, emails...); e != nil {
-				return e
 			}
 		}
 		for _, batch := range chunkInts(ids, sqlInChunk) {

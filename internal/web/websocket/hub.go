@@ -18,7 +18,6 @@ const (
 	MessageTypeTraffic      MessageType = "traffic"
 	MessageTypeInbounds     MessageType = "inbounds"
 	MessageTypeOutbounds    MessageType = "outbounds"
-	MessageTypeNodes        MessageType = "nodes"
 	MessageTypeNotification MessageType = "notification"
 	MessageTypeXrayState    MessageType = "xray_state"
 	MessageTypeClientStats  MessageType = "client_stats"
@@ -94,7 +93,7 @@ func NewHub() *Hub {
 	}
 }
 
-// Traffic messages carry independent partial updates from Xray, TUIC, and node
+// Traffic messages carry independent partial updates from Xray, TUIC, and
 // polling jobs. Throttling by message type would silently discard one source
 // when two jobs publish within the throttle window.
 var throttledMessageTypes = map[MessageType]struct{}{

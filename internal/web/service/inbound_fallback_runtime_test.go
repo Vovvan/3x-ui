@@ -10,8 +10,8 @@ import (
 )
 
 // TestBuildRuntimeInboundForAPI_InjectsFallbacks is the #5963 regression: the
-// runtime inbound sent to nodes never carried the inbound_fallbacks rows, so
-// fallbacks configured on the master silently vanished from every node.
+// runtime inbound never carried the inbound_fallbacks rows, so configured
+// fallbacks silently vanished from the generated config.
 func TestBuildRuntimeInboundForAPI_InjectsFallbacks(t *testing.T) {
 	setupBulkDB(t)
 	svc := &InboundService{}

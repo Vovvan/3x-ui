@@ -2,6 +2,7 @@ package controller
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -14,8 +15,33 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/dbtest"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 )
+
+type noopRuntime struct{}
+
+func (noopRuntime) Name() string                                     { return "test" }
+func (noopRuntime) AddInbound(context.Context, *model.Inbound) error { return nil }
+func (noopRuntime) DelInbound(context.Context, *model.Inbound) error { return nil }
+func (noopRuntime) UpdateInbound(context.Context, *model.Inbound, *model.Inbound) error {
+	return nil
+}
+func (noopRuntime) AddUser(context.Context, *model.Inbound, map[string]any) error { return nil }
+func (noopRuntime) RemoveUser(context.Context, *model.Inbound, string) error      { return nil }
+func (noopRuntime) UpdateUser(context.Context, *model.Inbound, string, model.Client) error {
+	return nil
+}
+func (noopRuntime) DeleteUser(context.Context, *model.Inbound, string) error { return nil }
+func (noopRuntime) AddClient(context.Context, *model.Inbound, model.Client) error {
+	return nil
+}
+func (noopRuntime) RestartXray(context.Context) error { return nil }
+func (noopRuntime) ResetClientTraffic(context.Context, *model.Inbound, string) error {
+	return nil
+}
+func (noopRuntime) ResetInboundTraffic(context.Context, *model.Inbound) error { return nil }
+func (noopRuntime) ResetAllTraffics(context.Context) error                    { return nil }
 
 // seedPartlyApplyingClient puts one client on two inbounds and corrupts the second
 // one's settings, so a later op succeeds on one inbound and fails on the other.
@@ -24,6 +50,10 @@ func seedPartlyApplyingClient(t *testing.T, email string, basePort int) (healthy
 	dbDir := t.TempDir()
 	t.Setenv("XUI_DB_FOLDER", dbDir)
 	dbtest.InitDB(t, filepath.Join(dbDir, "x-ui.db"))
+	mgr := runtime.NewManager(runtime.LocalDeps{})
+	mgr.SetLocalRuntimeOverride(noopRuntime{})
+	runtime.SetManager(mgr)
+	t.Cleanup(func() { runtime.SetManager(nil) })
 
 	db := database.GetDB()
 	ids := make([]int, 0, 2)
@@ -85,9 +115,9 @@ func assertPartialApply(t *testing.T, w *httptest.ResponseRecorder) {
 	}
 }
 
-// TestUpdateHandlerFlagsRestartOnPartialApply pins that an edit committed on some
-// inbounds and failed on others still flags Xray, as create/attach already did.
-func TestUpdateHandlerFlagsRestartOnPartialApply(t *testing.T) {
+// TestUpdateHandlerReportsPartialApply pins that an edit committed on some
+// inbounds and failed on others reports the failure instead of a full success.
+func TestUpdateHandlerReportsPartialApply(t *testing.T) {
 	const email = "partial-update@example.com"
 	seedPartlyApplyingClient(t, email, 43310)
 
@@ -100,14 +130,10 @@ func TestUpdateHandlerFlagsRestartOnPartialApply(t *testing.T) {
 	a.update(c)
 
 	assertPartialApply(t, w)
-	if !a.xrayService.IsNeedRestartAndSetFalse() {
-		t.Fatal("a partly-applied client edit left Xray unflagged for restart")
-	}
 }
 
-// TestDeleteHandlerFlagsRestartOnPartialApply is the delete-side twin: the
-// removals that landed still need the restart the error path used to discard.
-func TestDeleteHandlerFlagsRestartOnPartialApply(t *testing.T) {
+// TestDeleteHandlerReportsPartialApply is the delete-side twin.
+func TestDeleteHandlerReportsPartialApply(t *testing.T) {
 	const email = "partial-delete@example.com"
 	seedPartlyApplyingClient(t, email, 43320)
 
@@ -117,17 +143,18 @@ func TestDeleteHandlerFlagsRestartOnPartialApply(t *testing.T) {
 	a.delete(c)
 
 	assertPartialApply(t, w)
-	if !a.xrayService.IsNeedRestartAndSetFalse() {
-		t.Fatal("a partly-applied client delete left Xray unflagged for restart")
-	}
 }
 
-// TestImportHandlerFlagsRestartWhenTrafficRestoreFails: the traffic restore runs
-// after the clients are committed, so its failure must not discard their restart.
-func TestImportHandlerFlagsRestartWhenTrafficRestoreFails(t *testing.T) {
+// TestImportHandlerReportsTrafficRestoreFailure: the traffic restore runs after
+// the clients are committed, so its failure must be reported.
+func TestImportHandlerReportsTrafficRestoreFailure(t *testing.T) {
 	dbDir := t.TempDir()
 	t.Setenv("XUI_DB_FOLDER", dbDir)
 	dbtest.InitDB(t, filepath.Join(dbDir, "x-ui.db"))
+	mgr := runtime.NewManager(runtime.LocalDeps{})
+	mgr.SetLocalRuntimeOverride(noopRuntime{})
+	runtime.SetManager(mgr)
+	t.Cleanup(func() { runtime.SetManager(nil) })
 	db := database.GetDB()
 	ib := &model.Inbound{
 		UserId: 1, Enable: true, Port: 43340, Tag: "in-import-partial",
@@ -164,9 +191,6 @@ func TestImportHandlerFlagsRestartWhenTrafficRestoreFails(t *testing.T) {
 	}
 	if created != 1 {
 		t.Fatalf("imported client count=%d, want 1 committed before the restore failed", created)
-	}
-	if !a.xrayService.IsNeedRestartAndSetFalse() {
-		t.Fatal("a failed traffic restore left the imported clients' Xray restart unflagged")
 	}
 }
 

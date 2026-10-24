@@ -69,9 +69,9 @@ func (s *InboundService) MigrationRequirements() (err error) {
 	// Normalize "enable" columns to boolean on Postgres. Legacy SQLite data
 	// (0/1 integers), partial migrations, or mixed write paths (public API
 	// inbound updates that flow through UpdateClientStat + client syncs, plus
-	// node traffic merge deltas) can leave the column as integer or with mixed
+	// traffic merge deltas) can leave the column as integer or with mixed
 	// interpretation. This (combined with the dialect-aware
-	// ClientTrafficEnableMergeExpr) prevents type problems in the node traffic
+	// ClientTrafficEnableMergeExpr) prevents type problems in the traffic
 	// sync merge (SetRemoteTraffic) and makes the sync robust even when
 	// inbounds are updated via the public API (incl. ones carrying
 	// externalProxy in streamSettings). The same expression is also safe on
@@ -92,7 +92,7 @@ func (s *InboundService) MigrationRequirements() (err error) {
 					END IF;
 				END $$;`, table, col, table, col, col)).Error
 		}
-		for _, column := range [][2]string{{"inbounds", "enable"}, {"client_traffics", "enable"}, {"nodes", "enable"}, {"clients", "enable"}, {"api_tokens", "enabled"}, {"outbound_subscriptions", "enabled"}} {
+		for _, column := range [][2]string{{"inbounds", "enable"}, {"client_traffics", "enable"}, {"clients", "enable"}, {"api_tokens", "enabled"}, {"outbound_subscriptions", "enabled"}} {
 			if err = normalizeBool(column[0], column[1]); err != nil {
 				return
 			}

@@ -1,4 +1,3 @@
-import type { NodeRecord } from '@/api/queries/useNodesQuery';
 import type { HostRecord } from '@/schemas/api/host';
 
 export interface StreamHints {
@@ -33,7 +32,6 @@ export interface DBInboundRecord extends ProtocolFlags {
   total: number;
   expiryTime: number;
   _expiryTime: { valueOf(): number } | null;
-  nodeId?: number | null;
   settings: unknown;
   streamSettings: unknown;
 }
@@ -74,8 +72,6 @@ export interface InboundListProps {
   trafficDiff: number;
   pageSize: number;
   isMobile: boolean;
-  nodesById: Map<number, NodeRecord>;
-  hasActiveNode: boolean;
   hosts: HostRecord[];
   onAddInbound: () => void;
   onGeneralAction: (key: GeneralAction) => void;

@@ -139,7 +139,7 @@ The panel UI is a **React 19 + Ant Design 6 + TypeScript** app under `frontend/`
 
 The frontend ships **two Vite bundles**, each emitted into `internal/web/dist/` and embedded into the Go binary at compile time via `embed.FS`:
 
-- **`index.html`** — the admin panel, a **single-page app**. `src/main.tsx` mounts a `react-router` `createBrowserRouter` (see `src/routes.tsx`) under the `/panel` basename; every route (`/panel`, `/panel/inbounds`, `/panel/clients`, `/panel/groups`, `/panel/nodes`, `/panel/settings`, `/panel/xray`, `/panel/api-docs`) is lazy-loaded inside a shared `PanelLayout` (sidebar + header + `<Outlet>`).
+- **`index.html`** — the admin panel, a **single-page app**. `src/main.tsx` mounts a `react-router` `createBrowserRouter` (see `src/routes.tsx`) under the `/panel` basename; every route (`/panel`, `/panel/inbounds`, `/panel/clients`, `/panel/groups`, `/panel/settings`, `/panel/xray`, `/panel/api-docs`) is lazy-loaded inside a shared `PanelLayout` (sidebar + header + `<Outlet>`).
 - **`login.html`** — the login + 2FA screen (`src/entries/login.tsx`), a standalone bundle.
 
 Panel navigation happens client-side through React Router, and per-route code is lazy-split so the initial panel load stays small. `login` stays a separate document because it is reached without an authenticated panel session.
@@ -208,7 +208,7 @@ frontend/
     ├── routes.tsx         — react-router routes mounted under /panel
     ├── entries/           — bootstrap for the standalone bundle (login)
     ├── layouts/           — PanelLayout + AppSidebar
-    ├── pages/             — one folder per route (index, inbounds, clients, groups, nodes, settings, xray, api-docs) plus login
+    ├── pages/             — one folder per route (index, inbounds, clients, groups, settings, xray, api-docs) plus login
     ├── components/        — cross-page React components
     ├── hooks/             — reusable hooks (useTheme, useWebSocket, useClients, useDatepicker, …)
     ├── api/               — fetch client + CSRF handling, TanStack Query provider/keys, WebSocket client

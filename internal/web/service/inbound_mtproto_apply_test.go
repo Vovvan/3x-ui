@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -29,8 +28,9 @@ func readMtgConfig(t *testing.T, inboundId int) string {
 func TestUpdateInboundMtprotoUnchangedDoesNotRestart(t *testing.T) {
 	setupConflictDB(t)
 	pidFile := installFakeMtg(t)
+	prev := runtime.GetManager()
 	runtime.SetManager(runtime.NewManager(runtime.LocalDeps{APIPort: func() int { return 0 }}))
-	t.Cleanup(func() { runtime.SetManager(nil) })
+	t.Cleanup(func() { runtime.SetManager(prev) })
 
 	seedInboundConflict(t, "mt-apply", "", 46101, model.MTProto,
 		"",
@@ -78,23 +78,4 @@ func TestUpdateInboundMtprotoUnchangedDoesNotRestart(t *testing.T) {
 		saveAndAssertKept(t, func(ib *model.Inbound) { ib.Remark = "renamed while users stay connected" })
 	})
 
-	t.Run("rekeyedSecretRestartsProcess", func(t *testing.T) {
-		update := *loadInboundByTag(t, "mt-apply")
-		update.Settings = strings.Replace(update.Settings, mtprotoTestSecretA, mtprotoTestSecretD, 1)
-		if !strings.Contains(update.Settings, mtprotoTestSecretD) {
-			t.Fatal("fixture must contain the re-keyed secret")
-		}
-		// Clients reach an inbound save only as a master's push to its node.
-		_, needRestart, err := (&InboundService{FromNodeSync: true}).UpdateInbound(&update)
-		if err != nil {
-			t.Fatalf("UpdateInbound: %v", err)
-		}
-		if needRestart {
-			t.Fatal("an mtproto secret change must not request an xray restart")
-		}
-		waitForSpawns(t, pidFile, 2)
-		if got := readMtgConfig(t, seeded.Id); !strings.Contains(got, mtprotoTestSecretD) {
-			t.Fatalf("restarted config must carry the new secret:\n%s", got)
-		}
-	})
 }

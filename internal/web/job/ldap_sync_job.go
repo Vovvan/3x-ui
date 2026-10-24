@@ -253,8 +253,8 @@ func (j *LdapSyncJob) createClients(newClients []model.Client, inboundIds []int,
 	logger.Infof("LDAP auto-create: %d clients for %s", created, tagList)
 }
 
-// batchSetEnable takes the bulk path: per-user calls held each inbound's lock through
-// its node push, so users sharing a hung node inbound queued one push timeout apiece.
+// batchSetEnable takes the bulk path: per-user calls held each inbound's lock
+// through its runtime push, so users sharing a hung inbound queued a timeout each.
 func (j *LdapSyncJob) batchSetEnable(emails []string, enable bool) {
 	if len(emails) == 0 {
 		return

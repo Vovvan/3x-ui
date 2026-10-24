@@ -53,11 +53,6 @@ type SubService struct {
 	subTrafficDepletedTemplate string
 	inboundService             service.InboundService
 	settingService             service.SettingService
-	// nodesByID is populated per request from the Node table so
-	// resolveInboundAddress can return the node's address for any
-	// inbound whose NodeID is set. Keeps the per-link host derivation
-	// O(1) instead of O(N) DB hits.
-	nodesByID map[int]*model.Node
 	// statsByEmail maps a client email to its traffic row across ALL inbounds
 	// loaded for the request. client_traffics.email is globally unique, so this
 	// lets statsForClient resolve usage for a client even on an inbound that
@@ -100,14 +95,14 @@ func (s *SubService) enableSettingsCache() (release func()) {
 
 // ForRequest returns a shallow copy with request-scoped state populated.
 // Subscription controllers share one base SubService, so request-specific
-// fields such as address and nodesByID must live on a per-request copy.
+// fields such as address must live on a per-request copy.
 func (s *SubService) ForRequest(host string) *SubService {
 	req := *s
 	req.PrepareForRequest(host)
 	return &req
 }
 
-// PrepareForRequest sets per-request state (host + nodes map) on this
+// PrepareForRequest sets per-request state (host) on this
 // SubService instance. HTTP handlers should call ForRequest instead so the
 // controller's shared base service is never mutated by concurrent requests.
 func (s *SubService) PrepareForRequest(host string) {
@@ -129,7 +124,6 @@ func (s *SubService) PrepareForRequest(host string) {
 	s.sharedGroupSni = nil
 	mode, _ := s.settingService.GetSubHostSortMode()
 	s.hostsFirst = mode == "hosts-first"
-	s.loadNodes()
 	s.loadRemarkSettings()
 	s.subCalendarExpireInclusive, _ = s.settingService.GetSubCalendarExpireInclusive()
 	s.calendarExpireLocation = nil
@@ -631,9 +625,8 @@ func (s *SubService) AggregateTrafficByEmails(emails []string) (xray.ClientTraff
 	}
 
 	// total/expiry are configured limits owned by the clients table, not the
-	// runtime traffic rows. In a multi-node setup the node snapshot can reset
-	// client_traffics.total/expiry_time to 0, so fall back to the clients
-	// table to keep the Subscription-Userinfo header in sync with the UI (#4645).
+	// runtime traffic rows. Fall back to the clients table so the
+	// Subscription-Userinfo header stays in sync with the UI (#4645).
 	limits := make(map[string]model.ClientRecord, len(emails))
 	var records []model.ClientRecord
 	if err := db.Model(&model.ClientRecord{}).Where("email IN ?", emails).Find(&records).Error; err != nil {
@@ -1584,7 +1577,7 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 	// Fan out one link per External Proxy entry if any. Previously this
 	// generator ignored `externalProxy` entirely, so the link kept the
 	// server's own IP/port even when the admin configured an alternate
-	// endpoint (e.g. a CDN hostname + port that forwards to the node).
+	// endpoint (e.g. a CDN hostname + port that forwards to this server).
 	// Matches the behaviour of genVlessLink / genTrojanLink / ….
 	externalProxies, _ := stream["externalProxy"].([]any)
 	if len(externalProxies) > 0 {
@@ -1612,8 +1605,7 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 		return strings.Join(links, "\n")
 	}
 
-	// No external proxy configured — use the inbound's resolved address so
-	// node-managed inbounds get the node's host instead of the central panel's.
+	// No external proxy configured — use the inbound's resolved address.
 	link := fmt.Sprintf("%s://%s@%s", protocol, auth, joinHostPort(s.resolveInboundAddress(inbound), inbound.Port))
 	return buildLinkWithParams(link, params, s.genRemark(inbound, email, "", "quic"))
 }
@@ -1689,33 +1681,12 @@ func splitHysteriaPacketSize(value string) (string, string) {
 	return minStr, maxStr
 }
 
-// loadNodes refreshes nodesByID from the DB. Called once per request so
-// the per-inbound resolveInboundAddress lookups are pure map reads.
-// We filter to address != ” so a half-configured node row doesn't
-// accidentally produce a useless host like "https://:2053".
-func (s *SubService) loadNodes() {
-	db := database.GetDB()
-	var nodes []*model.Node
-	if err := db.Model(&model.Node{}).Where("address != ''").Find(&nodes).Error; err != nil {
-		logger.Warning("subscription: load nodes failed:", err)
-		s.nodesByID = nil
-		return
-	}
-	m := make(map[int]*model.Node, len(nodes))
-	for _, n := range nodes {
-		m[n.Id] = n
-	}
-	s.nodesByID = m
-}
-
 // resolveInboundAddress picks the host an external client should connect to,
 // honoring the inbound's share address strategy the same way the panel's
 // share/QR link builder does (#5208):
-//   - "listen": an explicit, client-reachable bind Listen wins, backed by the
-//     node's address for node-managed inbounds;
-//   - "custom": the inbound's ShareAddr wins, then node, then listen;
-//   - "node" (default, and any unknown value): the node's address for
-//     node-managed inbounds, then a routable Listen — the pre-strategy order.
+//   - "listen": an explicit, client-reachable bind Listen wins;
+//   - "custom": the inbound's ShareAddr wins, then listen;
+//   - any other value: a routable Listen.
 //
 // Every chain ends at the admin's configured public host (Sub/Web domain) and
 // then the subscriber's request host (s.address). Preferring the configured
@@ -1725,23 +1696,17 @@ func (s *SubService) loadNodes() {
 // listen is a server-side detail and is never advertised; External Proxy still
 // overrides everything upstream of this call.
 func (s *SubService) resolveInboundAddress(inbound *model.Inbound) string {
-	var nodeAddr string
-	if inbound.NodeID != nil && s.nodesByID != nil {
-		if n, ok := s.nodesByID[*inbound.NodeID]; ok {
-			nodeAddr = n.Address
-		}
-	}
 	var listenAddr string
 	if listen := inbound.Listen; listen != "" && listen[0] != '@' && listen[0] != '/' && isRoutableHost(listen) {
 		listenAddr = listen
 	}
 
-	candidates := []string{nodeAddr, listenAddr}
+	candidates := []string{listenAddr}
 	switch inbound.ShareAddrStrategy {
 	case "listen":
-		candidates = []string{listenAddr, nodeAddr}
+		candidates = []string{listenAddr}
 	case "custom":
-		candidates = []string{strings.TrimSpace(inbound.ShareAddr), nodeAddr, listenAddr}
+		candidates = []string{strings.TrimSpace(inbound.ShareAddr), listenAddr}
 	}
 	for _, c := range candidates {
 		if c != "" {
@@ -2032,7 +1997,7 @@ func pinnedSha256List(tlsClientSettings any) ([]string, bool) {
 // it. Hysteria2 clients hex-decode pinSHA256 and crash on a base64 value, so
 // each entry is coerced to bare hex here. Anything that is neither a 32-byte
 // hex nor a 32-byte base64 SHA-256 is returned unchanged so unexpected data is
-// not silently dropped. Mirrors decodeCertPin in internal/web/service/node.go.
+// not silently dropped.
 func hysteriaPinHex(pin string) string {
 	pin = strings.TrimSpace(pin)
 	if h := strings.ReplaceAll(pin, ":", ""); len(h) == hex.EncodedLen(sha256.Size) {

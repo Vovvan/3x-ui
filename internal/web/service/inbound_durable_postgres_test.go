@@ -26,10 +26,9 @@ func durablePostgresDB(t *testing.T) *gorm.DB {
 	return database.GetDB()
 }
 
-func durableTestInbound(nodeID *int, tag string, port int) *model.Inbound {
+func durableTestInbound(tag string, port int) *model.Inbound {
 	return &model.Inbound{
 		UserId:         1,
-		NodeID:         nodeID,
 		Tag:            tag,
 		Remark:         tag,
 		Enable:         true,
@@ -96,12 +95,12 @@ func cleanupDurableInboundFixtures(t *testing.T, db *gorm.DB, tags ...string) {
 
 func TestAddInbound_PostgresCommitFailureMakesNoRuntimeCall(t *testing.T) {
 	db := durablePostgresDB(t)
-	nodeID, fake := setupNodeRuntime(t)
+	fake := setupFakeRuntime(t)
 	tag := "durable-add-" + strings.NewReplacer("/", "-", " ", "-").Replace(t.Name())
 	cleanupDurableInboundFixtures(t, db, tag)
 	installDeferredCommitFailure(t, db, "create", "durable:add_inbound_commit_failure", "inbounds", "durable_add_parent", "durable_add_child")
 
-	inbound := durableTestInbound(&nodeID, tag, 25443)
+	inbound := durableTestInbound(tag, 25443)
 	_, _, err := (&InboundService{}).AddInbound(inbound)
 	if err == nil || !strings.Contains(strings.ToLower(err.Error()), "foreign key") {
 		t.Fatalf("AddInbound error = %v, want deferred foreign-key commit failure", err)
@@ -116,28 +115,21 @@ func TestAddInbound_PostgresCommitFailureMakesNoRuntimeCall(t *testing.T) {
 	if rows != 0 {
 		t.Fatalf("rolled-back inbound rows = %d, want 0", rows)
 	}
-	var persisted model.Node
-	if err := db.First(&persisted, nodeID).Error; err != nil {
-		t.Fatal(err)
-	}
-	if persisted.ConfigDirty {
-		t.Fatal("node dirty flag changed across failed commit")
-	}
 }
 
 func TestUpdateInbound_PostgresCommitFailureMakesNoRuntimeCall(t *testing.T) {
 	db := durablePostgresDB(t)
-	nodeID, fake := setupNodeRuntime(t)
+	fake := setupFakeRuntime(t)
 	tag := "durable-update-" + strings.NewReplacer("/", "-", " ", "-").Replace(t.Name())
 	cleanupDurableInboundFixtures(t, db, tag)
-	original := durableTestInbound(&nodeID, tag, 25444)
+	original := durableTestInbound(tag, 25444)
 	original.Remark = "before"
 	if err := db.Create(original).Error; err != nil {
 		t.Fatal(err)
 	}
 	installDeferredCommitFailure(t, db, "update", "durable:update_inbound_commit_failure", "inbounds", "durable_update_parent", "durable_update_child")
 
-	update := durableTestInbound(&nodeID, original.Tag, original.Port)
+	update := durableTestInbound(original.Tag, original.Port)
 	update.Id = original.Id
 	update.Remark = "after"
 	_, _, err := (&InboundService{}).UpdateInbound(update)
@@ -153,12 +145,5 @@ func TestUpdateInbound_PostgresCommitFailureMakesNoRuntimeCall(t *testing.T) {
 	}
 	if persisted.Remark != "before" {
 		t.Fatalf("remark after failed commit = %q, want before", persisted.Remark)
-	}
-	var persistedNode model.Node
-	if err := db.First(&persistedNode, nodeID).Error; err != nil {
-		t.Fatal(err)
-	}
-	if persistedNode.ConfigDirty {
-		t.Fatal("node dirty flag changed across failed commit")
 	}
 }

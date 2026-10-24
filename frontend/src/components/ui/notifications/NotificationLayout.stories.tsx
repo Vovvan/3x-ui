@@ -3,7 +3,6 @@ import { InputNumber, Space } from 'antd';
 import {
   CloudServerOutlined,
   DashboardOutlined,
-  DesktopOutlined,
   SafetyOutlined,
   ThunderboltOutlined,
 } from '@ant-design/icons';
@@ -55,29 +54,6 @@ function XrayGroup() {
     >
       <Space orientation="vertical" size={8} style={{ width: '100%' }}>
         <NotificationEvent label="Xray crashed" checked onToggle={noop} />
-      </Space>
-    </NotificationCard>
-  );
-}
-
-function NodeGroup() {
-  return (
-    <NotificationCard
-      icon={<DesktopOutlined />}
-      title="Nodes"
-      extra={
-        <NotificationHeader
-          count={0}
-          total={2}
-          allSelected={false}
-          indeterminate={false}
-          onToggleAll={noop}
-        />
-      }
-    >
-      <Space orientation="vertical" size={8} style={{ width: '100%' }}>
-        <NotificationEvent label="Node went offline" checked={false} onToggle={noop} />
-        <NotificationEvent label="Node back online" checked={false} onToggle={noop} />
       </Space>
     </NotificationCard>
   );
@@ -174,7 +150,6 @@ export const AllEventGroups: Story = {
       <>
         <OutboundGroup />
         <XrayGroup />
-        <NodeGroup />
         <SystemGroup />
         <SecurityGroup />
       </>

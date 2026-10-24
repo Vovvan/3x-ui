@@ -528,39 +528,6 @@ func TestListPagedSummaryEmailListsAreCapped(t *testing.T) {
 	}
 }
 
-func TestListPagedGlobalTrafficOverlay(t *testing.T) {
-	svc, inboundSvc, settingSvc := setupPagingServices(t)
-	seedPagingClients(t)
-
-	// bravo has used 1GB of its 10GB locally; a master reporting 10GB of
-	// cross-panel usage has to move it into the depleted bucket.
-	if err := inboundSvc.AcceptGlobalTraffic("master-guid", []*xray.ClientTraffic{
-		{Email: "bravo@x", Up: 4 * pagingGB, Down: 6 * pagingGB},
-	}); err != nil {
-		t.Fatalf("AcceptGlobalTraffic: %v", err)
-	}
-
-	resp, err := svc.ListPaged(inboundSvc, settingSvc, ClientPageParams{PageSize: 50, Filter: "depleted"})
-	if err != nil {
-		t.Fatalf("ListPaged: %v", err)
-	}
-	want := []string{"bravo@x", "charlie@x", "delta@x", "foxtrot@x"}
-	if got := pagedEmails(resp.Items); !slices.Equal(got, want) {
-		t.Fatalf("depleted = %v, want %v", got, want)
-	}
-	if resp.Summary.DepletedCount != 4 {
-		t.Fatalf("depletedCount = %d, want 4", resp.Summary.DepletedCount)
-	}
-	for _, it := range resp.Items {
-		if it.Email != "bravo@x" {
-			continue
-		}
-		if it.Traffic == nil || it.Traffic.Up+it.Traffic.Down != 10*pagingGB {
-			t.Fatalf("bravo traffic = %+v, want the overlaid 10GB", it.Traffic)
-		}
-	}
-}
-
 func TestClientQueryOnlineEmails(t *testing.T) {
 	_, _, _ = setupPagingServices(t)
 	seedPagingClients(t)

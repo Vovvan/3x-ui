@@ -23,16 +23,16 @@ func TestAPITokenScopeExpiryAndExpectedRevoke(t *testing.T) {
 	svc := &ApiTokenService{}
 
 	future := time.Now().Add(time.Hour).UnixMilli()
-	created, err := svc.Create("node-1", model.ApiScopeNodeSync, future)
+	created, err := svc.Create("admin-1", model.ApiScopeAdmin, future)
 	if err != nil {
-		t.Fatalf("create node-sync token: %v", err)
+		t.Fatalf("create admin token: %v", err)
 	}
 	row, ok := svc.MatchToken(created.Token)
 	if !ok {
-		t.Fatal("fresh node-sync token did not match")
+		t.Fatal("fresh admin token did not match")
 	}
-	if row.Scope != model.ApiScopeNodeSync || row.ExpiresAt != future {
-		t.Fatalf("matched row scope/expiry = %s/%d, want node-sync/%d", row.Scope, row.ExpiresAt, future)
+	if row.Scope != model.ApiScopeAdmin || row.ExpiresAt != future {
+		t.Fatalf("matched row scope/expiry = %s/%d, want admin/%d", row.Scope, row.ExpiresAt, future)
 	}
 
 	if _, err := svc.Create("bad-scope", "superuser", 0); err == nil {
@@ -69,14 +69,18 @@ func TestAPITokenScopeExpiryAndExpectedRevoke(t *testing.T) {
 		t.Fatal("unknown token scope must fail closed")
 	}
 
-	if err := svc.DisableExpectedScope(created.Id, model.ApiScopeAdmin); err == nil {
-		t.Fatal("expected-scope revoke must refuse a node-sync token when admin was expected")
+	monitor, err := svc.Create("monitor-1", model.ApiScopeMonitor, 0)
+	if err != nil {
+		t.Fatalf("create monitor token: %v", err)
 	}
-	if _, ok := svc.MatchToken(created.Token); !ok {
+	if err := svc.DisableExpectedScope(monitor.Id, model.ApiScopeAdmin); err == nil {
+		t.Fatal("expected-scope revoke must refuse a monitor token when admin was expected")
+	}
+	if _, ok := svc.MatchToken(monitor.Token); !ok {
 		t.Fatal("wrong expected-scope revoke disabled the token")
 	}
-	if err := svc.DisableExpectedScope(created.Id, model.ApiScopeNodeSync); err != nil {
-		t.Fatalf("disable expected node-sync token: %v", err)
+	if err := svc.DisableExpectedScope(created.Id, model.ApiScopeAdmin); err != nil {
+		t.Fatalf("disable expected admin token: %v", err)
 	}
 	if _, ok := svc.MatchToken(created.Token); ok {
 		t.Fatal("disabled token still matched")

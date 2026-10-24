@@ -17,12 +17,12 @@
   <a href="https://docs.sanaei.dev"><img src="https://img.shields.io/badge/docs-docs.sanaei.dev-22d3ee" alt="Documentation"></a>
 </p>
 
-**3X-UI**, [Xray-core](https://github.com/XTLS/Xray-core) sunucularını yönetmek için geliştirilmiş profesyonel, açık kaynaklı bir web kontrol panelidir. Tek bir sanal sunucudan (VPS) çok düğümlü (multi-node) dağıtımlara kadar çok çeşitli proxy ve VPN protokollerini kurmak, yapılandırmak ve izlemek için temiz, çok dilli bir arayüz sağlar.
+**3X-UI**, [Xray-core](https://github.com/XTLS/Xray-core) sunucularını yönetmek için geliştirilmiş profesyonel, açık kaynaklı bir web kontrol panelidir. Tek bir sanal sunucudan (VPS) daha büyük tek panelli dağıtımlara kadar çok çeşitli proxy ve VPN protokollerini kurmak, yapılandırmak ve izlemek için temiz, çok dilli bir arayüz sağlar.
 
 Orijinal X-UI projesinin geliştirilmiş bir çatallaması (fork) olarak inşa edilen 3X-UI; çok daha geniş protokol desteği, artırılmış kararlılık, kullanıcı başına trafik hesaplama ve kullanım kolaylığı sağlayan birçok yeni özellik sunar.
 
 > [!NOTE]
-> Bu fork dahili abonelik sunucusunu, web arayüzünü ve biçimlerini (Happ/Incy, Clash/JSON), abonelik dengeleyicilerini, giden abonelikleri ve Telegram/Discord botlarını kaldırır. İstemci başına paylaşım bağlantısı ve QR kod üretimi korunur.
+> Bu fork dahili abonelik sunucusunu, web arayüzünü ve biçimlerini (Happ/Incy, Clash/JSON), abonelik dengeleyicilerini, giden abonelikleri, Telegram/Discord botlarını ve çoklu düğüm yönetimini kaldırır. İstemci başına paylaşım bağlantısı ve QR kod üretimi korunur.
 
 > [!IMPORTANT]
 > Bu proje yalnızca kişisel kullanım için tasarlanmıştır. Lütfen yasadışı amaçlar için veya üretim (production) ortamında kullanmayın.
@@ -37,7 +37,6 @@ Orijinal X-UI projesinin geliştirilmiş bir çatallaması (fork) olarak inşa e
 - **Geri Dönüş (Fallbacks)** — Xray'in fallback desteğini kullanarak tek bir port üzerinde birden fazla protokole (ör. 443 üzerinde hem VLESS hem Trojan) hizmet verin.
 - **Kullanıcı başına yönetim** — Trafik kotaları, bitiş tarihleri, güvenilir adreslere muafiyet tanınabilen IP sınırları, HWID cihaz sınırları, zamanlanmış yenileme döngüleri, canlı çevrimiçi (online) durumu ve tek tıkla paylaşım bağlantıları ve QR kodları.
 - **Trafik istatistikleri** — Gelen bağlantı (Inbound), istemci ve giden bağlantı (Outbound) bazında istatistikler ve sıfırlama kontrolleri.
-- **Çoklu düğüm (Multi-node) desteği** — Tek bir panel üzerinden birden fazla sunucuyu yönetin ve ölçeklendirin; gelen bağlantıları diğer düğümlere klonlayın.
 - **Giden bağlantı (Outbound) ve yönlendirme** — WARP, NordVPN, PIA, özel yönlendirme kuralları, dengeleyiciler arası yük devretme destekli yük dengeleyiciler (load balancers) ve giden bağlantı proxy zincirleme (proxy chaining). Pakete dahil geosite ve geoip kategorileri doğrudan kural düzenleyicisinden taranabilir.
 - Kapsamı sınırlanmış, isteğe bağlı olarak süresi dolan token'lar ve panel içi API referansı sunan **RESTful API**.
 - **Kurulabilir panel (PWA)** — 3X-UI'yi masaüstüne veya telefon ana ekranına sabitleyin.
@@ -65,10 +64,6 @@ Orijinal X-UI projesinin geliştirilmiş bir çatallaması (fork) olarak inşa e
   <img alt="Kullanıcı Ekle" src="./media/03-add-client-light.png">
 </picture>
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="./media/05-add-nodes-dark.png">
-  <img alt="Yapılandırmalar" src="./media/05-add-nodes-light.png">
-</picture>
 
 </details>
 
@@ -117,7 +112,7 @@ sona hiçbir soru sormadan tamamlanır, rastgele kimlik bilgileri oluşturup bun
 3X-UI kurulum sırasında seçilebilecek iki arka uç (backend) destekler:
 
 - **SQLite** (varsayılan) — `/etc/x-ui/x-ui.db` konumunda tek bir dosya. Kurulum gerektirmez, küçük ve orta ölçekli dağıtımlar için idealdir.
-- **PostgreSQL** — Yüksek kullanıcı sayıları veya çoklu düğüm (multi-node) kurulumları için önerilir. Yükleyici sizin için yerel olarak PostgreSQL kurabilir veya mevcut bir sunucuya DSN bağlantısı kabul edebilir.
+- **PostgreSQL** — Yüksek kullanıcı sayıları için önerilir. Yükleyici sizin için yerel olarak PostgreSQL kurabilir veya mevcut bir sunucuya DSN bağlantısı kabul edebilir.
 
 Çalışma anında veritabanı türü ortam değişkenleri (environment variables) ile seçilir (yükleyici bunları sizin için `/etc/default/x-ui` dosyasına yazar):
 
@@ -170,7 +165,7 @@ docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/mhsanaei/3x-ui
 | `XUI_TUNNEL_HEALTH_TIMEOUT` | Yoklama başına zaman aşımı | `10s` |
 | `XUI_TUNNEL_HEALTH_FAILURES` | Yeniden başlatma tetiklenmeden önceki ardışık başarısızlık sayısı | `3` |
 | `XUI_TUNNEL_HEALTH_COOLDOWN` | Ardışık yeniden başlatmalar arasındaki minimum gecikme | `5m` |
-| `NODE_TOKEN_ENCRYPTION` | Düğüm API token'ları için beklemede şifreleme: `off`, `migration` veya `required` (`XUI_` öneki yoktur) | `off` |
+| `NODE_TOKEN_ENCRYPTION` | Saklanan sağlayıcı token'larının (PIA) beklemede şifrelenmesi: `off`, `migration` veya `required` (`XUI_` öneki yoktur) | `off` |
 | `XUI_NODE_TOKEN_KEY_FILE` | Etkin anahtar kimliğini ve base64 kodlu 32 baytlık anahtarlarını içeren JSON anahtarlığı (mod `0600`) | `/etc/x-ui/node_token_key.json` |
 | `XUI_NODE_TOKEN_KEY` | Tek bir base64 kodlu 32 baytlık anahtar; yalnızca anahtar dosyası yüklenemediğinde kullanılır | — |
 
@@ -200,7 +195,7 @@ Katkılarınızı her zaman bekliyoruz. Bir sorun (issue) açmadan veya pull req
 3x-ui çevresindeki topluluk tarafından oluşturulmuş araçlar ve entegrasyonlar.
 
 - [terraform-provider-3x-ui](https://github.com/batonogov/terraform-provider-threexui) (Lisans: **MIT**): _Gelen bağlantılarnı, kullanıcıları, panel ayarlarını ve Xray yapılandırmasını Terraform / OpenTofu ile kod olarak (as code) yönetin._
-- [3X-UI Manager](https://github.com/yukh975/3X-UI-Manager) (Lisans: **MIT**): _3x-ui için yerel Android istemcisi — kontrol paneli, gelen bağlantılar, QR ile paylaşımlı kullanıcılar, düğümler ve çoklu panel yönetimi. F-Droid'de mevcut._
+- [3X-UI Manager](https://github.com/yukh975/3X-UI-Manager) (Lisans: **MIT**): _3x-ui için yerel Android istemcisi — kontrol paneli, gelen bağlantılar, QR ile paylaşımlı kullanıcılar ve çoklu panel yönetimi. F-Droid'de mevcut._
 
 ## Projeyi Destekleyin
 

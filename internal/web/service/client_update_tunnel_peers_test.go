@@ -44,7 +44,7 @@ func inboundPeer(t *testing.T, inboundSvc *InboundService, ibId int, email strin
 // A client on several WireGuard inbounds is several independent peers, each
 // with its own keypair and tunnel address. The edit form can only carry one
 // field set, so a save that broadcasts it leaves every peer but one with keys
-// and an address belonging to a different node, breaking those tunnels.
+// and an address belonging to a different peer, breaking those tunnels.
 func TestUpdateDoesNotBroadcastPeerCredentialsAcrossTunnelInbounds(t *testing.T) {
 	setupBulkDB(t)
 	inboundSvc := &InboundService{}

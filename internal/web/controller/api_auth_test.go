@@ -2,7 +2,6 @@ package controller
 
 import (
 	"crypto/tls"
-	"crypto/x509"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
@@ -72,9 +71,6 @@ func newAPIAuthTestEngine(t *testing.T) (*gin.Engine, *APIController) {
 	api.POST("/inbounds/:id/resetTraffic", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"reached": true})
 	})
-	api.POST("/clients/clientIpsByGuid", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"reached": true})
-	})
 	return engine, a
 }
 
@@ -104,143 +100,6 @@ func TestCheckAPIAuth_BearerSuccess(t *testing.T) {
 	}
 	if got := w.Body.String(); got != `{"api_authed":true}` {
 		t.Fatalf("body = %s, want api_authed true", got)
-	}
-}
-
-func TestPanelUpdateRequiresNodeAdminScope(t *testing.T) {
-	engine, _ := newAPIAuthTestEngine(t)
-
-	cases := []struct {
-		name     string
-		scope    string
-		wantCode int
-		wantBody string
-	}{
-		{"node sync denied", model.ApiScopeNodeSync, http.StatusForbidden, `{"msg":"this API token is not permitted to access this endpoint","success":false}`},
-		{"node admin allowed", model.ApiScopeNodeAdmin, http.StatusOK, `{"reached":true}`},
-		{"monitor denied", model.ApiScopeMonitor, http.StatusForbidden, `{"msg":"this API token is not permitted to access this endpoint","success":false}`},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			plaintext := tc.name + "-token"
-			if err := database.GetDB().Create(&model.ApiToken{
-				Name:    tc.name,
-				Token:   crypto.HashTokenSHA256(plaintext),
-				Enabled: true,
-				Scope:   tc.scope,
-			}).Error; err != nil {
-				t.Fatalf("seed token: %v", err)
-			}
-
-			req := httptest.NewRequest(http.MethodPost, "/panel/api/server/updatePanel", nil)
-			req.Header.Set("Authorization", "Bearer "+plaintext)
-			w := httptest.NewRecorder()
-			engine.ServeHTTP(w, req)
-
-			if w.Code != tc.wantCode || w.Body.String() != tc.wantBody {
-				t.Fatalf("response = %d %s, want %d %s", w.Code, w.Body.String(), tc.wantCode, tc.wantBody)
-			}
-		})
-	}
-}
-
-// TestCheckAPIAuth_AcceptsVerifiedClientCert ensures verified mTLS authenticates
-// as node-sync rather than bypassing scope checks as admin.
-func TestCheckAPIAuth_AcceptsVerifiedClientCert(t *testing.T) {
-	engine, _ := newAPIAuthTestEngine(t)
-
-	req := httptest.NewRequest(http.MethodGet, "/panel/api/server/status", nil)
-	req.TLS = &tls.ConnectionState{
-		VerifiedChains: [][]*x509.Certificate{{&x509.Certificate{}}},
-	}
-	w := httptest.NewRecorder()
-	engine.ServeHTTP(w, req)
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("status = %d, want 200; body=%s", w.Code, w.Body.String())
-	}
-	if got := w.Body.String(); got != `{"api_authed":true,"scope":"node-sync"}` {
-		t.Fatalf("body = %s, want node-sync scope", got)
-	}
-
-	forbidden := httptest.NewRequest(http.MethodPost, "/panel/api/server/updatePanel", nil)
-	forbidden.TLS = &tls.ConnectionState{
-		VerifiedChains: [][]*x509.Certificate{{&x509.Certificate{}}},
-	}
-	w = httptest.NewRecorder()
-	engine.ServeHTTP(w, forbidden)
-	if w.Code != http.StatusForbidden {
-		t.Fatalf("updatePanel status = %d, want 403; body=%s", w.Code, w.Body.String())
-	}
-
-	for _, legacyScope := range []string{model.ApiScopeAdmin, model.ApiScopeMonitor, model.ApiScopeNodeSync} {
-		plaintext := "mtls-" + legacyScope + "-token"
-		if err := database.GetDB().Create(&model.ApiToken{
-			Name:    "mtls-" + legacyScope,
-			Token:   crypto.HashTokenSHA256(plaintext),
-			Enabled: true,
-			Scope:   legacyScope,
-		}).Error; err != nil {
-			t.Fatalf("seed %s token: %v", legacyScope, err)
-		}
-		legacy := httptest.NewRequest(http.MethodGet, "/panel/api/server/status", nil)
-		legacy.Header.Set("Authorization", "Bearer "+plaintext)
-		legacy.TLS = &tls.ConnectionState{
-			VerifiedChains: [][]*x509.Certificate{{&x509.Certificate{}}},
-		}
-		w = httptest.NewRecorder()
-		engine.ServeHTTP(w, legacy)
-		if w.Code != http.StatusOK || w.Body.String() != `{"api_authed":true,"scope":"node-sync"}` {
-			t.Fatalf("mTLS %s response = %d %s, want preserved node-sync scope", legacyScope, w.Code, w.Body.String())
-		}
-	}
-
-	const plaintext = "mtls-node-admin-token"
-	if err := database.GetDB().Create(&model.ApiToken{
-		Name:    "mtls-node-admin",
-		Token:   crypto.HashTokenSHA256(plaintext),
-		Enabled: true,
-		Scope:   model.ApiScopeNodeAdmin,
-	}).Error; err != nil {
-		t.Fatalf("seed node-admin token: %v", err)
-	}
-	allowed := httptest.NewRequest(http.MethodPost, "/panel/api/server/updatePanel", nil)
-	allowed.Header.Set("Authorization", "Bearer "+plaintext)
-	allowed.TLS = &tls.ConnectionState{
-		VerifiedChains: [][]*x509.Certificate{{&x509.Certificate{}}},
-	}
-	w = httptest.NewRecorder()
-	engine.ServeHTTP(w, allowed)
-	if w.Code != http.StatusOK || w.Body.String() != `{"reached":true}` {
-		t.Fatalf("mTLS node-admin response = %d %s, want 200 update launch", w.Code, w.Body.String())
-	}
-}
-
-func TestNodeSyncScopeUsesFullPathPatterns(t *testing.T) {
-	engine, _ := newAPIAuthTestEngine(t)
-	cases := []struct {
-		name   string
-		method string
-		path   string
-		want   int
-	}{
-		{"detach email parameter", http.MethodPost, "/panel/api/clients/alice@example.com/detach", http.StatusOK},
-		{"reset inbound id parameter", http.MethodPost, "/panel/api/inbounds/42/resetTraffic", http.StatusOK},
-		{"client IP by guid endpoint", http.MethodPost, "/panel/api/clients/clientIpsByGuid", http.StatusOK},
-		{"update panel forbidden", http.MethodPost, "/panel/api/server/updatePanel", http.StatusForbidden},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			req := httptest.NewRequest(tc.method, tc.path, nil)
-			req.TLS = &tls.ConnectionState{
-				VerifiedChains: [][]*x509.Certificate{{&x509.Certificate{}}},
-			}
-			w := httptest.NewRecorder()
-			engine.ServeHTTP(w, req)
-			if w.Code != tc.want {
-				t.Fatalf("status = %d, want %d; body=%s", w.Code, tc.want, w.Body.String())
-			}
-		})
 	}
 }
 

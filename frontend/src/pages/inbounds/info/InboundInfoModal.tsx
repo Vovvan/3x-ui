@@ -42,7 +42,6 @@ export default function InboundInfoModal({
   trafficDiff = 0,
   ipLimitEnable = false,
   tgBotEnable = false,
-  nodeAddress = '',
   subSettings,
   hosts = EMPTY_HOSTS,
   lastOnlineMap = {},
@@ -111,7 +110,6 @@ export default function InboundInfoModal({
   const [syncedProps, setSyncedProps] = useState<{
     dbInbound: typeof dbInbound;
     clientIndex: typeof clientIndex;
-    nodeAddress: typeof nodeAddress;
     subSettings: typeof subSettings;
     hosts: typeof hosts;
     ipLimitEnable: typeof ipLimitEnable;
@@ -122,12 +120,17 @@ export default function InboundInfoModal({
     (syncedProps === null ||
       syncedProps.dbInbound !== dbInbound ||
       syncedProps.clientIndex !== clientIndex ||
-      syncedProps.nodeAddress !== nodeAddress ||
       syncedProps.subSettings !== subSettings ||
       syncedProps.hosts !== hosts ||
       syncedProps.ipLimitEnable !== ipLimitEnable)
   ) {
-    setSyncedProps({ dbInbound, clientIndex, nodeAddress, subSettings, hosts, ipLimitEnable });
+    setSyncedProps({
+      dbInbound,
+      clientIndex,
+      subSettings,
+      hosts,
+      ipLimitEnable,
+    });
     const info = buildInboundInfo(dbInbound);
     setInbound(info);
     setActiveTab(info.clients.length > 0 ? 'client' : 'inbound');
@@ -148,7 +151,6 @@ export default function InboundInfoModal({
       inboundFromDb(dbInbound),
       dbInbound.id,
       hosts,
-      nodeAddress,
       fallbackHostname,
     );
     if (info.protocol === Protocols.WIREGUARD) {
@@ -156,7 +158,6 @@ export default function InboundInfoModal({
         genWireguardPeerConfigs({
           inbound: inboundForLinks,
           remark: dbInbound.remark,
-          hostOverride: nodeAddress,
           fallbackHostname,
         }),
       );
@@ -164,7 +165,6 @@ export default function InboundInfoModal({
         genWireguardPeerLinks({
           inbound: inboundForLinks,
           remark: dbInbound.remark,
-          hostOverride: nodeAddress,
           fallbackHostname,
         }),
       );
@@ -176,7 +176,6 @@ export default function InboundInfoModal({
         genAmneziaWGPeerConfigs({
           inbound: inboundForLinks,
           remark: dbInbound.remark,
-          hostOverride: nodeAddress,
           fallbackHostname,
         }),
       );
@@ -184,7 +183,6 @@ export default function InboundInfoModal({
         genAmneziaWGPeerLinks({
           inbound: inboundForLinks,
           remark: dbInbound.remark,
-          hostOverride: nodeAddress,
           fallbackHostname,
         }),
       );
@@ -197,7 +195,6 @@ export default function InboundInfoModal({
           inbound: inboundForLinks,
           remark: dbInbound.remark,
           client: (clientSet ?? {}) as Parameters<typeof genAllLinks>[0]['client'],
-          hostOverride: nodeAddress,
           fallbackHostname,
         }),
       );
@@ -550,7 +547,6 @@ export default function InboundInfoModal({
           ))}
         </>
       )}
-
     </>
   );
 
@@ -1134,7 +1130,9 @@ export default function InboundInfoModal({
                       <div key={`wg-cfg-${j}`} className="link-panel">
                         <div className="link-panel-header">
                           <Tag color="green">
-                            {t('pages.inbounds.info.peerNumberConfig', { n: idx + 1 })}
+                            {t('pages.inbounds.info.peerNumberConfig', {
+                              n: idx + 1,
+                            })}
                           </Tag>
                           <Tooltip title={t('copy')}>
                             <Button
@@ -1194,7 +1192,9 @@ export default function InboundInfoModal({
                     <div key={`awg-cfg-${j}`} className="link-panel">
                       <div className="link-panel-header">
                         <Tag color="green">
-                          {t('pages.inbounds.info.peerNumberConfig', { n: idx + 1 })}
+                          {t('pages.inbounds.info.peerNumberConfig', {
+                            n: idx + 1,
+                          })}
                         </Tag>
                         <Tooltip title={t('copy')}>
                           <Button
@@ -1245,9 +1245,17 @@ export default function InboundInfoModal({
 
   const tabItems = [];
   if (showClientTab) {
-    tabItems.push({ key: 'client', label: t('pages.inbounds.client'), children: clientTab });
+    tabItems.push({
+      key: 'client',
+      label: t('pages.inbounds.client'),
+      children: clientTab,
+    });
   }
-  tabItems.push({ key: 'inbound', label: t('pages.xray.rules.inbound'), children: inboundTab });
+  tabItems.push({
+    key: 'inbound',
+    label: t('pages.xray.rules.inbound'),
+    children: inboundTab,
+  });
 
   return (
     <Modal

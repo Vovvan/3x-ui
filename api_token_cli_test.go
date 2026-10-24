@@ -99,9 +99,9 @@ func TestGetApiTokenAppliesGivenScope(t *testing.T) {
 		t.Fatalf("minted scope = %q, want %q", got, model.ApiScopeMonitor)
 	}
 
-	GetApiToken(true, "ci-bot", model.ApiScopeNodeSync)
-	if got := tokenRow(t, "ci-bot").Scope; got != model.ApiScopeNodeSync {
-		t.Fatalf("regenerated scope = %q, want %q", got, model.ApiScopeNodeSync)
+	GetApiToken(true, "ci-bot", model.ApiScopeAdmin)
+	if got := tokenRow(t, "ci-bot").Scope; got != model.ApiScopeAdmin {
+		t.Fatalf("regenerated scope = %q, want %q", got, model.ApiScopeAdmin)
 	}
 }
 

@@ -19,8 +19,9 @@ func startQuotaSidecar(t *testing.T, port int, mtga model.Client) (*model.Inboun
 	t.Helper()
 	setupConflictDB(t)
 	pidFile, logPath := installFakeMtgAPI(t)
+	prev := runtime.GetManager()
 	runtime.SetManager(runtime.NewManager(runtime.LocalDeps{APIPort: func() int { return 0 }, SetNeedRestart: func() {}}))
-	t.Cleanup(func() { runtime.SetManager(nil) })
+	t.Cleanup(func() { runtime.SetManager(prev) })
 
 	mtga.Email, mtga.Secret = "mtga", mtprotoTestSecretA
 	clients := []model.Client{mtga, {Email: "mtgb", Secret: mtprotoTestSecretB, Enable: true}}

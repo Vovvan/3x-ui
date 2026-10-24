@@ -6,7 +6,6 @@ import (
 	"context"
 	"crypto/tls"
 	"embed"
-	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -291,20 +290,17 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 // values are unchanged from the historical hardcoded cron specs. Follow-up:
 // make these configurable via settings, add per-tick jitter to de-synchronize
 // fleet load, skip expensive jobs when no WebSocket clients are connected or
-// node/xray state is unchanged, and export per-job duration/skipped/error
+// xray state is unchanged, and export per-job duration/skipped/error
 // counters.
 const (
-	cadenceXrayRunning   = "@every 1s"
-	cadenceXrayRestart   = "@every 30s"
-	cadenceXrayTraffic   = "@every 5s"
-	cadenceMtproto       = "@every 10s"
-	cadenceAmneziaWG     = "@every 10s"
-	cadenceTuic          = "@every 10s"
-	cadenceClientIPScan  = "@every 10s"
-	cadenceNodeHeartbeat = "@every 5s"
-	cadenceNodeTraffic   = "@every 5s"
-	cadenceReapOrphans   = "@every 5m"
-	cadenceXrayLogPrune  = "@every 10m"
+	cadenceXrayRunning  = "@every 1s"
+	cadenceXrayRestart  = "@every 30s"
+	cadenceXrayTraffic  = "@every 5s"
+	cadenceMtproto      = "@every 10s"
+	cadenceAmneziaWG    = "@every 10s"
+	cadenceTuic         = "@every 10s"
+	cadenceClientIPScan = "@every 10s"
+	cadenceXrayLogPrune = "@every 10m"
 	// cpu.Percent samples over a full minute (blocking), so a finer cadence just
 	// stacks overlapping samplers; subscribers rate-limit alerts to 1/min anyway.
 	cadenceCPUAlarm    = "@every 1m"
@@ -349,12 +345,6 @@ func (s *Server) startTask(restartXray bool, loc *time.Location) {
 
 	// check client ips from log file every 10 sec
 	_, _ = s.cron.AddJob(cadenceClientIPScan, job.NewCheckClientIpJob())
-
-	_, _ = s.cron.AddJob(cadenceNodeHeartbeat, job.NewNodeHeartbeatJob())
-
-	_, _ = s.cron.AddJob(cadenceNodeTraffic, job.NewNodeTrafficSyncJob())
-
-	_, _ = s.cron.AddJob(cadenceReapOrphans, job.NewReapSyncOrphansJob())
 
 	// check client ips from log file every day
 	_, _ = s.cron.AddJob("@daily", job.NewClearLogsJob())
@@ -482,26 +472,13 @@ func (s *Server) start(restartXray bool) (err error) {
 	)
 	s.cron.Start()
 
-	// Wire the inbound-runtime manager once so InboundService can route
-	// add/update/delete to either the local xray or a remote node panel.
-	// The closures bridge into XrayService (which owns the running xray
-	// process state) without forcing the runtime package to import service.
-	mgr := runtime.NewManager(runtime.LocalDeps{
+	// Wire the inbound-runtime manager once so InboundService can reach the
+	// local xray process without forcing the runtime package to import service.
+	runtime.SetManager(runtime.NewManager(runtime.LocalDeps{
 		APIPort:          func() int { return s.xrayService.GetXrayAPIPort() },
 		SetNeedRestart:   func() { s.xrayService.SetToNeedRestart() },
 		RequestReconcile: func() { s.xrayService.SetToNeedReconcile() },
-	})
-	runtime.SetManager(mgr)
-	mgr.SetNodeEgressResolver(&s.settingService)
-	// Supply the master client certificate for nodes in mtls mode. Issued lazily
-	// from the node CA on first use; runtime stays free of a service import.
-	runtime.SetMasterClientCertProvider(func() (tls.Certificate, error) {
-		ck, err := s.settingService.EnsureMasterClientCert()
-		if err != nil {
-			return tls.Certificate{}, err
-		}
-		return tls.X509KeyPair(ck.CertPEM, ck.KeyPEM)
-	})
+	}))
 
 	engine, err := s.initRouter()
 	if err != nil {
@@ -542,20 +519,6 @@ func (s *Server) start(restartXray bool) (err error) {
 		if err == nil {
 			c := &tls.Config{
 				Certificates: []tls.Certificate{cert},
-			}
-			// Opt-in node mTLS: when a trust CA is configured, request and verify
-			// client certs (VerifyClientCertIfGiven keeps browsers working). With
-			// no CA the listener is unchanged.
-			pool, perr := s.settingService.NodeMtlsClientCAPool()
-			switch {
-			case errors.Is(perr, service.ErrNodeMtlsTrustBundleInvalid):
-				logger.Error("Node mTLS is configured but its trust bundle will not parse, so client certificates are not accepted:", perr)
-			case perr != nil:
-				logger.Error("Node mTLS trust bundle could not be read, so client certificates are not accepted:", perr)
-			}
-			if pool != nil {
-				applyNodeMtls(c, pool)
-				logger.Info("Node mTLS enabled: verifying client certificates for the node API")
 			}
 			listener = network.NewAutoHttpsListener(listener)
 			listener = tls.NewListener(listener, c)

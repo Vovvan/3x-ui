@@ -16,11 +16,11 @@ import (
 // restart (#5543).
 func TestDelInboundClientByEmail_SharedEmailStillRemovesFromRuntime(t *testing.T) {
 	setupBulkDB(t)
-	nodeID, fake := setupNodeRuntime(t)
+	fake := setupFakeRuntime(t)
 
 	shared := []model.Client{{ID: uuid.NewString(), Email: "shared@x", Enable: true}}
-	ibA := nodeInbound(t, nodeID, 31001, shared)
-	nodeInbound(t, nodeID, 31002, shared)
+	ibA := fakeRuntimeInbound(t, 31001, shared)
+	fakeRuntimeInbound(t, 31002, shared)
 
 	svc := &ClientService{}
 	inboundSvc := &InboundService{}
@@ -29,7 +29,7 @@ func TestDelInboundClientByEmail_SharedEmailStillRemovesFromRuntime(t *testing.T
 		t.Fatalf("DelInboundClientByEmail: %v", err)
 	}
 
-	if got := fake.deleteUser.Load(); got != 1 {
-		t.Fatalf("shared-email delete dispatched %d DeleteUser RPCs, want 1 (must remove from the deleted inbound's runtime despite the sibling inbound) (#5543)", got)
+	if got := fake.removeUser.Load(); got != 1 {
+		t.Fatalf("shared-email delete dispatched %d RemoveUser RPCs, want 1 (must remove from the deleted inbound's runtime despite the sibling inbound) (#5543)", got)
 	}
 }

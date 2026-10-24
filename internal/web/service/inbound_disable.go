@@ -14,7 +14,7 @@ import (
 func (s *InboundService) disableInvalidInbounds(tx *gorm.DB, mutationBatch *trafficMutationBatch) (bool, int64, error) {
 	now := time.Now().Unix() * 1000
 	var inbounds []model.Inbound
-	if err := tx.Where("((total > 0 and up + down >= total) or (expiry_time > 0 and expiry_time <= ?)) and enable = ? and node_id IS NULL", now, true).
+	if err := tx.Where("((total > 0 and up + down >= total) or (expiry_time > 0 and expiry_time <= ?)) and enable = ?", now, true).
 		Find(&inbounds).Error; err != nil {
 		return false, 0, err
 	}
@@ -25,63 +25,24 @@ func (s *InboundService) disableInvalidInbounds(tx *gorm.DB, mutationBatch *traf
 	}
 
 	result := tx.Model(model.Inbound{}).
-		Where("((total > 0 and up + down >= total) or (expiry_time > 0 and expiry_time <= ?)) and enable = ? and node_id IS NULL", now, true).
+		Where("((total > 0 and up + down >= total) or (expiry_time > 0 and expiry_time <= ?)) and enable = ?", now, true).
 		Update("enable", false)
 	err := result.Error
 	count := result.RowsAffected
 	return false, count, err
 }
 
-const globalTrafficFreshWindow = 24 * time.Hour
-
-func globalTrafficFreshSince(now time.Time) int64 {
-	return now.Add(-globalTrafficFreshWindow).UnixMilli()
-}
-
 // depletedClientsCond matches clients that exhausted their quota or expired.
-// Besides the local counters it also trips on the cross-panel usage a master
-// pushed into client_global_traffics — that's what lets a node cut a client
-// whose combined usage exceeds the quota even though the local share doesn't.
-// Only rows a master refreshed recently count (placeholders: now, freshSince).
+// Placeholder: now.
 const depletedClientsCond = `((total > 0 AND up + down >= total)
-	OR (expiry_time > 0 AND expiry_time <= ?)
-	OR (total > 0 AND EXISTS (
-		SELECT 1 FROM client_global_traffics g
-		WHERE g.email = client_traffics.email
-			AND g.updated_at >= ?
-			AND g.up + g.down >= client_traffics.total
-	)))`
-
-// depletedClientsCondLocal is depletedClientsCond without the cross-panel
-// client_global_traffics check. The EXISTS branch is a correlated subquery that
-// turns every traffic poll into a full client_traffics scan; on a panel no
-// master pushes to (the common case) client_global_traffics is empty, so the
-// branch can never match and is pure CPU cost (#5392). Placeholders: now.
-const depletedClientsCondLocal = `((total > 0 AND up + down >= total)
 	OR (expiry_time > 0 AND expiry_time <= ?))`
-
-// depletedCond includes cross-panel quota usage only while a master's row is fresh.
-// Without fresh global rows, the local-only predicate avoids a correlated EXISTS scan.
-func depletedCond(tx *gorm.DB) (string, []any) {
-	now := tx.NowFunc()
-	freshSince := globalTrafficFreshSince(now)
-	var probe int64
-	err := tx.Model(&model.ClientGlobalTraffic{}).
-		Where("updated_at >= ?", freshSince).
-		Limit(1).Count(&probe).Error
-	if err == nil && probe > 0 {
-		return depletedClientsCond, []any{now.UnixMilli(), freshSince}
-	}
-	return depletedClientsCondLocal, []any{now.UnixMilli()}
-}
 
 func (s *InboundService) disableInvalidClients(tx *gorm.DB, mutationBatch *trafficMutationBatch) (bool, int64, []int, error) {
 	now := time.Now().UnixMilli()
-	cond, condArgs := depletedCond(tx)
-
+	nowMS := time.Now().UnixMilli()
 	var depletedRows []xray.ClientTraffic
 	err := tx.Model(xray.ClientTraffic{}).
-		Where(cond+" AND enable = ?", append(condArgs, true)...).
+		Where(depletedClientsCond+" AND enable = ?", nowMS, true).
 		Find(&depletedRows).Error
 	if err != nil {
 		return false, 0, nil, err
@@ -99,15 +60,14 @@ func (s *InboundService) disableInvalidClients(tx *gorm.DB, mutationBatch *traff
 	}
 
 	type target struct {
-		InboundID int  `gorm:"column:inbound_id"`
-		NodeID    *int `gorm:"column:node_id"`
+		InboundID int `gorm:"column:inbound_id"`
 		Tag       string
 		Email     string
 	}
 	var targets []target
 	if len(depletedEmails) > 0 {
 		err = tx.Raw(`
-			SELECT inbounds.id AS inbound_id, inbounds.node_id AS node_id,
+			SELECT inbounds.id AS inbound_id,
 			       inbounds.tag AS tag, clients.email AS email
 			FROM clients
 			JOIN client_inbounds ON client_inbounds.client_id = clients.id
@@ -124,23 +84,14 @@ func (s *InboundService) disableInvalidClients(tx *gorm.DB, mutationBatch *traff
 		byInbound[t.InboundID] = append(byInbound[t.InboundID], t)
 	}
 
-	disabledNodeIDs := make(map[int]struct{})
 	for inboundID, group := range byInbound {
 		emails := make(map[string]struct{}, len(group))
 		for _, t := range group {
 			emails[t.Email] = struct{}{}
 		}
-		oldInbound, inbound, mErr := s.markClientsDisabledInSettings(tx, inboundID, emails)
+		_, inbound, mErr := s.markClientsDisabledInSettings(tx, inboundID, emails)
 		if mErr != nil {
 			return false, 0, nil, mErr
-		}
-		if inbound.NodeID != nil {
-			mutationBatch.remotePlans = append(mutationBatch.remotePlans, trafficInboundUpdatePlan{
-				oldInbound: *oldInbound, newInbound: *inbound,
-			})
-			mutationBatch.addNode(*inbound.NodeID)
-			disabledNodeIDs[*inbound.NodeID] = struct{}{}
-			continue
 		}
 		for email := range emails {
 			mutationBatch.localPlans = append(mutationBatch.localPlans, trafficLocalApplyPlan{
@@ -175,17 +126,11 @@ func (s *InboundService) disableInvalidClients(tx *gorm.DB, mutationBatch *traff
 		}
 	}
 
-	nodeIDs := make([]int, 0, len(disabledNodeIDs))
-	for nodeID := range disabledNodeIDs {
-		nodeIDs = append(nodeIDs, nodeID)
-	}
-
-	return false, count, nodeIDs, nil
+	return false, count, nil, nil
 }
 
 // markClientsDisabledInSettings flips client.enable=false in the inbound's
-// stored settings JSON for the given emails and returns both the pre and
-// post snapshots so a caller pushing to a remote node has the diff to hand.
+// stored settings JSON for the given emails and returns the post snapshot.
 func (s *InboundService) markClientsDisabledInSettings(tx *gorm.DB, inboundID int, emails map[string]struct{}) (oldIb, newIb *model.Inbound, err error) {
 	var ib model.Inbound
 	if err := tx.Model(&model.Inbound{}).Where("id = ?", inboundID).First(&ib).Error; err != nil {

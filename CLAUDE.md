@@ -50,19 +50,19 @@ file locations when it can answer in one hop.
   relay into a loopback per-peer-auth SOCKS5 Xray inbound, port-forward
   listeners, per-peer IPv6 egress aliases.
 - `internal/pia/` — PIA WireGuard protocol client (auth, signed server list, `/addKey`).
-- `internal/sub/` — subscription server (raw / JSON / Clash).
-- `internal/eventbus/` — in-process pub/sub (outbound/node health, xray.crash,
+- `internal/sub/` — share-link generation helpers.
+- `internal/eventbus/` — in-process pub/sub (outbound health, xray.crash,
   cpu.high, memory.high, login.attempt).
 - `internal/logger/`, `internal/util/` (link, crypto, sys, ldap, …),
   `internal/tunnelmonitor/` — shared infrastructure.
 - `internal/web/` — Gin server (embeds `dist/` + `translation/`).
   - `controller/` — panel + REST API handlers; OpenAPI at /panel/api/openapi.json.
-  - `service/` — business logic (InboundService, SettingService, XrayService,
-    node sync); subpackages tgbot/, discord/, email/, outbound/, panel/, integration/.
-  - `job/` — 19 cron jobs (traffic, fail2ban IP-limit, node heartbeat/sync, LDAP,
-    CPU/memory watchdogs, …); full table in `docs/architecture.md` §5.4.
+  - `service/` — business logic (InboundService, SettingService, XrayService);
+    subpackages email/, outbound/, panel/, integration/.
+  - `job/` — cron jobs (traffic, fail2ban IP-limit, LDAP, CPU/memory watchdogs,
+    …); full table in `docs/architecture.md` §5.4.
   - `middleware/`, `entity/`, `global/`, `session/` (CSRF), `network/`,
-    `runtime/` (master/sub-node over mTLS), `websocket/`.
+    `runtime/` (local runtime dispatch), `websocket/`.
   - `locale/` + `translation/` — i18n, 14 embedded locale JSON files.
 - `frontend/` — React + TS source (see `frontend/CLAUDE.md`).
 - `tools/openapigen/` — Go generator that emits frontend types + Zod/JSON schemas
@@ -115,8 +115,8 @@ file locations when it can answer in one hop.
 - DB / model changes require a migration in `internal/database/db.go`.
 - Every state-changing inbound/client op dispatches through `runtime.Runtime`
   (`internal/web/runtime/`) — never straight to `internal/xray/api.go`, never from
-  a controller or cron job. A direct call passes every local test and silently
-  breaks every multi-node deployment. Other layering rules: `docs/architecture.md` §8.
+  a controller or cron job. A direct call bypasses the runtime contract that every
+  inbound/client path relies on. Other layering rules: `docs/architecture.md` §8.
 - Conventional commits: `type(area): short imperative summary`, then a body
   explaining the why. Types in use: `fix`, `feat`, `chore`, `refactor`, `perf`,
   `docs`, `style`.
@@ -161,10 +161,9 @@ file locations when it can answer in one hop.
   `-race`); `httptest` for HTTP. Keep `database.InitDB` for reopening a file or
   migrating a hand-built legacy DB. `internal/sub`'s `initSubDB(t)` is the template.
 - Code must pass `golangci-lint run` (gofumpt + goimports formatting): `make lint`.
-- Postgres, xray-gRPC-e2e, master+node and scale tests `t.Skip` unless
-  `XUI_TEST_PG_DSN`, `XUI_DB_TYPE`+`XUI_DB_DSN`, `XRAY_E2E_BINARY`,
-  `XUI_NODE_E2E_BINARY` or `XUI_SCALE_TEST` is set — a green `go test ./...`
-  does not mean those paths ran.
+- Postgres, xray-gRPC-e2e and scale tests `t.Skip` unless `XUI_TEST_PG_DSN`,
+  `XUI_DB_TYPE`+`XUI_DB_DSN`, `XRAY_E2E_BINARY` or `XUI_SCALE_TEST` is set — a
+  green `go test ./...` does not mean those paths ran.
 
 ## Frontend conventions (summary; full version in frontend/CLAUDE.md)
 - Ant Design 6 only — no Tailwind/shadcn. Targeted tweaks, not rewrites.
@@ -193,13 +192,9 @@ reads as a broken repo, not a missing step. Run `make dist-stub` once; every
     make verify   # gen-check + lint + typecheck + test + build + build-storybook + docs-openapi-check
 
 That is the *fast* gate, not all of CI. `ci.yml` also runs `make race`,
-`make vulncheck`, a live-Postgres job (where a SKIP counts as a failure),
-`make node-e2e` (a real master and node panel, `internal/nodee2e/`) and a
+`make vulncheck`, a live-Postgres job (where a SKIP counts as a failure) and a
 30s fuzz smoke on `FuzzParseLink`/`FuzzDecodeCertPin` — run those locally when
-you touch DB/dialect, node sync or parser code. Node sync has two layers: every
-`runtime.Remote` call gets a cell in `internal/web/node_contract_test.go` (fast,
-in `make test-go`; a method without one fails it), and a multi-tick flow (cron,
-adopt, node down) gets one in `internal/nodee2e/node_sync_test.go`.
+you touch DB/dialect or parser code.
 
 Common targets: `make gen` (regenerate Zod/OpenAPI), `make lint` (Go + frontend),
 `make test` (Go `-shuffle=on` + frontend), `make race`, `make build`. See `Makefile`.

@@ -189,7 +189,7 @@ type cachedXrayVersions struct {
 const xrayVersionsCacheTTL = 15 * time.Minute
 
 // allowedHistoryBuckets is the bucket-second whitelist for time-series
-// aggregation endpoints (server + node metrics). Restricting it prevents
+// aggregation endpoints. Restricting it prevents
 // callers from triggering arbitrary aggregation work and keeps the
 // frontend's bucket selector self-documenting.
 var allowedHistoryBuckets = map[int]bool{
@@ -206,7 +206,7 @@ var allowedHistoryBuckets = map[int]bool{
 
 // IsAllowedHistoryBucket reports whether a bucket-seconds value is in the
 // whitelist used by /server/history, /server/cpuHistory, /server/xrayMetricsHistory,
-// /server/xrayObservatoryHistory, and /nodes/history.
+// /server/xrayObservatoryHistory.
 func IsAllowedHistoryBucket(bucketSeconds int) bool {
 	return allowedHistoryBuckets[bucketSeconds]
 }
@@ -220,7 +220,7 @@ func (s *ServerService) LastStatus() *Status {
 }
 
 // CurrentStatus never reports "no status yet": the @2s ticker leaves LastStatus
-// nil for the first seconds after a restart, and a master probing a node then
+// nil for the first seconds after a restart,
 // reads the empty snapshot as an offline panel.
 func (s *ServerService) CurrentStatus() *Status {
 	if status := s.LastStatus(); status != nil {
@@ -739,7 +739,7 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 	if s.xrayService.IsXrayRunning() {
 		status.Xray.State = Running
 		// A core that runs but was refused the new config is a fault the
-		// operator only ever sees here and in the node list.
+		// operator only ever sees here in the panel status.
 		status.Xray.ErrorMsg = s.xrayService.GetHeldBackConfig()
 	} else {
 		err := s.xrayService.GetXrayErr()
@@ -754,7 +754,7 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 
 	var amneziawgCount int64
 	if err := database.GetDB().Model(model.Inbound{}).
-		Where("protocol = ? AND enable = ? AND node_id IS NULL", model.AmneziaWG, true).
+		Where("protocol = ? AND enable = ?", model.AmneziaWG, true).
 		Count(&amneziawgCount).Error; err != nil {
 		logger.Warning("count amneziawg inbounds failed:", err)
 	}
@@ -1363,7 +1363,7 @@ type AmneziaWGLogs struct {
 const amneziawgEventMarker = "amneziawg"
 
 // amneziawgLogActivity gathers live PeerActivity rows across every enabled,
-// non-node-hosted AmneziaWG inbound, newest handshake first. An inbound
+// AmneziaWG inbound, newest handshake first. An inbound
 // amneziawgnet has no running Device for yet (not reconciled, disabled,
 // errored) contributes no rows -- not reported as an error, since the
 // caller (GetAmneziaWGLogs) already has a device-agnostic Running flag from
@@ -1383,7 +1383,7 @@ func clampUint64ToInt64(v uint64) int64 {
 func amneziawgLogActivity() []PeerActivity {
 	var inbounds []*model.Inbound
 	if err := database.GetDB().
-		Where("protocol = ? AND enable = ? AND node_id IS NULL", model.AmneziaWG, true).
+		Where("protocol = ? AND enable = ?", model.AmneziaWG, true).
 		Find(&inbounds).Error; err != nil {
 		logger.Warning("amneziawg logs: list inbounds failed:", err)
 		return nil
@@ -1736,17 +1736,14 @@ func (s *ServerService) GetMigration() ([]byte, string, error) {
 	return data, "x-ui.dump", nil
 }
 
-// hostBoundSettingKeys are the settings that describe *this* machine rather
-// than the configuration being carried: where the panel and the subscription
-// service listen, the certificates they present, and the identity this panel
-// uses towards its nodes. An import that overwrites them leaves the
-// destination unreachable on its own address, or impersonating the source.
+// hostBoundSettingKeys describe *this* machine rather than the configuration
+// being carried: where the panel and subscription service listen, and the
+// certificates they present. Overwriting them leaves the destination
+// unreachable on its own address.
 var hostBoundSettingKeys = []string{
 	"webListen", "webDomain", "webPort", "webCertFile", "webKeyFile", "webBasePath",
 	"subListen", "subDomain", "subPort", "subCertFile", "subKeyFile", "subURI", "subJsonURI",
 	"secret", "panelGuid",
-	"nodeMtlsCaCertPem", "nodeMtlsCaKeyPem", "nodeMtlsClientCertPem",
-	"nodeMtlsClientKeyPem", "nodeMtlsClientCertSha256", "nodeMtlsClientCAPem",
 }
 
 // hostBoundSnapshot records this machine's values, and just as importantly
@@ -1792,11 +1789,6 @@ func restoreHostBoundSettings(snap hostBoundSnapshot) {
 	settingSvc := &SettingService{}
 	for _, key := range hostBoundSettingKeys {
 		if _, had := snap.present[key]; !had {
-			// Absent because it is minted on demand, not because a default applied:
-			// the imported copy is the only one that exists, so keep it (#6227).
-			if lazilyMintedSettingKeys[key] {
-				continue
-			}
 			if err := db.Where("key = ?", key).Delete(&model.Setting{}).Error; err != nil {
 				logger.Warningf("Import: could not drop imported setting %q: %v", key, err)
 			}
@@ -1808,16 +1800,6 @@ func restoreHostBoundSettings(snap hostBoundSnapshot) {
 			logger.Warningf("Import: could not restore setting %q for this machine: %v", key, err)
 		}
 	}
-}
-
-// Minted on demand, so a fresh install has no row: dropping the imported copy
-// would destroy the only one that exists, CA private key included.
-var lazilyMintedSettingKeys = map[string]bool{
-	"nodeMtlsCaCertPem":     true,
-	"nodeMtlsCaKeyPem":      true,
-	"nodeMtlsClientCertPem": true,
-	"nodeMtlsClientKeyPem":  true,
-	"nodeMtlsClientCAPem":   true,
 }
 
 func (s *ServerService) ImportDB(file multipart.File, keepHostSettings bool) error {

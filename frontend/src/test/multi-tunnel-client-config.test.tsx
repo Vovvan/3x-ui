@@ -13,7 +13,6 @@ const deAwgInbound: InboundOption = {
   remark: 'DE · Kelsterbach',
   port: 52716,
   protocol: 'amneziawg',
-  nodeAddress: 'de.vpn.example.com',
   awgServer: {
     publicKey: 'deServerPublicKey==',
     primaryDns: '1.1.1.1',
@@ -39,7 +38,6 @@ const fiAwgInbound: InboundOption = {
   remark: 'FI · Helsinki',
   port: 26641,
   protocol: 'amneziawg',
-  nodeAddress: 'fi.vpn.example.com',
   awgServer: {
     publicKey: 'fiServerPublicKey==',
     primaryDns: '8.8.8.8',
@@ -65,7 +63,6 @@ const usWgInbound: InboundOption = {
   remark: 'US · New York',
   port: 51820,
   protocol: 'wireguard',
-  nodeAddress: 'us.vpn.example.com',
   wgPublicKey: 'usWgServerPublicKey==',
   wgDns: '1.1.1.1',
   wgMtu: 1420,
@@ -77,7 +74,6 @@ const euWgInbound: InboundOption = {
   remark: 'EU · Frankfurt',
   port: 51821,
   protocol: 'wireguard',
-  nodeAddress: 'eu.vpn.example.com',
   wgPublicKey: 'euWgServerPublicKey==',
   wgDns: '9.9.9.9',
   wgMtu: 1400,

@@ -186,8 +186,7 @@ func (s *PanelService) StartUpdate() (int64, error) {
 }
 
 // StartUpdateChannel runs the updater against an explicitly chosen channel,
-// overriding the local dev-channel setting. Used by the master node updater so
-// a node can be moved to the dev channel from the central panel.
+// overriding the local dev-channel setting during an update.
 func (s *PanelService) StartUpdateChannel(dev bool) (int64, error) {
 	return s.startUpdate(dev)
 }

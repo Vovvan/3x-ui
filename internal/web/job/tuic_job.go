@@ -41,11 +41,6 @@ func (j *TuicJob) Run() {
 		return
 	}
 
-	activeTags := make([]string, 0, len(desired))
-	for _, inst := range desired {
-		activeTags = append(activeTags, inst.Tag)
-	}
-
 	mgr := tuic.GetManager()
 	mgr.Reconcile(desired)
 
@@ -82,7 +77,7 @@ func (j *TuicJob) Run() {
 		}
 	}
 
-	j.inboundService.RefreshLocalOnlineClients(onlineEmails, activeTags)
+	j.inboundService.RefreshLocalOnlineClients(onlineEmails)
 }
 
 func tuicSpeedSampleInterval(previous, current time.Time) time.Duration {

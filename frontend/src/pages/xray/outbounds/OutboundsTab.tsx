@@ -46,8 +46,6 @@ import { originalOutboundIndex } from './outbounds-tab-helpers';
 import { useOutboundColumns } from './useOutboundColumns';
 import OutboundCardList from './OutboundCardList';
 
-
-
 interface OutboundsTabProps {
   templateSettings: XraySettingsValue | null;
   setTemplateSettings: SetTemplate;
@@ -403,9 +401,7 @@ export default function OutboundsTab({
           fileName="outbounds.json"
           json
         />
-
       </Space>
-
     </>
   );
 }

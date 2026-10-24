@@ -53,15 +53,13 @@ describe('HttpUtil', () => {
     expect(toast.success).toHaveBeenCalledWith('done');
   });
 
-  it('suppresses the success toast with silentSuccess but still warns on nodePending', async () => {
-    mockRequest.mockResolvedValue(
-      envelope({ success: true, msg: 'saved', obj: { nodePending: true } }),
-    );
+  it('suppresses the success toast with silentSuccess', async () => {
+    mockRequest.mockResolvedValue(envelope({ success: true, msg: 'saved', obj: { id: 1 } }));
 
     await HttpUtil.post('/x', { a: 1 }, { silentSuccess: true });
 
     expect(toast.success).not.toHaveBeenCalled();
-    expect(toast.warning).toHaveBeenCalled();
+    expect(toast.warning).not.toHaveBeenCalled();
   });
 
   it('shows an error toast for a failure envelope', async () => {

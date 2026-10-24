@@ -73,19 +73,10 @@ type Inbound struct {
 	StreamSettings    string   `json:"streamSettings" form:"streamSettings"`
 	Tag               string   `json:"tag" form:"tag" gorm:"unique" example:"in-443-tcp"`
 	Sniffing          string   `json:"sniffing" form:"sniffing"`
-	NodeID            *int     `json:"nodeId,omitempty" form:"nodeId" gorm:"index"`
-	ShareAddrStrategy string   `json:"shareAddrStrategy" form:"shareAddrStrategy" gorm:"column:share_addr_strategy;default:node" validate:"omitempty,oneof=node listen custom"`
+	ShareAddrStrategy string   `json:"shareAddrStrategy" form:"shareAddrStrategy" gorm:"column:share_addr_strategy;default:listen" validate:"omitempty,oneof=listen custom"`
 	ShareAddr         string   `json:"shareAddr" form:"shareAddr" gorm:"column:share_addr"`
 
 	DisableFlow bool `json:"disableFlow" form:"disableFlow" gorm:"column:disable_flow;default:false" example:"false"`
-
-	// OriginNodeGuid is the panelGuid of the node that physically hosts this
-	// inbound, propagated up across hops (#4983). Empty for an inbound that
-	// lives on this panel's own xray; set to the originating node's GUID when
-	// the inbound was synced from a node (kept as-is across further hops). Lets
-	// the master attribute a deeply nested inbound to the real node instead of
-	// the intermediate one it was fetched through.
-	OriginNodeGuid string `json:"originNodeGuid,omitempty" form:"originNodeGuid" gorm:"column:origin_node_guid;index"`
 
 	// FallbackParent is populated by the API layer when this inbound is
 	// attached as a fallback child of a VLESS/Trojan TCP-TLS master.
@@ -164,18 +155,12 @@ type HistoryOfSeeders struct {
 const ApiTokenUnixMillisecondsThreshold int64 = 100_000_000_000
 
 const (
-	ApiScopeAdmin     = "admin"
-	ApiScopeMonitor   = "monitor"
-	ApiScopeNodeSync  = "node-sync"
-	ApiScopeNodeAdmin = "node-admin"
+	ApiScopeAdmin   = "admin"
+	ApiScopeMonitor = "monitor"
 )
 
 func IsKnownApiScope(s string) bool {
-	return s == ApiScopeAdmin || s == ApiScopeMonitor || s == ApiScopeNodeSync || s == ApiScopeNodeAdmin
-}
-
-func IsNodeSyncApiScope(s string) bool {
-	return s == ApiScopeNodeSync || s == ApiScopeNodeAdmin
+	return s == ApiScopeAdmin || s == ApiScopeMonitor
 }
 
 type ApiToken struct {
@@ -507,7 +492,7 @@ func WireguardPeerFromClient(c Client) map[string]any {
 // inbound expects. The panel stores WireGuard clients under "clients" (the shape
 // every other protocol uses); xray is configured with "peers". GetXrayConfig
 // already does this conversion when it builds the full config, but the live
-// gRPC AddInbound paths (inbound create/edit and node reconcile) go through
+// gRPC AddInbound paths (inbound create/edit) go through
 // GenXrayInboundConfig directly — without the conversion they re-add the
 // wireguard inbound with no peers, dropping every connected client until the
 // next full restart. Clients are the source of truth and are always rebuilt
@@ -825,106 +810,6 @@ type Setting struct {
 	Value string `json:"value" form:"value"`
 }
 
-// Node represents a remote 3x-ui panel registered with the central panel.
-// The central panel polls each node's existing /panel/api/server/status
-// endpoint over HTTP using the per-node ApiToken to populate the runtime
-// status fields below.
-type Node struct {
-	Id                  int      `json:"id" form:"id" gorm:"primaryKey;autoIncrement" example:"1"`
-	Name                string   `json:"name" form:"name" gorm:"uniqueIndex" validate:"required" example:"de-fra-1"`
-	Remark              string   `json:"remark" form:"remark"`
-	Scheme              string   `json:"scheme" form:"scheme" validate:"omitempty,oneof=http https" example:"https"`
-	Address             string   `json:"address" form:"address" validate:"required" example:"node1.example.com"`
-	Port                int      `json:"port" form:"port" validate:"gte=1,lte=65535" example:"2053"`
-	BasePath            string   `json:"basePath" form:"basePath" example:"/"`
-	ApiToken            string   `json:"-" form:"-" gorm:"column:api_token" validate:"required_unless=TlsVerifyMode mtls" example:"abcdef0123456789"`
-	Enable              bool     `json:"enable" form:"enable" gorm:"default:true" example:"true"`
-	AllowPrivateAddress bool     `json:"allowPrivateAddress" form:"allowPrivateAddress" gorm:"default:false"`
-	TlsVerifyMode       string   `json:"tlsVerifyMode" form:"tlsVerifyMode" gorm:"column:tls_verify_mode;default:verify" validate:"omitempty,oneof=verify skip pin mtls"`
-	PinnedCertSha256    string   `json:"pinnedCertSha256" form:"pinnedCertSha256" gorm:"column:pinned_cert_sha256"`
-	InboundSyncMode     string   `json:"inboundSyncMode" form:"inboundSyncMode" gorm:"column:inbound_sync_mode;default:all" validate:"omitempty,oneof=all selected"`
-	InboundTags         []string `json:"inboundTags" form:"inboundTags" gorm:"serializer:json;column:inbound_tags"`
-	OutboundTag         string   `json:"outboundTag" form:"outboundTag" gorm:"column:outbound_tag"`
-
-	// Guid is the remote panel's stable self-identifier (its panelGuid),
-	// learned from each heartbeat. It is the globally stable node identity used
-	// to attribute online clients/inbounds to the physical node across a chain
-	// of nodes (#4983); panel-local autoincrement ids don't survive a hop.
-	// Observed-state only — never user-edited.
-	Guid string `json:"guid" gorm:"column:guid;index"`
-
-	// Heartbeat-updated fields. UpdatedAt advances on every probe even when
-	// the row is otherwise unchanged so the UI's "last seen" tooltip is
-	// truthful without us having to read LastHeartbeat separately.
-	Status        string  `json:"status" gorm:"default:unknown" example:"online"` // online|offline|unknown
-	LastHeartbeat int64   `json:"lastHeartbeat" example:"1700000000"`             // unix seconds, 0 = never
-	LatencyMs     int     `json:"latencyMs" example:"42"`
-	XrayVersion   string  `json:"xrayVersion" example:"25.10.31"`
-	PanelVersion  string  `json:"panelVersion" gorm:"column:panel_version" example:"v3.x.x"`
-	CpuPct        float64 `json:"cpuPct" example:"23.5"`
-	MemPct        float64 `json:"memPct" example:"45.1"`
-	UptimeSecs    uint64  `json:"uptimeSecs" example:"86400"`
-	// Nil on legacy rows and responses: zero remains a valid measured value.
-	UnavailableMetrics []string `json:"unavailableMetrics,omitempty" gorm:"serializer:json;column:unavailable_metrics"`
-	NetUp              uint64   `json:"netUp" gorm:"column:net_up" example:"1048576"`
-	NetDown            uint64   `json:"netDown" gorm:"column:net_down" example:"2097152"`
-	LastError          string   `json:"lastError"`
-
-	// XrayState and XrayError are captured from the remote node's /panel/api/server/status
-	// during heartbeats. They let the central panel distinguish "panel API reachable"
-	// (status=online) from "Xray core itself has failed on the node" for monitoring.
-	XrayState string `json:"xrayState" gorm:"column:xray_state"`
-	XrayError string `json:"xrayError" gorm:"column:xray_error"`
-
-	ConfigDirty   bool  `json:"configDirty" gorm:"default:false"`
-	ConfigDirtyAt int64 `json:"configDirtyAt"`
-
-	// InboundsAdoptedAt is the clean sync that imported the node's inbounds; a
-	// save that grows the selection zeroes it so reconcile waits before sweeping.
-	InboundsAdoptedAt int64 `json:"-" gorm:"column:inbounds_adopted_at;default:0"`
-
-	DownNotified bool `json:"-" gorm:"column:down_notified;default:false"`
-
-	InboundCount  int `json:"inboundCount" gorm:"-" example:"5"`
-	ClientCount   int `json:"clientCount" gorm:"-" example:"27"`
-	OnlineCount   int `json:"onlineCount" gorm:"-" example:"3"`
-	ActiveCount   int `json:"activeCount" gorm:"-" example:"23"`
-	DisabledCount int `json:"disabledCount" gorm:"-" example:"3"`
-	DepletedCount int `json:"depletedCount" gorm:"-" example:"1"`
-
-	// ParentGuid + Transitive are set only when a node is surfaced as part of a
-	// node tree (#4983): direct nodes carry the master panel's own GUID, a
-	// transitive sub-node carries its parent node's GUID. Transitive nodes are
-	// read-only projections (Id == 0, not persisted) — never edited or deployed.
-	ParentGuid string `json:"parentGuid,omitempty" gorm:"-"`
-	Transitive bool   `json:"transitive,omitempty" gorm:"-"`
-
-	CreatedAt int64 `json:"createdAt" gorm:"autoCreateTime:milli" example:"1700000000"`
-	UpdatedAt int64 `json:"updatedAt" gorm:"autoUpdateTime:milli" example:"1700000000"`
-}
-
-// NodeSummary is the read-only identity of a node as published one hop up: the
-// view a panel exposes about the nodes it directly manages, so a master can
-// surface transitive sub-nodes in a chained topology (#4983). Counts are
-// computed by the consuming master from its own per-GUID data, never trusted
-// from the child, so this carries identity/health only.
-type NodeSummary struct {
-	Guid          string `json:"guid"`
-	ParentGuid    string `json:"parentGuid"`
-	Name          string `json:"name"`
-	Address       string `json:"address"`
-	Scheme        string `json:"scheme"`
-	Port          int    `json:"port"`
-	Status        string `json:"status"`
-	LastHeartbeat int64  `json:"lastHeartbeat"`
-	LatencyMs     int    `json:"latencyMs"`
-	PanelVersion  string `json:"panelVersion"`
-	XrayVersion   string `json:"xrayVersion"`
-	// XrayState/XrayError forwarded so masters can surface xray failure on transitive sub-nodes too.
-	XrayState string `json:"xrayState"`
-	XrayError string `json:"xrayError,omitempty"`
-}
-
 type ClientReverse struct {
 	Tag string `json:"tag"`
 }
@@ -1013,9 +898,6 @@ type ClientRecord struct {
 	TrafficResetDay   int            `json:"trafficResetDay" gorm:"column:traffic_reset_day;default:1"`
 	CreatedAt         int64          `json:"createdAt" gorm:"autoCreateTime:milli"`
 	UpdatedAt         int64          `json:"updatedAt" gorm:"autoUpdateTime:milli"`
-	// Owned solely by the node-snapshot sweep, which soft-orphans instead of
-	// deleting; orphans from any other cause stay at zero and are never reaped.
-	SyncOrphanedAt int64 `json:"-" gorm:"column:sync_orphaned_at;default:0"`
 }
 
 func (ClientRecord) TableName() string { return "clients" }
@@ -1216,8 +1098,6 @@ type Host struct {
 	MihomoX25519    bool   `json:"mihomoX25519" form:"mihomoX25519" gorm:"column:mihomo_x25519"`
 	ShuffleHost     bool   `json:"shuffleHost" form:"shuffleHost" gorm:"column:shuffle_host"`
 	RandomCount     int    `json:"randomCount" form:"randomCount" gorm:"default:1;column:random_count" example:"1"`
-
-	NodeGuids []string `json:"nodeGuids,omitempty" form:"nodeGuids" gorm:"serializer:json;column:node_guids"`
 
 	CreatedAt int64 `json:"createdAt" gorm:"autoCreateTime:milli"`
 	UpdatedAt int64 `json:"updatedAt" gorm:"autoUpdateTime:milli"`

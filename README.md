@@ -17,12 +17,12 @@
   <a href="https://docs.sanaei.dev"><img src="https://img.shields.io/badge/docs-docs.sanaei.dev-22d3ee" alt="Documentation"></a>
 </p>
 
-**3X-UI** is an advanced, open-source web control panel for managing [Xray-core](https://github.com/XTLS/Xray-core) servers. It provides a clean, multi-language interface for deploying, configuring, and monitoring a wide range of proxy and VPN protocols — from a single VPS to multi-node deployments.
+**3X-UI** is an advanced, open-source web control panel for managing [Xray-core](https://github.com/XTLS/Xray-core) servers. It provides a clean, multi-language interface for deploying, configuring, and monitoring a wide range of proxy and VPN protocols — on a single VPS or a larger single-panel deployment.
 
 Built as an enhanced fork of the original X-UI project, 3X-UI adds broader protocol support, improved stability, per-client traffic accounting, and many quality-of-life features.
 
 > [!NOTE]
-> This fork removes the built-in subscription server, its web UI and formats (Happ/Incy, Clash/JSON), subscription balancers, outbound subscriptions, and the Telegram/Discord bots. Per-client share links and QR codes remain.
+> This fork removes the built-in subscription server, its web UI and formats (Happ/Incy, Clash/JSON), subscription balancers, outbound subscriptions, the Telegram/Discord bots, and multi-node management. Per-client share links and QR codes remain.
 
 > [!IMPORTANT]
 > This project is intended for personal use only. Please do not use it for illegal purposes or in a production environment.
@@ -37,7 +37,6 @@ Built as an enhanced fork of the original X-UI project, 3X-UI adds broader proto
 - **Fallbacks** — serve multiple protocols on a single port (e.g. VLESS and Trojan on 443) using Xray's fallback support.
 - **Per-client management** — traffic quotas, expiry dates, IP limits with trusted-address exemptions, HWID device limits, scheduled renewal cycles, live online status, and one-click share links and QR codes.
 - **Traffic statistics** — per inbound, per client, and per outbound, with reset controls.
-- **Multi-node support** — manage and scale across multiple servers from a single panel, including cloning inbounds onto other nodes.
 - **Outbound & routing** — WARP, NordVPN, PIA, custom routing rules, load balancers with balancer-to-balancer fallback, and outbound proxy chaining. Bundled geosite and geoip categories are browsable straight from the rule editor.
 - **RESTful API** with scoped, optionally expiring tokens and an in-panel API reference.
 - **Installable panel (PWA)** — pin 3X-UI to a desktop or phone home screen.
@@ -63,11 +62,6 @@ Built as an enhanced fork of the original X-UI project, 3X-UI adds broader proto
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="./media/03-add-client-dark.png">
   <img alt="Add client" src="./media/03-add-client-light.png">
-</picture>
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="./media/05-add-nodes-dark.png">
-  <img alt="Configs" src="./media/05-add-nodes-light.png">
 </picture>
 
 </details>
@@ -117,7 +111,7 @@ zero prompts, generating random credentials and writing them to
 3X-UI supports two backends, chosen during the install:
 
 - **SQLite** (default) — a single file at `/etc/x-ui/x-ui.db`. Zero setup, ideal for small and medium deployments.
-- **PostgreSQL** — recommended for high client counts or multi-node setups. The installer can install PostgreSQL locally for you, or accept a DSN to an existing server.
+- **PostgreSQL** — recommended for high client counts. The installer can install PostgreSQL locally for you, or accept a DSN to an existing server.
 
 At runtime the backend is selected via environment variables (the installer writes these to `/etc/default/x-ui` for you):
 
@@ -170,7 +164,7 @@ docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/mhsanaei/3x-ui
 | `XUI_TUNNEL_HEALTH_TIMEOUT` | Per-probe timeout | `10s` |
 | `XUI_TUNNEL_HEALTH_FAILURES` | Consecutive failures before a restart is triggered | `3` |
 | `XUI_TUNNEL_HEALTH_COOLDOWN` | Minimum delay between consecutive restarts | `5m` |
-| `NODE_TOKEN_ENCRYPTION` | Encryption at rest for node API tokens: `off`, `migration`, or `required` (note: no `XUI_` prefix) | `off` |
+| `NODE_TOKEN_ENCRYPTION` | Encryption at rest for stored provider tokens (PIA): `off`, `migration`, or `required` (note: no `XUI_` prefix) | `off` |
 | `XUI_NODE_TOKEN_KEY_FILE` | JSON keyring (mode `0600`) holding the active key id and its base64 32-byte keys | `/etc/x-ui/node_token_key.json` |
 | `XUI_NODE_TOKEN_KEY` | A single base64 32-byte key, used only when the key file cannot be loaded | — |
 
@@ -200,7 +194,7 @@ Contributions are welcome. Please read the [Contributing Guide](/CONTRIBUTING.md
 Tools and integrations built by the community around 3x-ui.
 
 - [terraform-provider-3x-ui](https://github.com/batonogov/terraform-provider-threexui) (License: **MIT**): _Manage inbounds, clients, panel settings, and Xray configuration as code with Terraform / OpenTofu._
-- [3X-UI Manager](https://github.com/yukh975/3X-UI-Manager) (License: **MIT**): _Native Android client for 3x-ui — dashboard, inbounds, clients with QR sharing, nodes and multi-panel management. Available on F-Droid._
+- [3X-UI Manager](https://github.com/yukh975/3X-UI-Manager) (License: **MIT**): _Native Android client for 3x-ui — dashboard, inbounds, clients with QR sharing, and multi-panel management. Available on F-Droid._
 
 ## Support project
 

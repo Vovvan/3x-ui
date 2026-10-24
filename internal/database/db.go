@@ -70,7 +70,6 @@ func allModels() []any {
 		&model.InboundClientIps{},
 		&xray.ClientTraffic{},
 		&model.HistoryOfSeeders{},
-		&model.Node{},
 		&model.ApiToken{},
 		&model.ClientRecord{},
 		&model.ClientInbound{},
@@ -80,10 +79,6 @@ func allModels() []any {
 		&model.InboundFallback{},
 		&model.Host{},
 		&model.HostTombstone{},
-		&model.NodeClientTraffic{},
-		&model.NodeClientIp{},
-		&model.ClientGlobalTraffic{},
-		&model.NodePendingReset{},
 		&model.OutboundSubscription{},
 		&model.SubBalancer{},
 		&model.TuicTrafficReceipt{},
@@ -209,10 +204,10 @@ func initModels() error {
 	if err := migrateClientResetWeekdayColumns(); err != nil {
 		return err
 	}
-	if err := migrateSyncOrphanColumns(); err != nil {
+	if err := migrateClientEmailLowerIndex(); err != nil {
 		return err
 	}
-	if err := migrateClientEmailLowerIndex(); err != nil {
+	if err := migrateDropNodeSchema(); err != nil {
 		return err
 	}
 	if IsPostgres() {
@@ -290,8 +285,8 @@ func sqliteUniquePortIndexes() (autoIndexes, explicitIndexes []string, err error
 	return autoIndexes, explicitIndexes, nil
 }
 
-// dropLegacyInboundPortUnique removes the pre-multi-node UNIQUE on inbounds.port,
-// which AutoMigrate never drops and which blocks cross-node port reuse on old SQLite DBs.
+// dropLegacyInboundPortUnique removes the legacy UNIQUE on inbounds.port, which
+// AutoMigrate never drops; port conflicts are validated in code.
 func dropLegacyInboundPortUnique() error {
 	if IsPostgres() {
 		return nil
@@ -397,15 +392,6 @@ func migrateClientResetWeekdayColumns() error {
 		}
 	}
 	return nil
-}
-
-// AutoMigrate adds the column; this only backfills the NULLs an older SQLite
-// ALTER TABLE leaves behind, so the reaper's predicate never compares to NULL.
-func migrateSyncOrphanColumns() error {
-	if !db.Migrator().HasColumn(&model.ClientRecord{}, "sync_orphaned_at") {
-		return nil
-	}
-	return db.Exec("UPDATE clients SET sync_orphaned_at = 0 WHERE sync_orphaned_at IS NULL").Error
 }
 
 // The client identity checks match emails case-insensitively; without an
@@ -1103,8 +1089,7 @@ func pruneOrphanedClientInbounds() error {
 // migrateLegacySocksInboundsToMixed renames legacy socks inbounds to mixed.
 // The protocol enum dropped socks in favor of mixed (identical settings shape,
 // same behavior plus HTTP on the shared port), so rows predating the rename
-// fail model validation — most visibly when pushed to a node, where one legacy
-// inbound stalled the entire node's config and traffic sync (#5685).
+// fail model validation and stall config generation (#5685).
 func migrateLegacySocksInboundsToMixed() error {
 	res := db.Exec("UPDATE inbounds SET protocol = 'mixed' WHERE protocol = 'socks'")
 	if res.Error != nil {
@@ -1371,7 +1356,6 @@ func repairOverflowedTrafficCounters() error {
 		{"client_traffics", []string{"up", "down"}},
 		{"inbounds", []string{"up", "down"}},
 		{"outbound_traffics", []string{"up", "down", "total"}},
-		{"node_client_traffics", []string{"up", "down"}},
 	}
 	for _, target := range targets {
 		for _, col := range target.columns {
@@ -1403,11 +1387,10 @@ func repairOverflowedTrafficCounters() error {
 
 // dedupeInboundSettingsClients collapses duplicate same-email entries inside
 // every inbound's settings.clients array, keeping the first occurrence.
-// Retried or raced multi-node client adds on older builds appended the same
-// client several times (#5770), which the client lists then rendered as
-// phantom duplicates. Runs on every start (idempotent, writes only changed
-// rows) because a restored backup or a not-yet-upgraded node's snapshot can
-// reintroduce duplicates.
+// Retried or raced client adds on older builds appended the same client several
+// times (#5770), which the client lists then rendered as phantom duplicates.
+// Runs on every start (idempotent, writes only changed rows) because a restored
+// backup can reintroduce duplicates.
 func dedupeInboundSettingsClients() error {
 	var inbounds []model.Inbound
 	if err := db.Find(&inbounds).Error; err != nil {
@@ -1527,7 +1510,6 @@ func runSeeders(isUsersEmpty bool) error {
 	}
 
 	if empty && isUsersEmpty {
-		seeders := []string{"UserPasswordHash", "ClientsTable", "InboundClientsArrayFix", "InboundClientTgIdFix2", "InboundClientSubIdFix", "FreedomFinalRulesReverseFix", "FreedomFinalRulesPrivateEgressBlock", "UppercaseFreedomFinalRulesFix", "InboundRealityFinalmaskTcpStrip", "ApiTokensHash", "LegacyProxySettingsCleanup", "OutboundRemovedKeysFix", "FreedomDomainStrategyFix", "DNSOutboundLegacyKeysFix", "DNSOutboundQTypeZeroFix", "WireguardDomainStrategyFix", "XdnsFinalmaskNamesAddrsFix", "UDPHopClientMaskFix", "HostVerifyPeerCertByNameBoolFix", "HostMihomoX25519Reset", "WireguardPeersToClients", "MtprotoSecretsToClients", "NodeInboundsAdopted", "NodeDownNotified", "ResetIpLimitNoFail2ban"}
 		for _, name := range seeders {
 			if err := db.Create(&model.HistoryOfSeeders{SeederName: name}).Error; err != nil {
 				return err
@@ -1692,18 +1674,6 @@ func runSeeders(isUsersEmpty bool) error {
 		}
 	}
 
-	if !slices.Contains(seedersHistory, "NodeInboundsAdopted") {
-		if err := seedNodeInboundsAdopted(); err != nil {
-			return err
-		}
-	}
-
-	if !slices.Contains(seedersHistory, "NodeDownNotified") {
-		if err := seedNodeDownNotified(); err != nil {
-			return err
-		}
-	}
-
 	if err := seedHostsFromExternalProxy(); err != nil {
 		return err
 	}
@@ -1740,28 +1710,6 @@ func runSeeders(isUsersEmpty bool) error {
 	// Idempotent, not seeder-gated: bad values can re-enter via a restored
 	// backup, so re-check on every start.
 	return normalizeSettingPaths()
-}
-
-// seedNodeInboundsAdopted keeps the pre-existing reconcile behavior for nodes
-// that were already syncing before the inbounds_adopted_at gate was introduced.
-func seedNodeInboundsAdopted() error {
-	if err := db.Model(&model.Node{}).
-		Where("inbounds_adopted_at = 0").
-		Update("inbounds_adopted_at", time.Now().Unix()).Error; err != nil {
-		return err
-	}
-	return db.Create(&model.HistoryOfSeeders{SeederName: "NodeInboundsAdopted"}).Error
-}
-
-// seedNodeDownNotified treats nodes already offline at upgrade as announced,
-// so the first heartbeat after it does not re-send their node.down.
-func seedNodeDownNotified() error {
-	if err := db.Model(&model.Node{}).
-		Where("status = ?", "offline").
-		Update("down_notified", true).Error; err != nil {
-		return err
-	}
-	return db.Create(&model.HistoryOfSeeders{SeederName: "NodeDownNotified"}).Error
 }
 
 // backfillEmptyHostGroupIds is idempotent and not seeder-gated: builds that
@@ -3340,6 +3288,41 @@ func normalizeApiTokenCreatedAtSeconds() error {
 	return db.Model(&model.ApiToken{}).
 		Where("created_at >= ?", model.ApiTokenUnixMillisecondsThreshold).
 		UpdateColumn("created_at", gorm.Expr("created_at / ?", 1000)).Error
+}
+
+// migrateDropNodeSchema removes the multi-node tables, columns and tokens left
+// by older panels; a local-only panel has no use for them.
+func migrateDropNodeSchema() error {
+	m := db.Migrator()
+	for _, table := range []string{"nodes", "node_client_traffics", "node_client_ips", "node_pending_resets", "client_global_traffics"} {
+		if err := m.DropTable(table); err != nil {
+			log.Printf("Error dropping legacy node table %s: %v", table, err)
+			return err
+		}
+	}
+	for _, col := range []struct {
+		table string
+		name  string
+	}{
+		{"inbounds", "node_id"},
+		{"inbounds", "origin_node_guid"},
+		{"hosts", "node_guids"},
+		{"clients", "sync_orphaned_at"},
+	} {
+		if !m.HasTable(col.table) || !m.HasColumn(col.table, col.name) {
+			continue
+		}
+		if err := db.Exec("ALTER TABLE " + col.table + " DROP COLUMN " + col.name).Error; err != nil {
+			log.Printf("Error dropping legacy node column %s.%s: %v", col.table, col.name, err)
+			return err
+		}
+	}
+	if m.HasTable(&model.ApiToken{}) {
+		if err := db.Where("scope = ?", "node-sync").Delete(&model.ApiToken{}).Error; err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func migrateApiTokenScopeAndExpiry() error {

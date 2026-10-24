@@ -566,7 +566,7 @@ const relayPortSlots = 1000
 
 // SOCKSPortForInbound derives one inbound's loopback SOCKS5 relay port from
 // its id, bounded within the dedicated range 64001..65000 so it never collides
-// with AmneziaWG (65101..65535), API (62789), or node egress (62800..63800).
+// with AmneziaWG (65101..65535), API (62789), or the egress relay (62800..63800).
 func SOCKSPortForInbound(inboundID int) int {
 	if inboundID <= 0 {
 		return SOCKSBasePort + 1

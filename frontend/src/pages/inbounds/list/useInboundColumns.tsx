@@ -6,7 +6,6 @@ import { TeamOutlined } from '@ant-design/icons';
 import { SizeFormatter, IntlUtil, ColorUtils } from '@/utils';
 import { InfinityIcon } from '@/components/ui';
 import { useDatepicker } from '@/hooks/useDatepicker';
-import type { NodeRecord } from '@/api/queries/useNodesQuery';
 import { coerceInboundJsonField } from '@/models/dbinbound';
 
 import { RowActionsCell } from './RowActions';
@@ -30,8 +29,6 @@ import type { ClientCountEntry, DBInboundRecord, InboundSpeedEntry, RowAction } 
 interface UseInboundColumnsParams {
   hasAnyRemark: boolean;
   hasAnySubSortIndex: boolean;
-  hasActiveNode: boolean;
-  nodesById: Map<number, NodeRecord>;
   hostRemarksByInboundId: Map<number, string[]>;
   clientCount: Record<number, ClientCountEntry>;
   inboundSpeed: Record<number, InboundSpeedEntry>;
@@ -44,8 +41,6 @@ interface UseInboundColumnsParams {
 export function useInboundColumns({
   hasAnyRemark,
   hasAnySubSortIndex,
-  hasActiveNode,
-  nodesById,
   hostRemarksByInboundId,
   clientCount,
   inboundSpeed,
@@ -59,12 +54,10 @@ export function useInboundColumns({
 
   return useMemo(() => {
     const compareText = (a: string | undefined | null, b: string | undefined | null) =>
-      (a || '').localeCompare(b || '', undefined, { numeric: true, sensitivity: 'base' });
-
-    const nodeName = (record: DBInboundRecord) => {
-      if (record.nodeId == null) return t('pages.inbounds.localPanel');
-      return nodesById.get(record.nodeId)?.name || `node #${record.nodeId}`;
-    };
+      (a || '').localeCompare(b || '', undefined, {
+        numeric: true,
+        sensitivity: 'base',
+      });
 
     const clientTotal = (record: DBInboundRecord) =>
       (clientCount[record.id] || fallbackClientCount(record))?.clients ?? 0;
@@ -158,26 +151,6 @@ export function useInboundColumns({
               </Tooltip>
             </div>
           );
-        },
-      });
-    }
-
-    if (hasActiveNode) {
-      cols.push({
-        title: t('pages.inbounds.node'),
-        key: 'node',
-        align: 'center',
-        width: 130,
-        sorter: (a, b) => compareText(nodeName(a), nodeName(b)),
-        render: (_, record) => {
-          if (record.nodeId == null) {
-            return <Tag color="default">{t('pages.inbounds.localPanel')}</Tag>;
-          }
-          const node = nodesById.get(record.nodeId);
-          if (!node) {
-            return <Tag color="orange">node #{record.nodeId}</Tag>;
-          }
-          return <Tag color={node.status === 'online' ? 'blue' : 'red'}>{node.name}</Tag>;
         },
       });
     }
@@ -470,12 +443,10 @@ export function useInboundColumns({
     t,
     hasAnyRemark,
     hasAnySubSortIndex,
-    hasActiveNode,
-    nodesById,
     hostRemarksByInboundId,
     clientCount,
     inboundSpeed,
-      expireDiff,
+    expireDiff,
     trafficDiff,
     datepicker,
     onRowAction,

@@ -15,12 +15,6 @@ interface UseSecurityActionsArgs {
   setSaving: Dispatch<SetStateAction<boolean>>;
   messageApi: MessageInstance;
   modal: ModalHookAPI;
-  /*
-   * Node the inbound is deployed to (null = central panel). "Set Cert from
-   * Panel" must read the node's own cert paths for a node-assigned inbound —
-   * the central panel's paths don't exist on the node. See issue #4854.
-   */
-  nodeId: number | null;
   setScanResult: Dispatch<SetStateAction<RealityScanResult | null>>;
   setScanning: Dispatch<SetStateAction<boolean>>;
 }
@@ -36,7 +30,6 @@ export function useSecurityActions({
   setSaving,
   messageApi,
   modal,
-  nodeId,
   setScanResult,
   setScanning,
 }: UseSecurityActionsArgs) {
@@ -305,14 +298,7 @@ export function useSecurityActions({
   const setCertFromPanel = async (certName: number) => {
     setSaving(true);
     try {
-      /*
-       * Node-assigned inbounds run on the node, so their cert files must be the
-       * node's own paths (fetched through the central panel), not this panel's.
-       */
-      const msg =
-        typeof nodeId === 'number'
-          ? await HttpUtil.get(`/panel/api/nodes/webCert/${nodeId}`, undefined, { silent: true })
-          : await HttpUtil.post('/panel/api/setting/all', undefined, { silent: true });
+      const msg = await HttpUtil.post('/panel/api/setting/all', undefined, { silent: true });
       if (!msg?.success) {
         messageApi.warning(msg?.msg || t('pages.inbounds.setDefaultCertEmpty'));
         return;

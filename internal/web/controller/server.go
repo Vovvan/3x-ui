@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
@@ -59,12 +58,10 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 	g.GET("/getMigration", a.getMigration)
 	g.GET("/getNewUUID", a.getNewUUID)
 	g.GET("/getWebCertFiles", a.getWebCertFiles)
-	g.GET("/descendants", a.descendants)
 	g.GET("/getNewX25519Cert", a.getNewX25519Cert)
 	g.GET("/getNewmldsa65", a.getNewmldsa65)
 	g.GET("/getNewmlkem768", a.getNewmlkem768)
 	g.GET("/getNewVlessEnc", a.getNewVlessEnc)
-	g.GET("/clientIps", a.getClientIps)
 	g.GET("/fail2banStatus", a.getFail2banStatus)
 
 	g.POST("/stopXrayService", a.stopXrayService)
@@ -83,7 +80,6 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 	g.POST("/getRemoteCertHash", a.getRemoteCertHash)
 	g.POST("/scanRealityTarget", a.scanRealityTarget)
 	g.POST("/scanRealityTargets", a.scanRealityTargets)
-	g.POST("/clientIps", a.setClientIps)
 }
 
 // startTask registers the @2s ticker that refreshes server status, samples
@@ -212,9 +208,8 @@ func (a *ServerController) installXray(c *gin.Context) {
 }
 
 // updatePanel starts a panel self-update. With no "dev" form value it follows
-// this panel's own channel setting; an explicit "dev" (sent by the master node
-// updater) overrides it for this run. The response's runId identifies this
-// update for a later getUpdateStatus poll.
+// this panel's own channel setting; an explicit "dev" overrides it for this run.
+// The response's runId identifies this update for a later getUpdateStatus poll.
 func (a *ServerController) updatePanel(c *gin.Context) {
 	devParam := c.PostForm("dev")
 	var runID int64
@@ -385,9 +380,8 @@ func (a *ServerController) importDB(c *gin.Context) {
 		return
 	}
 	defer file.Close()
-	// Absent field keeps this machine's own listen addresses, certificates and
-	// node identity: the safe default for the common case of moving a config to
-	// a new host. Send keepHostSettings=false to clone a machine wholesale.
+	// Absent field keeps this machine's own listen addresses and certificates:
+	// the safe default when moving a config to a new host.
 	keepHostSettings := c.Request.FormValue("keepHostSettings") != "false"
 	if err := a.serverService.ImportDB(file, keepHostSettings); err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.index.importDatabaseError"), err)
@@ -399,18 +393,7 @@ func (a *ServerController) importDB(c *gin.Context) {
 	jsonObj(c, I18nWeb(c, "pages.index.importDatabaseSuccess"), nil)
 }
 
-// descendants publishes read-only summaries of the nodes this panel manages so
-// a parent panel can surface them as transitive sub-nodes in a chained
-// topology. Called by the parent via the node's API token (#4983).
-func (a *ServerController) descendants(c *gin.Context) {
-	data, err := (&service.NodeService{}).LocalDescendants()
-	jsonObj(c, data, err)
-}
-
-// getWebCertFiles returns this panel's own web TLS certificate and key file
-// paths. The central panel calls it on a node (via the node's API token) so
-// "Set Cert from Panel" can fill a node-assigned inbound with paths that exist
-// on the node's filesystem instead of the central panel's — see issue #4854.
+// getWebCertFiles returns this panel's web TLS certificate and key file paths.
 func (a *ServerController) getWebCertFiles(c *gin.Context) {
 	certFile, err := a.settingService.GetCertFile()
 	if err != nil {
@@ -534,19 +517,4 @@ func (a *ServerController) getNewmlkem768(c *gin.Context) {
 		return
 	}
 	jsonObj(c, out, nil)
-}
-
-func (a *ServerController) getClientIps(c *gin.Context) {
-	ips, err := (&service.InboundService{}).GetAllInboundClientIps()
-	jsonObj(c, ips, err)
-}
-
-func (a *ServerController) setClientIps(c *gin.Context) {
-	var ips []model.InboundClientIps
-	if err := c.ShouldBindJSON(&ips); err != nil {
-		jsonMsg(c, "invalid data", err)
-		return
-	}
-	err := (&service.InboundService{}).MergeInboundClientIps(ips)
-	jsonMsg(c, "Client IPs merged", err)
 }

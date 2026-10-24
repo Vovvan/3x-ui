@@ -40,13 +40,11 @@ export type DBInboundInit = Partial<{
   tag: string;
   sniffing: RawJsonField;
   clientStats: ClientStats[];
-  nodeId: number | null;
   shareAddrStrategy: string;
   shareAddr: string;
   subSortIndex: number;
   excludeFromSub: boolean;
   disableFlow: boolean;
-  originNodeGuid: string;
   fallbackParent: FallbackParentRef | null;
 }>;
 
@@ -90,13 +88,11 @@ export class DBInbound {
   tag: string;
   sniffing: RawJsonField;
   clientStats: ClientStats[];
-  nodeId: number | null;
   shareAddrStrategy: string;
   shareAddr: string;
   subSortIndex: number;
   excludeFromSub: boolean;
   disableFlow: boolean;
-  originNodeGuid: string;
   fallbackParent: FallbackParentRef | null;
 
   private _clientStatsMap: Map<string, ClientStats> | null = null;
@@ -122,13 +118,11 @@ export class DBInbound {
     this.tag = '';
     this.sniffing = '';
     this.clientStats = [];
-    this.nodeId = null;
-    this.shareAddrStrategy = 'node';
+    this.shareAddrStrategy = 'listen';
     this.shareAddr = '';
     this.subSortIndex = 1;
     this.excludeFromSub = false;
     this.disableFlow = false;
-    this.originNodeGuid = '';
     this.fallbackParent = null;
     if (data == null) {
       return;
@@ -220,7 +214,9 @@ export class DBInbound {
   }
 
   toJSON(): Record<string, unknown> {
-    const out: Record<string, unknown> = { ...(this as unknown as Record<string, unknown>) };
+    const out: Record<string, unknown> = {
+      ...(this as unknown as Record<string, unknown>),
+    };
     delete out._clientStatsMap;
     return out;
   }

@@ -1606,7 +1606,6 @@ export default function ClientFormModal({
                           ))
                         )}
                       </div>
-
                     </>
                   ),
                 },
@@ -1662,11 +1661,6 @@ export default function ClientFormModal({
               >
                 {entry.ip}
                 {entry.time ? ` (${entry.time})` : ''}
-                {entry.node ? (
-                  <span style={{ marginInlineStart: 6, opacity: 0.85, fontWeight: 600 }}>
-                    @ {entry.node}
-                  </span>
-                ) : null}
               </Tag>
             ))}
           </div>

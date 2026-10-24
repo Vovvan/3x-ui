@@ -1,8 +1,8 @@
 // Mirror of web/service/panel.go isNewerVersion: parse a vMAJOR.MINOR.PATCH tag
 // and report whether `latest` is ahead of `current`. When either side isn't a
 // clean three-part numeric tag, fall back to a normalized string inequality —
-// the same heuristic the Go side uses so the node "update available" badge
-// agrees with what the server would decide.
+// the same heuristic the Go side uses so the "update available" badge agrees
+// with what the server would decide.
 function parseVersionParts(version: string): [number, number, number] | null {
   const parts = version.trim().replace(/^v/, '').split('.');
   if (parts.length !== 3) return null;
@@ -29,7 +29,7 @@ export function formatPanelVersion(version: string | undefined | null): string {
 export function isPanelUpdateAvailable(latest: string, current: string): boolean {
   if (!latest || !current) return false;
   // A dev+<sha> label and a release tag sit on different channels and carry no
-  // order, so a node moved to the other channel is not "behind" the master's latest.
+  // order, so a build moved to the other channel is not "behind" the latest.
   if (latest.trim().startsWith('dev+') !== current.trim().startsWith('dev+')) return false;
   const a = parseVersionParts(latest);
   const b = parseVersionParts(current);

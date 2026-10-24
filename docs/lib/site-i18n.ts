@@ -60,9 +60,9 @@ const en: SiteMessages = {
         'Per-client traffic quotas, expiry dates, IP limits and live online status, with one-click share links and QR codes.',
     },
     {
-      title: 'Multi-node & share links',
+      title: 'Share links & hosts',
       description:
-        'Coordinate multiple servers, managed hosts and external proxies, with share-link and QR export for every client.',
+        'Per-client share links and QR codes, with per-inbound host overrides and external links.',
     },
     {
       title: 'AmneziaWG & TUIC',

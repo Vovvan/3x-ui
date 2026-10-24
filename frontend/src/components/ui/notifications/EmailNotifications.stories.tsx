@@ -13,7 +13,7 @@ const meta = {
     docs: {
       description: {
         component:
-          'Grid of grouped event checkboxes on the settings page that picks which panel events (outbound/node health, Xray crashes, CPU/RAM thresholds, login attempts) trigger an SMTP email, stored as a comma-separated list in smtpEnabledEvents.',
+          'Grid of grouped event checkboxes on the settings page that picks which panel events (outbound health, Xray crashes, CPU/RAM thresholds, login attempts) trigger an SMTP email, stored as a comma-separated list in smtpEnabledEvents.',
       },
     },
   },
@@ -67,9 +67,7 @@ export const SystemThresholdAlerts: Story = {
 export const InfrastructureOnly: Story = {
   args: placeholderArgs,
   render: () => (
-    <StatefulDemo
-      initial={new AllSetting({ smtpEnabledEvents: 'outbound.down,node.down,node.up,xray.crash' })}
-    />
+    <StatefulDemo initial={new AllSetting({ smtpEnabledEvents: 'outbound.down,xray.crash' })} />
   ),
 };
 
@@ -80,7 +78,7 @@ export const AllEventsEnabled: Story = {
       initial={
         new AllSetting({
           smtpEnabledEvents:
-            'outbound.down,outbound.up,xray.crash,node.down,node.up,cpu.high,memory.high,login.attempt',
+            'outbound.down,outbound.up,xray.crash,cpu.high,memory.high,login.attempt',
           smtpCpu: 80,
           smtpMemory: 80,
         })

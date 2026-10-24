@@ -140,10 +140,10 @@ func TestClientCreatePayload_OmitEnableDefaultsTrue(t *testing.T) {
 	}
 }
 
-func TestBulkCreate_DisabledOnNodeSkipsAddClient(t *testing.T) {
+func TestBulkCreate_DisabledClientSkipsAddClient(t *testing.T) {
 	setupBulkDB(t)
-	nodeID, fake := setupNodeRuntime(t)
-	ib := nodeInbound(t, nodeID, 26003, nil)
+	fake := setupFakeRuntime(t)
+	ib := fakeRuntimeInbound(t, 26003, nil)
 	svc := &ClientService{}
 	inboundSvc := &InboundService{}
 
@@ -162,14 +162,9 @@ func TestBulkCreate_DisabledOnNodeSkipsAddClient(t *testing.T) {
 		t.Fatalf("BulkCreate result=%+v", res)
 	}
 	if got := fake.addClient.Load(); got != 0 {
-		t.Fatalf("AddClient RPCs = %d, want 0 for enable=false", got)
+		t.Fatalf("AddClient calls = %d, want 0 for enable=false", got)
 	}
 	assertEnableEverywhere(t, svc, inboundSvc, ib.Id, email, false)
-	if _, _, dirty, _, err := (&NodeService{}).NodeSyncState(nodeID); err != nil {
-		t.Fatalf("NodeSyncState: %v", err)
-	} else if !dirty {
-		t.Fatal("disabled node create must leave node dirty for reconcile")
-	}
 }
 
 func TestExportImportPreservesTrafficCounters(t *testing.T) {

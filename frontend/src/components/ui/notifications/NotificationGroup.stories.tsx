@@ -64,7 +64,7 @@ const meta = {
     docs: {
       description: {
         component:
-          'Card for one notification event group (outbound, Xray, node, system, security) with a per-group select-all checkbox, a selected-count tag, and optional per-event threshold inputs. Composed by the Telegram and email notification tabs on the settings page.',
+          'Card for one notification event group (outbound, Xray, system, security) with a per-group select-all checkbox, a selected-count tag, and optional per-event threshold inputs. Composed by the Telegram and email notification tabs on the settings page.',
       },
     },
   },

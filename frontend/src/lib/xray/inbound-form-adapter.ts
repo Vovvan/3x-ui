@@ -56,7 +56,6 @@ export interface RawInboundRow {
   trafficReset?: string;
   trafficResetDay?: number;
   lastTrafficResetTime?: number;
-  nodeId?: number | null;
   shareAddrStrategy?: string;
   shareAddr?: string;
   subSortIndex?: number;
@@ -86,7 +85,6 @@ export interface WireInboundPayload {
   sniffing: string;
   tag: string;
   clientStats?: unknown;
-  nodeId?: number;
   shareAddrStrategy: ShareAddrStrategy;
   shareAddr: string;
   subSortIndex: number;
@@ -113,7 +111,6 @@ function coerceJsonObject(value: unknown): Record<string, unknown> {
 }
 
 const TRAFFIC_RESETS: TrafficReset[] = ['never', 'hourly', 'daily', 'weekly', 'monthly'];
-const SHARE_ADDR_STRATEGIES: ShareAddrStrategy[] = ['node', 'listen', 'custom'];
 
 function coerceTrafficReset(v: unknown): TrafficReset {
   return typeof v === 'string' && (TRAFFIC_RESETS as string[]).includes(v)
@@ -122,9 +119,7 @@ function coerceTrafficReset(v: unknown): TrafficReset {
 }
 
 function coerceShareAddrStrategy(v: unknown): ShareAddrStrategy {
-  return typeof v === 'string' && (SHARE_ADDR_STRATEGIES as string[]).includes(v)
-    ? (v as ShareAddrStrategy)
-    : 'node';
+  return v === 'custom' ? 'custom' : 'listen';
 }
 
 // Network values that map to a required `${network}Settings` key in
@@ -176,7 +171,10 @@ export function rawInboundToFormValues(row: RawInboundRow): InboundFormValues {
   const rawSettings = coerceJsonObject(row.settings);
   const settings = (
     protocol === 'tuic'
-      ? { clients: rawSettings.clients, server: resolveTuicServerSettings(rawSettings) }
+      ? {
+          clients: rawSettings.clients,
+          server: resolveTuicServerSettings(rawSettings),
+        }
       : rawSettings
   ) as InboundSettings['settings'];
   const rawStream = coerceJsonObject(row.streamSettings);
@@ -231,7 +229,6 @@ export function rawInboundToFormValues(row: RawInboundRow): InboundFormValues {
     trafficReset: coerceTrafficReset(row.trafficReset),
     trafficResetDay: Math.min(31, Math.max(1, row.trafficResetDay ?? 1)),
     lastTrafficResetTime: row.lastTrafficResetTime ?? 0,
-    nodeId: row.nodeId ?? null,
     shareAddrStrategy: coerceShareAddrStrategy(row.shareAddrStrategy),
     shareAddr: row.shareAddr ?? '',
     subSortIndex: row.subSortIndex == null || row.subSortIndex === 0 ? 1 : row.subSortIndex,
@@ -354,7 +351,9 @@ export function dropLegacyOptionalEmpties(
 // An existing inbound's clients change only through the client endpoints, so
 // the edit form neither loads them nor sends them back.
 export function withoutClients(values: InboundFormValues): InboundFormValues {
-  const settings = { ...(values.settings as Record<string, unknown> | undefined) };
+  const settings = {
+    ...(values.settings as Record<string, unknown> | undefined),
+  };
   delete settings.clients;
   return { ...values, settings } as InboundFormValues;
 }
@@ -373,7 +372,9 @@ export function formValuesToWirePayload(
     ? ((pruneEmpty(values.streamSettings) ?? {}) as Record<string, unknown>)
     : undefined;
   if (streamPruned) {
-    streamPruned = normalizeStreamSettingsForWire(streamPruned, { side: 'inbound' });
+    streamPruned = normalizeStreamSettingsForWire(streamPruned, {
+      side: 'inbound',
+    });
     stripTlsCertUseFile(streamPruned);
   }
   dropLegacyOptionalEmpties(settingsPruned, streamPruned);
@@ -404,6 +405,5 @@ export function formValuesToWirePayload(
     excludeFromSub: values.excludeFromSub,
     disableFlow: values.disableFlow,
   };
-  if (values.nodeId != null) payload.nodeId = values.nodeId;
   return payload;
 }

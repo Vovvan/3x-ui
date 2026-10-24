@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 
 // Icons map by position to the localized feature items in lib/site-i18n.ts
-// (Every major protocol, REALITY, Clients, Multi-node, AmneziaWG/TUIC, Self-hosted).
+// (Every major protocol, REALITY, Clients, Share links, AmneziaWG/TUIC, Self-hosted).
 const ICONS: LucideIcon[] = [Boxes, ShieldCheck, Users, Network, Waypoints, TerminalSquare];
 
 export function Features({

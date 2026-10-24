@@ -62,7 +62,7 @@
 }
 
 /* Empty-table state. The shared .card-empty rule otherwise lives only in the
-   lazily-loaded Clients/Inbounds/Nodes stylesheets, so a direct /hosts refresh
+   lazily-loaded Clients/Inbounds stylesheets, so a direct /hosts refresh
    would render it unstyled (faint + uncentered) until another page is visited.
    Re-declare it here so it's correct on first load. */
 .card-empty {

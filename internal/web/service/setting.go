@@ -42,25 +42,15 @@ const (
 )
 
 var defaultValueMap = map[string]string{
-	"xrayTemplateConfig": xrayTemplateConfig,
-	"webListen":          "",
-	"webDomain":          "",
-	"webPort":            "2053",
-	"webCertFile":        "",
-	"webKeyFile":         "",
-	"secret":             random.Seq(32),
-	"panelGuid":          uuid.NewString(),
-	"apiToken":           "",
-	// Node mTLS material (opt-in). All default empty: the CA + master client
-	// cert are minted lazily on first use, and the node-side trust CA is pasted
-	// in by the operator. Kept out of entity.AllSetting so private keys never
-	// reach the settings UI/export.
-	"nodeMtlsCaCertPem":           "",
-	"nodeMtlsCaKeyPem":            "",
-	"nodeMtlsClientCertPem":       "",
-	"nodeMtlsClientKeyPem":        "",
-	"nodeMtlsClientCertSha256":    "",
-	"nodeMtlsClientCAPem":         "",
+	"xrayTemplateConfig":          xrayTemplateConfig,
+	"webListen":                   "",
+	"webDomain":                   "",
+	"webPort":                     "2053",
+	"webCertFile":                 "",
+	"webKeyFile":                  "",
+	"secret":                      random.Seq(32),
+	"panelGuid":                   uuid.NewString(),
+	"apiToken":                    "",
 	"webBasePath":                 normalizeBasePath(getEnv("XUI_INIT_WEB_BASE_PATH", "/")),
 	"sessionMaxAge":               "360",
 	"trustedProxyCIDRs":           DefaultTrustedProxyCIDRs,
@@ -141,6 +131,20 @@ var defaultValueMap = map[string]string{
 // SettingService provides business logic for application settings management.
 // It handles configuration storage, retrieval, and validation for all system settings.
 type SettingService struct{}
+
+func normalizeBasePath(p string) string {
+	p = strings.TrimSpace(p)
+	if p == "" {
+		return "/"
+	}
+	if !strings.HasPrefix(p, "/") {
+		p = "/" + p
+	}
+	if !strings.HasSuffix(p, "/") {
+		p = p + "/"
+	}
+	return p
+}
 
 func (s *SettingService) GetAllSetting() (*entity.AllSetting, error) {
 	db := database.GetDB()
@@ -432,26 +436,6 @@ func (s *SettingService) PanelEgressProxyURL() string {
 	return ""
 }
 
-func (s *SettingService) NodeEgressProxyURL(nodeID int) string {
-	tag := NodeEgressInboundTag(nodeID)
-	proc := XrayProcess()
-	if proc == nil || !proc.IsRunning() {
-		logger.Warning("node outbound [", tag, "] is set but Xray is not running, using a direct connection")
-		return ""
-	}
-	cfg := proc.GetConfig()
-	if cfg == nil {
-		return ""
-	}
-	for i := range cfg.InboundConfigs {
-		if cfg.InboundConfigs[i].Tag == tag {
-			return fmt.Sprintf("socks5://127.0.0.1:%d", cfg.InboundConfigs[i].Port)
-		}
-	}
-	logger.Warning("node outbound [", tag, "] is set but the egress bridge is not in the running config, using a direct connection")
-	return ""
-}
-
 // NewProxiedHTTPClient returns an HTTP client that routes the panel's own
 // outbound requests through the configured panel outbound (via the loopback
 // SOCKS bridge in the running Xray). When the feature is off or the bridge
@@ -593,10 +577,8 @@ func (s *SettingService) GetSecret() ([]byte, error) {
 }
 
 // GetPanelGuid returns this panel's stable self-identifier, persisting a
-// freshly generated UUID on first read. It is the globally stable node
-// identity used to attribute online clients and inbounds to the physical
-// node that hosts them across a chain of nodes (#4983), where per-panel
-// autoincrement node ids are meaningless one hop away.
+// freshly generated UUID on first read. Restores and moves keep it stable so
+// exported links do not change.
 func (s *SettingService) GetPanelGuid() (string, error) {
 	guid, err := s.getString("panelGuid")
 	if err != nil {
@@ -1136,8 +1118,8 @@ the AllSetting json field name. Unlike GetDefaultSettings (which reports
 current effective values), this is defaultValueMap projected through the
 AllSetting field set: only keys that exist as an AllSetting json tag are
 returned, minus the credential fields in factoryDefaultSecretKeys. Keys
-with no AllSetting field (secret, panelGuid, the node mTLS material,
-xrayTemplateConfig) are excluded structurally rather than by deny-list.
+with no AllSetting field (secret, panelGuid, xrayTemplateConfig) are excluded
+structurally rather than by deny-list.
 */
 func (s *SettingService) GetFactoryDefaults() map[string]string {
 	result := make(map[string]string)

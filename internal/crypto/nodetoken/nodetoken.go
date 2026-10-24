@@ -66,7 +66,7 @@ func (kr *Keyring) active() ([keyLen]byte, error) {
 	return k, nil
 }
 
-// Codec encrypts/decrypts node tokens under a fixed policy and keyring.
+// Codec encrypts/decrypts provider tokens under a fixed policy and keyring.
 type Codec struct {
 	mode Mode
 	ring *Keyring // nil only in ModeOff

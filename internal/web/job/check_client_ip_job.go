@@ -292,7 +292,6 @@ func (j *CheckClientIpJob) loadClientIpRows(emails []string) map[string]*model.I
 // several per observed email.
 func (j *CheckClientIpJob) processObserved(observed map[string]map[string]int64, enforce, observedAreLive bool) bool {
 	shouldCleanLog := false
-	now := time.Now().Unix()
 
 	emails := make([]string, 0, len(observed))
 	for email := range observed {
@@ -303,10 +302,6 @@ func (j *CheckClientIpJob) processObserved(observed map[string]map[string]int64,
 	limitByEmail := j.loadClientLimits(emails)
 	inboundByEmail := j.loadInboundsByEmails(emails)
 	ipRowByEmail := j.loadClientIpRows(emails)
-
-	// attribution accumulates this scan's local observations per email so they can
-	// be recorded under this panel's own guid for cross-node IP attribution.
-	attribution := make(map[string][]model.ClientIpEntry, len(observed))
 
 	var bans []pendingBan
 
@@ -348,19 +343,8 @@ func (j *CheckClientIpJob) processObserved(observed map[string]map[string]int64,
 		}
 
 		ipsWithTime := make([]model.ClientIpEntry, 0, len(ipTimestamps))
-		attrEntries := make([]model.ClientIpEntry, 0, len(ipTimestamps))
 		for ip, timestamp := range ipTimestamps {
 			ipsWithTime = append(ipsWithTime, model.ClientIpEntry{IP: ip, Timestamp: timestamp})
-			// A live connection's lastSeen may be its old start time.
-			// Stamp attribution now so retention cannot evict a connected IP.
-			attrTs := timestamp
-			if observedAreLive {
-				attrTs = now
-			}
-			attrEntries = append(attrEntries, model.ClientIpEntry{IP: ip, Timestamp: attrTs})
-		}
-		if len(attrEntries) > 0 {
-			attribution[email] = attrEntries
 		}
 
 		clientIpsRecord, ok := ipRowByEmail[email]
@@ -401,7 +385,7 @@ func (j *CheckClientIpJob) processObserved(observed map[string]map[string]int64,
 	published := j.publishBans(bans)
 
 	// Xray disconnects run after the commit so their network round-trips never
-	// extend the scan's write transaction (node syncs upsert the same table).
+	// extend the scan's write transaction (concurrent writes upsert the same table).
 	shouldCleanLog = shouldCleanLog || len(published) > 0
 	clientsCache := make(map[int][]model.Client)
 	for _, d := range published {
@@ -413,25 +397,7 @@ func (j *CheckClientIpJob) processObserved(observed map[string]map[string]int64,
 		j.disconnectClientTemporarily(d.inbound, d.email, clients)
 	}
 
-	j.recordLocalAttribution(attribution)
-
 	return shouldCleanLog
-}
-
-// recordLocalAttribution stores this scan's local observations under this panel's
-// own guid so a parent panel can attribute each IP to the node it is on.
-// Best-effort: attribution is advisory and must never block IP-limit enforcement.
-func (j *CheckClientIpJob) recordLocalAttribution(attribution map[string][]model.ClientIpEntry) {
-	if len(attribution) == 0 {
-		return
-	}
-	guid, err := (&service.SettingService{}).GetPanelGuid()
-	if err != nil || guid == "" {
-		return
-	}
-	if err := (&service.InboundService{}).RecordLocalClientIps(guid, attribution); err != nil {
-		logger.Debug("[LimitIP] record local ip attribution failed:", err)
-	}
 }
 
 // mergeClientIps retains fresh entries and exempts currently observed live
@@ -471,7 +437,8 @@ func partitionLiveIps(ipMap map[string]int64, observedThisScan map[string]bool) 
 	now := time.Now().Unix()
 	for ip, ts := range ipMap {
 		entry := model.ClientIpEntry{IP: ip, Timestamp: ts}
-		// Recent remote observations count toward the cluster-wide limit.
+		// Consider an IP "live" if it was seen locally in this scan, OR if its
+		// stored timestamp is very recent (within 2 minutes).
 		if observedThisScan[ip] || now-ts < 120 {
 			live = append(live, entry)
 		} else {
@@ -531,8 +498,8 @@ func (j *CheckClientIpJob) updateInboundClientIps(tx *gorm.DB, inboundClientIps 
 	}
 	staleCutoff := time.Now().Unix() - ipStaleAfterSeconds
 
-	// Node sync merges into the same blob (#6587): compare-and-set it, and on a
-	// miss re-read and re-merge so neither writer drops the other's IPs.
+	// Another writer can merge into the same blob (#6587): compare-and-set it,
+	// and on a miss re-read and re-merge so neither writer drops the other's IPs.
 	for range service.ClientIpCasRetries {
 		var oldIpsWithTime []model.ClientIpEntry
 		if inboundClientIps.Ips != "" {

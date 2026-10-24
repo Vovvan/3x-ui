@@ -17,7 +17,6 @@ type APIController struct {
 	BaseController
 	inboundController     *InboundController
 	serverController      *ServerController
-	nodeController        *NodeController
 	hostController        *HostController
 	settingController     *SettingController
 	xraySettingController *XraySettingController
@@ -33,34 +32,18 @@ func NewAPIController(g *gin.RouterGroup) *APIController {
 }
 
 func (a *APIController) checkAPIAuth(c *gin.Context) {
-	setAuthenticated := func(scope string) {
-		if u, err := a.userService.GetFirstUser(); err == nil {
-			session.SetAPIAuthUser(c, u)
+	auth := c.GetHeader("Authorization")
+	if after, ok := strings.CutPrefix(auth, "Bearer "); ok {
+		tok := after
+		if row, ok := a.apiTokenService.MatchToken(tok); ok {
+			if u, err := a.userService.GetFirstUser(); err == nil {
+				session.SetAPIAuthUser(c, u)
+			}
+			c.Set("api_authed", true)
+			c.Set("api_token_scope", row.Scope)
+			c.Next()
+			return
 		}
-		c.Set("api_authed", true)
-		c.Set("api_token_scope", scope)
-	}
-	matchedScope := ""
-	if after, ok := strings.CutPrefix(c.GetHeader("Authorization"), "Bearer "); ok {
-		if row, matched := a.apiTokenService.MatchToken(after); matched {
-			matchedScope = row.Scope
-		}
-	}
-	// Verified mTLS keeps its historical node-sync identity. Only an explicit
-	// node-admin bearer elevates it to software-update authority.
-	if c.Request.TLS != nil && len(c.Request.TLS.VerifiedChains) > 0 {
-		scope := model.ApiScopeNodeSync
-		if matchedScope == model.ApiScopeNodeAdmin {
-			scope = model.ApiScopeNodeAdmin
-		}
-		setAuthenticated(scope)
-		c.Next()
-		return
-	}
-	if matchedScope != "" {
-		setAuthenticated(matchedScope)
-		c.Next()
-		return
 	}
 	if !session.IsLogin(c) {
 		// A presented Bearer token is not an anonymous scan: return 401 so
@@ -89,52 +72,9 @@ var monitorScopeAllow = map[string]struct{}{
 	"/server/xrayObservatoryHistory/:tag/:bucket": {},
 	"/server/getXrayVersion":                      {},
 	"/server/getPanelUpdateInfo":                  {},
-	"/nodes/history/:id/:metric/:bucket":          {},
 }
 
-// nodeSyncScopeAllow is the node-sync route/method allowlist relative to
-// /panel/api; Gin patterns prevent concrete parameters broadening authority.
-var nodeSyncScopeAllow = map[string]map[string]struct{}{
-	"/server/status":               {http.MethodGet: {}},
-	"/inbounds/list":               {http.MethodGet: {}},
-	"/inbounds/add":                {http.MethodPost: {}},
-	"/inbounds/del/:id":            {http.MethodPost: {}},
-	"/inbounds/update/:id":         {http.MethodPost: {}},
-	"/clients/add":                 {http.MethodPost: {}},
-	"/clients/del/:email":          {http.MethodPost: {}},
-	"/clients/:email/detach":       {http.MethodPost: {}},
-	"/clients/update/:email":       {http.MethodPost: {}},
-	"/server/restartXrayService":   {http.MethodPost: {}},
-	"/server/getWebCertFiles":      {http.MethodGet: {}},
-	"/server/descendants":          {http.MethodGet: {}},
-	"/clients/resetTraffic/:email": {http.MethodPost: {}},
-	"/clients/bulkResetTraffic":    {http.MethodPost: {}},
-	"/inbounds/resetAllTraffics":   {http.MethodPost: {}},
-	"/inbounds/:id/resetTraffic":   {http.MethodPost: {}},
-	"/clients/onlinesByGuid":       {http.MethodPost: {}},
-	"/clients/onlines":             {http.MethodPost: {}},
-	"/clients/lastOnline":          {http.MethodPost: {}},
-	"/clients/activeInbounds":      {http.MethodPost: {}},
-	"/inbounds/pushClientTraffics": {http.MethodPost: {}},
-	"/server/clientIps":            {http.MethodGet: {}, http.MethodPost: {}},
-	"/clients/clientIpsByGuid":     {http.MethodPost: {}},
-	"/hosts/list":                  {http.MethodGet: {}},
-}
-
-var nodeAdminScopeAllow = map[string]map[string]struct{}{
-	"/server/updatePanel": {http.MethodPost: {}},
-}
-
-func scopeAllows(allow map[string]map[string]struct{}, path, method string) bool {
-	methods, exists := allow[path]
-	if !exists {
-		return false
-	}
-	_, exists = methods[method]
-	return exists
-}
-
-// enforceTokenScope applies explicit allowlists to restricted API tokens.
+// enforceTokenScope applies the monitor allowlist.
 // Admin tokens and session-login users retain their existing behavior.
 func (a *APIController) enforceTokenScope(c *gin.Context) {
 	scopeVal, ok := c.Get("api_token_scope")
@@ -160,16 +100,6 @@ func (a *APIController) enforceTokenScope(c *gin.Context) {
 			c.Next()
 			return
 		}
-	case model.ApiScopeNodeSync:
-		if scopeAllows(nodeSyncScopeAllow, rel, c.Request.Method) {
-			c.Next()
-			return
-		}
-	case model.ApiScopeNodeAdmin:
-		if scopeAllows(nodeSyncScopeAllow, rel, c.Request.Method) || scopeAllows(nodeAdminScopeAllow, rel, c.Request.Method) {
-			c.Next()
-			return
-		}
 	default:
 		deny()
 		return
@@ -192,10 +122,7 @@ func (a *APIController) initRouter(g *gin.RouterGroup) {
 	api := g.Group("/panel/api")
 	api.Use(a.checkAPIAuth)
 	api.Use(a.enforceTokenScope)
-	// Decode + verify the node config envelope (zstd + X-Config-Sha256) and
-	// advertise support, before CSRF/handlers read the body.
-	api.Use(middleware.ConfigEnvelopeMiddleware())
-	api.Use(middleware.CSRFMiddleware(getRemoteIp))
+	api.Use(middleware.CSRFMiddleware())
 
 	api.GET("/openapi.json", ServeOpenAPISpec)
 
@@ -210,10 +137,6 @@ func (a *APIController) initRouter(g *gin.RouterGroup) {
 	// Server API
 	server := api.Group("/server")
 	a.serverController = NewServerController(server)
-
-	// Nodes API — multi-panel management
-	nodes := api.Group("/nodes")
-	a.nodeController = NewNodeController(nodes)
 
 	// Hosts API — per-inbound override endpoints for subscription links
 	hosts := api.Group("/hosts")

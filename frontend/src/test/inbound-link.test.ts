@@ -768,42 +768,32 @@ describe('resolveAddr precedence', () => {
     protocol: 'vless' as const,
   };
 
-  it('prefers hostOverride over listen and fallback', () => {
-    expect(
-      resolveAddr(
-        { ...baseInbound, listen: '10.0.0.1' } as never,
-        'cdn.example.test',
-        'fallback.test',
-      ),
-    ).toBe('cdn.example.test');
-  });
-
-  it('uses listen when override is empty and listen is explicit', () => {
-    expect(resolveAddr({ ...baseInbound, listen: '10.0.0.1' } as never, '', 'fallback.test')).toBe(
+  it('uses an explicit shareable listen address', () => {
+    expect(resolveAddr({ ...baseInbound, listen: '10.0.0.1' } as never, 'fallback.test')).toBe(
       '10.0.0.1',
     );
   });
 
   it('skips listen when it is 0.0.0.0 and falls through to fallbackHostname', () => {
-    expect(resolveAddr({ ...baseInbound, listen: '0.0.0.0' } as never, '', 'fallback.test')).toBe(
+    expect(resolveAddr({ ...baseInbound, listen: '0.0.0.0' } as never, 'fallback.test')).toBe(
       'fallback.test',
     );
   });
 
   it('skips a unix socket path listen and falls through to fallbackHostname', () => {
     expect(
-      resolveAddr({ ...baseInbound, listen: '/run/xray/in.sock' } as never, '', 'fallback.test'),
+      resolveAddr({ ...baseInbound, listen: '/run/xray/in.sock' } as never, 'fallback.test'),
     ).toBe('fallback.test');
     expect(
-      resolveAddr({ ...baseInbound, listen: '@xray-abstract' } as never, '', 'fallback.test'),
+      resolveAddr({ ...baseInbound, listen: '@xray-abstract' } as never, 'fallback.test'),
     ).toBe('fallback.test');
   });
 
   it('falls through to fallbackHostname when listen is empty', () => {
-    expect(resolveAddr(baseInbound as never, '', 'fallback.test')).toBe('fallback.test');
+    expect(resolveAddr(baseInbound as never, 'fallback.test')).toBe('fallback.test');
   });
 
-  it('uses listen strategy with a shareable IPv6 listen before node override', () => {
+  it('uses listen strategy with a shareable IPv6 listen', () => {
     expect(
       resolveAddr(
         {
@@ -812,27 +802,24 @@ describe('resolveAddr precedence', () => {
           shareAddrStrategy: 'listen',
           shareAddr: '',
         } as never,
-        'node.example.test',
         'fallback.test',
       ),
     ).toBe('[2001:db8::1]');
   });
 
-  it('uses listen strategy to prefer listen and fall back to node override', () => {
+  it('uses listen strategy to prefer listen and fall back to fallbackHostname', () => {
     expect(
       resolveAddr(
         { ...baseInbound, listen: '10.0.0.1', shareAddrStrategy: 'listen', shareAddr: '' } as never,
-        'node.example.test',
         'fallback.test',
       ),
     ).toBe('10.0.0.1');
     expect(
       resolveAddr(
         { ...baseInbound, listen: '0.0.0.0', shareAddrStrategy: 'listen', shareAddr: '' } as never,
-        'node.example.test',
         'fallback.test',
       ),
-    ).toBe('node.example.test');
+    ).toBe('fallback.test');
     expect(
       resolveAddr(
         {
@@ -841,13 +828,21 @@ describe('resolveAddr precedence', () => {
           shareAddrStrategy: 'listen',
           shareAddr: '',
         } as never,
-        'node.example.test',
         'fallback.test',
       ),
-    ).toBe('node.example.test');
+    ).toBe('fallback.test');
   });
 
-  it('uses custom strategy address before node override', () => {
+  it('treats the legacy node strategy as listen', () => {
+    expect(
+      resolveAddr(
+        { ...baseInbound, listen: '10.0.0.1', shareAddrStrategy: 'node', shareAddr: '' } as never,
+        'fallback.test',
+      ),
+    ).toBe('10.0.0.1');
+  });
+
+  it('uses custom strategy address before listen', () => {
     expect(
       resolveAddr(
         {
@@ -856,7 +851,6 @@ describe('resolveAddr precedence', () => {
           shareAddrStrategy: 'custom',
           shareAddr: 'edge.example.test',
         } as never,
-        'node.example.test',
         'fallback.test',
       ),
     ).toBe('edge.example.test');
@@ -871,13 +865,12 @@ describe('resolveAddr precedence', () => {
           shareAddrStrategy: 'custom',
           shareAddr: '2001:db8::2',
         } as never,
-        'node.example.test',
         'fallback.test',
       ),
     ).toBe('[2001:db8::2]');
   });
 
-  it('ignores invalid custom strategy addresses and falls back to node override', () => {
+  it('ignores invalid custom strategy addresses and falls back to listen', () => {
     for (const shareAddr of [
       'https://edge.example.test',
       'edge.example.test:8443',
@@ -887,10 +880,9 @@ describe('resolveAddr precedence', () => {
       expect(
         resolveAddr(
           { ...baseInbound, listen: '10.0.0.1', shareAddrStrategy: 'custom', shareAddr } as never,
-          'node.example.test',
           'fallback.test',
         ),
-      ).toBe('node.example.test');
+      ).toBe('10.0.0.1');
     }
   });
 });
@@ -916,9 +908,9 @@ describe('preferPublicHost (loopback fallback)', () => {
 
   it('an explicit per-inbound listen still wins over the loopback fallback', () => {
     const inbound = { listen: '203.0.113.9', port: 443, protocol: 'vless' as const };
-    expect(
-      resolveAddr(inbound as never, '', preferPublicHost('127.0.0.1', 'sub.example.com')),
-    ).toBe('203.0.113.9');
+    expect(resolveAddr(inbound as never, preferPublicHost('127.0.0.1', 'sub.example.com'))).toBe(
+      '203.0.113.9',
+    );
   });
 });
 
@@ -938,7 +930,6 @@ describe('genInboundLinks orchestrator', () => {
       const block = genInboundLinks({
         inbound: typed,
         remark: 'parity-test',
-        hostOverride: 'override.test',
         fallbackHostname: 'fallback.test',
       });
       expect(block).toMatchSnapshot();

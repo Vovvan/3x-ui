@@ -29,14 +29,14 @@ interface ApiMsg<T = unknown> {
   obj?: T;
 }
 
-type ApiTokenScope = 'admin' | 'monitor' | 'node-sync' | 'node-admin';
+type ApiTokenScope = 'admin' | 'monitor';
 
 interface ApiTokenRow {
   id: number;
   name: string;
   enabled: boolean;
   createdAt: number;
-  scope: ApiTokenScope;
+  scope: 'admin' | 'monitor';
   expiresAt: number;
 }
 
@@ -247,16 +247,6 @@ export default function SecurityTab({ allSetting, updateSetting, saveSetting }: 
       description: t('pages.settings.security.apiTokenScopeMonitorDesc'),
       color: 'blue',
     },
-    'node-sync': {
-      label: t('pages.settings.security.apiTokenScopeNodeSync'),
-      description: t('pages.settings.security.apiTokenScopeNodeSyncDesc'),
-      color: 'gold',
-    },
-    'node-admin': {
-      label: t('pages.settings.security.apiTokenScopeNodeAdmin'),
-      description: t('pages.settings.security.apiTokenScopeNodeAdminDesc'),
-      color: 'purple',
-    },
   };
 
   function toggleTwoFactor() {
@@ -372,11 +362,11 @@ export default function SecurityTab({ allSetting, updateSetting, saveSetting }: 
           },
           {
             key: '3',
-            label: catTabLabel(<ApiOutlined aria-hidden />, t('pages.nodes.apiToken'), isMobile),
+            label: catTabLabel(<ApiOutlined aria-hidden />, t('pages.settings.security.apiToken'), isMobile),
             children: (
               <div className="api-token-section">
                 <div className="api-token-header">
-                  <p className="api-token-hint">{t('pages.nodes.apiTokenHint')}</p>
+                  <p className="api-token-hint">{t('pages.settings.security.apiTokenHint')}</p>
                   <Button type="primary" size="small" onClick={openCreateModal}>
                     + {t('pages.settings.security.apiTokenNew') || 'New token'}
                   </Button>

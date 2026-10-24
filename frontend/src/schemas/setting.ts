@@ -95,8 +95,7 @@ export type AllSettingInput = z.infer<typeof AllSettingSchema>;
 // enforced its 2,048-character limit. Accept those values when reading so the
 // settings page can display and let users correct them, while keeping the
 // stricter schema above for outgoing updates.
-export const AllSettingResponseSchema = AllSettingSchema.extend({
-});
+export const AllSettingResponseSchema = AllSettingSchema.extend({});
 
 export const FactoryDefaultsSchema = z.record(z.string(), z.string());
 

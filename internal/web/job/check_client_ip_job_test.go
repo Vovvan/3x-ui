@@ -246,7 +246,7 @@ func TestPartitionLiveIps_EmptyScanLeavesDbIntact(t *testing.T) {
 }
 
 func TestPartitionLiveIps_RecentSyncedIpIsLive(t *testing.T) {
-	// Synced IPs from other nodes within 2 minutes should be counted as live
+	// Stored IPs from a recent concurrent scan should be counted as live
 	// even if they weren't observed in the local scan.
 	now := time.Now().Unix()
 	ipMap := map[string]int64{

@@ -37,8 +37,8 @@ func GreatestExpr(a, b string) string {
 	return fmt.Sprintf("MAX(%s, %s)", a, b)
 }
 
-// ClientTrafficEnableMergeExpr: placeholders nodeEnable, now, deltaUp, deltaDown,
-// nodeUp, nodeDown. Mirrors nodeDisableIsStale (#6228 / #4917 / #6870).
+// ClientTrafficEnableMergeExpr: placeholders totalEnable, totalExpiry, total,
+// now, deltaUp, deltaDown (#6228 / #4917).
 func ClientTrafficEnableMergeExpr() string {
 	if IsPostgres() {
 		return `CASE
@@ -58,7 +58,7 @@ func ClientTrafficEnableMergeExpr() string {
 	END`
 }
 
-// ClientTrafficExpiryMergeExpr: placeholder nodeExpiry once. Master absolute is
+// ClientTrafficExpiryMergeExpr: placeholder totalExpiry once. The stored absolute
 // kept; CAST avoids Postgres int4 inference on ms timestamps.
 func ClientTrafficExpiryMergeExpr() string {
 	return `CASE

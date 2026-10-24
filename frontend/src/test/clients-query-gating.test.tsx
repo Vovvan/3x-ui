@@ -59,7 +59,11 @@ function wrapperFor() {
 
 describe('useClients query gating', () => {
   it.each([
-    ['sub domain', { subDomain: 'sub.example.com', webDomain: 'web.example.com' }, 'sub.example.com'],
+    [
+      'sub domain',
+      { subDomain: 'sub.example.com', webDomain: 'web.example.com' },
+      'sub.example.com',
+    ],
     ['web domain', { webDomain: 'web.example.com' }, 'web.example.com'],
     ['neither', {}, ''],
   ])('uses the %s as the share-link host', async (_name, defaults, want) => {

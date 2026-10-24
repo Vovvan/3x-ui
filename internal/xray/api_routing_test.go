@@ -4,7 +4,7 @@ import "testing"
 
 // xray-core 26.10.10 resolves routing.script from the loader's working directory, and the
 // running core keeps its script anyway: a script beside the xray binary failed every hot
-// rule change panel-side, turning it into a full restart and breaking the node bridge.
+// rule change panel-side, turning it into a full restart and breaking the relay.
 func TestBuildReloadableRouting_IgnoresLuaScript(t *testing.T) {
 	t.Chdir(t.TempDir())
 	routing := []byte(`{"script":"route.lua","rules":[{"type":"field","ip":["10.0.0.0/8"],"outboundTag":"direct"}]}`)

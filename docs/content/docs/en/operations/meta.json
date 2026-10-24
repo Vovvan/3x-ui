@@ -1,5 +1,5 @@
 {
   "title": "Operations",
   "icon": "ServerCog",
-  "pages": ["reverse-proxy", "multi-node", "outbounds-routing", "backup-restore", "security"]
+  "pages": ["reverse-proxy", "outbounds-routing", "backup-restore", "security"]
 }

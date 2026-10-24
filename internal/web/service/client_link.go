@@ -77,7 +77,7 @@ func applyClientRecordMerge(row *model.ClientRecord, incoming *model.ClientRecor
 	row.ResetDay = incoming.ResetDay
 	row.ResetWeekday = incoming.ResetWeekday
 	row.ResetMax = incoming.ResetMax
-	// Guarded like Group and AdTag: a node snapshot rebuilt from settings that
+	// Guarded like Group and AdTag: an import rebuilt from settings that
 	// predate the cycle would otherwise silently erase it.
 	if incoming.TrafficReset != "" {
 		row.TrafficReset = incoming.TrafficReset
@@ -375,7 +375,7 @@ func (s *ClientService) reconcileInboundLinks(tx *gorm.DB, inboundId int, wanted
 	}
 	if len(toInsert) > 0 {
 		// The delete this replaced also serialized concurrent syncs of one
-		// inbound; without the clause a racing node poll aborts its whole tx.
+		// inbound; without the clause a racing client write aborts its whole tx.
 		if err := tx.Clauses(clause.OnConflict{
 			Columns:   []clause.Column{{Name: "client_id"}, {Name: "inbound_id"}},
 			DoUpdates: clause.AssignmentColumns([]string{"flow_override"}),

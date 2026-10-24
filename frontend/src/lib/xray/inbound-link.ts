@@ -1170,7 +1170,6 @@ export function genAmneziaWGConfig(input: GenAmneziaWGLinkInput): string {
 export interface GenAmneziaWGFanoutInput {
   inbound: Inbound;
   remark?: string;
-  hostOverride?: string;
   fallbackHostname: string;
 }
 
@@ -1178,9 +1177,9 @@ function amneziaWGFanout(
   input: GenAmneziaWGFanoutInput,
   render: (input: GenAmneziaWGLinkInput) => string,
 ): string[][] {
-  const { inbound, remark = '', hostOverride = '', fallbackHostname } = input;
+  const { inbound, remark = '', fallbackHostname } = input;
   if (inbound.protocol !== 'amneziawg') return [];
-  const endpoints = tunnelEndpoints(inbound, resolveAddr(inbound, hostOverride, fallbackHostname));
+  const endpoints = tunnelEndpoints(inbound, resolveAddr(inbound, fallbackHostname));
   const settings = inbound.settings as AmneziawgInboundSettings;
   const clients = settings.clients ?? [];
   return clients.map((c, i) =>
@@ -1348,10 +1347,10 @@ function shareableListenFrom(listen: string): string {
     : '';
 }
 
-type ShareAddrStrategy = 'node' | 'listen' | 'custom';
+type ShareAddrStrategy = 'listen' | 'custom';
 
 function normalizeShareAddrStrategy(strategy: string | undefined): ShareAddrStrategy {
-  return strategy === 'listen' || strategy === 'custom' ? strategy : 'node';
+  return strategy === 'custom' ? strategy : 'listen';
 }
 
 // ShareHostFields is the subset of an inbound resolveShareHost needs, so callers
@@ -1364,41 +1363,25 @@ export interface ShareHostFields {
 }
 
 // resolveShareHost picks the host that goes into share/QR links, the browser-side
-// analog of the backend resolveInboundAddress. hostOverride is the hosting node's
-// address (empty for this panel's own inbounds); fallbackHostname is the
-// already-resolved panel/public host used as the last resort — kept verbatim when
-// it fails normalization (e.g. an underscore intranet hostname) so the last
-// resort never degrades to an empty host.
-export function resolveShareHost(
-  fields: ShareHostFields,
-  hostOverride: string,
-  fallbackHostname: string,
-): string {
-  const nodeAddr = normalizeShareHost(hostOverride);
+// analog of the backend resolveInboundAddress. fallbackHostname is the already-
+// resolved panel/public host used as the last resort — kept verbatim when it
+// fails normalization (e.g. an underscore intranet hostname) so the last resort
+// never degrades to an empty host.
+export function resolveShareHost(fields: ShareHostFields, fallbackHostname: string): string {
   const listenAddr = shareableListenFrom(fields.listen ?? '');
   const customAddr = normalizeShareHost(fields.shareAddr ?? '');
   const fallbackAddr = normalizeShareHost(fallbackHostname) || fallbackHostname.trim();
-  switch (normalizeShareAddrStrategy(fields.shareAddrStrategy)) {
-    case 'listen':
-      return listenAddr || nodeAddr || fallbackAddr;
-    case 'custom':
-      return customAddr || nodeAddr || listenAddr || fallbackAddr;
-    default:
-      return nodeAddr || listenAddr || fallbackAddr;
+  if (normalizeShareAddrStrategy(fields.shareAddrStrategy) === 'custom') {
+    return customAddr || listenAddr || fallbackAddr;
   }
+  return listenAddr || fallbackAddr;
 }
 
 // Orchestrators.
-// resolveAddr picks the host that goes into share/QR links. The default
-// `node` strategy keeps the previous node-address-first behavior for
-// node-managed inbounds; other strategies let a row prefer its listen address
-// or a custom endpoint.
-export function resolveAddr(
-  inbound: Inbound,
-  hostOverride: string,
-  fallbackHostname: string,
-): string {
-  return resolveShareHost(inbound, hostOverride, fallbackHostname);
+// resolveAddr picks the host that goes into share/QR links: the row's listen
+// address, a custom share address, or the panel/public fallback.
+export function resolveAddr(inbound: Inbound, fallbackHostname: string): string {
+  return resolveShareHost(inbound, fallbackHostname);
 }
 
 // A loopback browser host means the panel was reached through a tunnel (e.g.
@@ -1414,7 +1397,7 @@ function isLoopbackHost(host: string): boolean {
 // preferPublicHost is the browser-side analog of the backend's
 // configuredPublicHost: when the panel is reached on a loopback host, prefer a
 // configured public host (Sub/Web Domain) for share/QR links instead of leaking
-// localhost. An explicit per-inbound listen or node override still wins, since
+// localhost. An explicit per-inbound listen or custom override still wins, since
 // resolveAddr only reaches the fallbackHostname after those.
 export function preferPublicHost(browserHost: string, publicHost: string): string {
   return publicHost && isLoopbackHost(browserHost) ? publicHost : browserHost;
@@ -1571,7 +1554,6 @@ export interface GenAllLinksInput {
   inbound: Inbound;
   remark?: string;
   client: ClientShape;
-  hostOverride?: string;
   fallbackHostname: string;
 }
 
@@ -1580,9 +1562,9 @@ export interface GenAllLinksInput {
 // remark plus the externalProxy remark, dash-joined (the configurable
 // subscription remark model was removed; subscription output uses the template).
 export function genAllLinks(input: GenAllLinksInput): GenAllLinksEntry[] {
-  const { inbound, remark = '', client, hostOverride = '', fallbackHostname } = input;
+  const { inbound, remark = '', client, fallbackHostname } = input;
 
-  const addr = resolveAddr(inbound, hostOverride, fallbackHostname);
+  const addr = resolveAddr(inbound, fallbackHostname);
   const port = inbound.port;
 
   const composeRemark = (proxyRemark: string): string =>
@@ -1618,7 +1600,6 @@ export function genAllLinks(input: GenAllLinksInput): GenAllLinksEntry[] {
 export interface GenInboundLinksInput {
   inbound: Inbound;
   remark?: string;
-  hostOverride?: string;
   fallbackHostname: string;
 }
 
@@ -1628,14 +1609,14 @@ export interface GenInboundLinksInput {
 // and emits per-peer .conf blocks for wireguard and amneziawg. Returns '' for the
 // other clientless protocols (http, mixed, tunnel).
 export function genInboundLinks(input: GenInboundLinksInput): string {
-  const { inbound, remark = '', hostOverride = '', fallbackHostname } = input;
+  const { inbound, remark = '', fallbackHostname } = input;
   if (hasNoLinkFormat(inbound)) return '';
-  const addr = resolveAddr(inbound, hostOverride, fallbackHostname);
+  const addr = resolveAddr(inbound, fallbackHostname);
   const clients = getInboundClients(inbound);
   if (clients) {
     const links: string[] = [];
     for (const client of clients) {
-      const entries = genAllLinks({ inbound, remark, client, hostOverride, fallbackHostname });
+      const entries = genAllLinks({ inbound, remark, client, fallbackHostname });
       for (const e of entries) links.push(e.link);
     }
     return links.join('\r\n');
@@ -1650,10 +1631,10 @@ export function genInboundLinks(input: GenInboundLinksInput): string {
     });
   }
   if (inbound.protocol === 'wireguard') {
-    return genWireguardConfigs({ inbound, remark, hostOverride, fallbackHostname });
+    return genWireguardConfigs({ inbound, remark, fallbackHostname });
   }
   if (inbound.protocol === 'amneziawg') {
-    return genAmneziaWGConfigs({ inbound, remark, hostOverride, fallbackHostname });
+    return genAmneziaWGConfigs({ inbound, remark, fallbackHostname });
   }
   return '';
 }
@@ -1664,7 +1645,6 @@ export function genInboundLinks(input: GenInboundLinksInput): string {
 export interface GenWireguardFanoutInput {
   inbound: Inbound;
   remark?: string;
-  hostOverride?: string;
   fallbackHostname: string;
 }
 
@@ -1708,9 +1688,9 @@ function wireguardFanout(
   input: GenWireguardFanoutInput,
   render: (input: GenWireguardLinkInput) => string,
 ): string[][] {
-  const { inbound, remark = '', hostOverride = '', fallbackHostname } = input;
+  const { inbound, remark = '', fallbackHostname } = input;
   if (inbound.protocol !== 'wireguard') return [];
-  const endpoints = tunnelEndpoints(inbound, resolveAddr(inbound, hostOverride, fallbackHostname));
+  const endpoints = tunnelEndpoints(inbound, resolveAddr(inbound, fallbackHostname));
   const baseSettings = inbound.settings as WireguardInboundSettings;
   const peers = wgRenderPeers(baseSettings);
   const settings: WireguardInboundSettings = { ...baseSettings, peers };

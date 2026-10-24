@@ -17,12 +17,12 @@
   <a href="https://docs.sanaei.dev"><img src="https://img.shields.io/badge/docs-docs.sanaei.dev-22d3ee" alt="Documentation"></a>
 </p>
 
-**3X-UI** 是一个先进的开源 Web 控制面板，用于管理 [Xray-core](https://github.com/XTLS/Xray-core) 服务器。它提供简洁、多语言的界面，用于部署、配置和监控各种代理与 VPN 协议——从单台 VPS 到多节点部署。
+**3X-UI** 是一个先进的开源 Web 控制面板，用于管理 [Xray-core](https://github.com/XTLS/Xray-core) 服务器。它提供简洁、多语言的界面，用于部署、配置和监控各种代理与 VPN 协议——适用于单台 VPS 或更大规模的单面板部署。
 
 3X-UI 作为原始 X-UI 项目的增强分支（fork），增加了更广泛的协议支持、更好的稳定性、按客户端的流量统计以及许多提升使用体验的功能。
 
 > [!NOTE]
-> 此分支移除了内置订阅服务器及其网页界面和格式（Happ/Incy、Clash/JSON）、订阅均衡器、出站订阅，以及 Telegram/Discord 机器人。每位客户端的分享链接和二维码生成功能仍然保留。
+> 此分支移除了内置订阅服务器及其网页界面和格式（Happ/Incy、Clash/JSON）、订阅均衡器、出站订阅、Telegram/Discord 机器人以及多节点管理功能。每位客户端的分享链接和二维码生成功能仍然保留。
 
 > [!IMPORTANT]
 > 本项目仅供个人使用。请勿将其用于非法目的，也请勿在生产环境中使用。
@@ -37,7 +37,6 @@
 - **回落 (Fallback)** — 通过 Xray 的 fallback 功能在单个端口上提供多种协议（例如在 443 端口上同时使用 VLESS 和 Trojan）。
 - **按客户端管理** — 流量配额、到期日期、可豁免受信任地址的 IP 限制、HWID 设备数限制、定时续期周期、实时在线状态，以及一键分享链接和二维码。
 - **流量统计** — 按入站、按客户端、按出站统计，并支持重置控制。
-- **多节点支持** — 从单一面板管理并扩展到多台服务器，并可将入站克隆到其他节点。
 - **出站与路由** — WARP、NordVPN、PIA、自定义路由规则、支持均衡器间回退的负载均衡器，以及出站代理链。内置的 geosite 与 geoip 分类可直接在规则编辑器中浏览。
 - **RESTful API**，支持带作用域、可设置有效期的令牌，并提供面板内置的 API 参考文档。
 - **可安装面板 (PWA)** — 将 3X-UI 固定到桌面或手机主屏幕。
@@ -65,10 +64,6 @@
   <img alt="Add client" src="./media/03-add-client-light.png">
 </picture>
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="./media/05-add-nodes-dark.png">
-  <img alt="Configs" src="./media/05-add-nodes-light.png">
-</picture>
 
 </details>
 
@@ -117,7 +112,7 @@ bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.
 3X-UI 支持两种后端，可在安装时选择：
 
 - **SQLite**（默认）— 位于 `/etc/x-ui/x-ui.db` 的单个文件。无需配置，适合中小型部署。
-- **PostgreSQL** — 推荐用于大量客户端或多节点设置。安装程序可以为您在本地安装 PostgreSQL，或接受指向现有服务器的 DSN。
+- **PostgreSQL** — 推荐用于大量客户端。安装程序可以为您在本地安装 PostgreSQL，或接受指向现有服务器的 DSN。
 
 运行时通过环境变量选择后端（安装程序会为您写入 `/etc/default/x-ui`）：
 
@@ -170,7 +165,7 @@ docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/mhsanaei/3x-ui
 | `XUI_TUNNEL_HEALTH_TIMEOUT` | 单次探测的超时时间 | `10s` |
 | `XUI_TUNNEL_HEALTH_FAILURES` | 触发重启前的连续失败次数 | `3` |
 | `XUI_TUNNEL_HEALTH_COOLDOWN` | 两次连续重启之间的最小间隔 | `5m` |
-| `NODE_TOKEN_ENCRYPTION` | 节点 API 令牌的静态加密：`off`、`migration` 或 `required`（注意：无 `XUI_` 前缀） | `off` |
+| `NODE_TOKEN_ENCRYPTION` | 存储的提供商令牌（PIA）的静态加密：`off`、`migration` 或 `required`（注意：无 `XUI_` 前缀） | `off` |
 | `XUI_NODE_TOKEN_KEY_FILE` | JSON 密钥环（权限 `0600`），包含活动密钥 ID 及其 base64 编码的 32 字节密钥 | `/etc/x-ui/node_token_key.json` |
 | `XUI_NODE_TOKEN_KEY` | 单个 base64 编码的 32 字节密钥，仅在无法加载密钥文件时使用 | — |
 
@@ -200,7 +195,7 @@ English · فارسی · العربية · 中文（简体） · 中文（繁體
 社区围绕 3x-ui 构建的工具和集成。
 
 - [terraform-provider-3x-ui](https://github.com/batonogov/terraform-provider-threexui) (许可证: **MIT**): _使用 Terraform / OpenTofu 通过代码管理入站、客户端、面板设置和 Xray 配置。_
-- [3X-UI Manager](https://github.com/yukh975/3X-UI-Manager) (许可证: **MIT**): _3x-ui 的原生 Android 客户端 — 仪表板、入站、带二维码分享的客户端、节点以及多面板管理。可在 F-Droid 获取。_
+- [3X-UI Manager](https://github.com/yukh975/3X-UI-Manager) (许可证: **MIT**): _3x-ui 的原生 Android 客户端 — 仪表板、入站、带二维码分享的客户端以及多面板管理。可在 F-Droid 获取。_
 
 ## 支持项目
 

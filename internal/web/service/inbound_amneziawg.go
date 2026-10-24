@@ -29,7 +29,7 @@ func (s *InboundService) DesiredAmneziaWGInstances() ([]amneziawg.Instance, erro
 	db := database.GetDB()
 	var inbounds []*model.Inbound
 	err := db.Model(model.Inbound{}).
-		Where("protocol = ? AND enable = ? AND node_id IS NULL", model.AmneziaWG, true).
+		Where("protocol = ? AND enable = ?", model.AmneziaWG, true).
 		Find(&inbounds).Error
 	if err != nil {
 		return nil, err
@@ -77,12 +77,12 @@ func (s *InboundService) DesiredAmneziaWGInstances() ([]amneziawg.Instance, erro
 // removal, re-key or enable-toggle takes effect immediately instead of
 // waiting up to 10s for the reconcile job. It re-reads the inbound so it sees
 // the committed settings, filters depleted clients exactly like the
-// reconcile job, and is a no-op for node-owned or non-AmneziaWG inbounds.
+// reconcile job, and is a no-op for non-AmneziaWG inbounds.
 // Failures are logged and swallowed: the reconcile job is the backstop.
 // Mirrors applyLocalMtproto.
 func (s *InboundService) applyLocalAmneziaWG(inboundId int) {
 	inbound, err := s.GetInbound(inboundId)
-	if err != nil || inbound == nil || inbound.Protocol != model.AmneziaWG || inbound.NodeID != nil {
+	if err != nil || inbound == nil || inbound.Protocol != model.AmneziaWG {
 		return
 	}
 	rt, err := s.runtimeFor(inbound)
@@ -268,7 +268,7 @@ func (s *InboundService) normalizeAmneziaWGSettings(inbound *model.Inbound, old 
 		}
 	}
 
-	portCtx, err := s.loadPortConflictContext(database.GetDB(), inbound.NodeID)
+	portCtx, err := s.loadPortConflictContext(database.GetDB())
 	if err != nil {
 		return err
 	}
@@ -343,26 +343,15 @@ func (s *InboundService) normalizeAmneziaWGSettings(inbound *model.Inbound, old 
 type portConflictContext struct {
 	webPort  int
 	inbounds []*model.Inbound
-	// onNode: the host is a node, whose web port and relay ports (derived from
-	// its own inbound ids) this panel does not know; the node re-checks both.
-	onNode bool
 }
 
-// loadPortConflictContext loads every enabled inbound hosted where nodeID's rows
-// run -- this panel for nil, else that node -- plus this panel's own port.
-func (s *InboundService) loadPortConflictContext(db *gorm.DB, nodeID *int) (portConflictContext, error) {
+// loadPortConflictContext loads every enabled inbound plus this panel's own port.
+func (s *InboundService) loadPortConflictContext(db *gorm.DB) (portConflictContext, error) {
 	var ctx portConflictContext
-	q := db.Model(model.Inbound{}).Where("enable = ?", true)
-	if nodeID != nil {
-		ctx.onNode = true
-		q = q.Where("node_id = ?", *nodeID)
-	} else {
-		if webPort, err := (&SettingService{}).GetPort(); err == nil {
-			ctx.webPort = webPort
-		}
-		q = q.Where("node_id IS NULL")
+	if webPort, err := (&SettingService{}).GetPort(); err == nil {
+		ctx.webPort = webPort
 	}
-	err := q.Find(&ctx.inbounds).Error
+	err := db.Model(model.Inbound{}).Where("enable = ?", true).Find(&ctx.inbounds).Error
 	return ctx, err
 }
 
@@ -383,7 +372,7 @@ func (s *InboundService) checkAmneziaWGForwardedPorts(db *gorm.DB, settings stri
 	if err := json.Unmarshal([]byte(settings), &parsed); err != nil {
 		return nil
 	}
-	ctx, err := s.loadPortConflictContext(db, nil)
+	ctx, err := s.loadPortConflictContext(db)
 	if err != nil {
 		return err
 	}
@@ -414,9 +403,6 @@ func (s *InboundService) checkForwardedPortsConflict(ctx portConflictContext, fo
 				name = ib.Tag
 			}
 			return fmt.Sprintf("inbound '%s' (#%d, port %d)", name, ib.Id, ib.Port)
-		}
-		if ctx.onNode {
-			continue
 		}
 		var socksPort int
 		switch ib.Protocol {

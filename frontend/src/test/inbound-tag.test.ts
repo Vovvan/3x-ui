@@ -8,7 +8,6 @@ import { composeInboundTag, isAutoInboundTag, type InboundTagInput } from '@/lib
 describe('composeInboundTag transport suffix parity', () => {
   const base = (over: Partial<InboundTagInput>): InboundTagInput => ({
     port: 443,
-    nodeId: null,
     protocol: 'vless',
     ...over,
   });
@@ -93,13 +92,10 @@ describe('composeInboundTag transport suffix parity', () => {
     expect(composeInboundTag(input)).toBe(want);
   });
 
-  it('ignores the listen address and adds the node prefix', () => {
+  it('ignores the listen address', () => {
     expect(composeInboundTag(base({ port: 8443, streamSettings: { network: 'tcp' } }))).toBe(
       'in-8443-tcp',
     );
-    expect(
-      composeInboundTag(base({ nodeId: 1, port: 443, streamSettings: { network: 'tcp' } })),
-    ).toBe('n1-in-443-tcp');
   });
 });
 
@@ -107,7 +103,6 @@ describe('composeInboundTag transport suffix parity', () => {
 describe('isAutoInboundTag', () => {
   const input: InboundTagInput = {
     port: 443,
-    nodeId: null,
     protocol: 'vless',
     streamSettings: { network: 'tcp' },
   };

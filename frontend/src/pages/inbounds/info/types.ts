@@ -80,7 +80,6 @@ export interface InboundInfoModalProps {
   trafficDiff?: number;
   ipLimitEnable?: boolean;
   tgBotEnable?: boolean;
-  nodeAddress?: string;
   subSettings?: SubSettings;
   hosts?: HostRecord[];
   lastOnlineMap?: Record<string, number>;

@@ -185,23 +185,6 @@ func newClientQuery(db *gorm.DB, nowMs, expireDiffMs, trafficDiffBytes int64) cl
 		joins:            []clientQueryJoin{{sql: "LEFT JOIN client_traffics ct ON ct.email = c.email"}},
 		usedExpr:         "(COALESCE(ct.up, 0) + COALESCE(ct.down, 0))",
 	}
-	freshSince := globalTrafficFreshSince(db.NowFunc())
-	var probe int64
-	err := db.Model(&model.ClientGlobalTraffic{}).
-		Where("updated_at >= ?", freshSince).
-		Limit(1).Count(&probe).Error
-	if err != nil || probe == 0 {
-		return q
-	}
-	// A master still pushes cross-panel usage here, so the predicates have to
-	// see the same raised counters overlayGlobalTraffic applies on read.
-	q.joins = append(q.joins, clientQueryJoin{
-		sql: "LEFT JOIN (SELECT email, MAX(up) AS up, MAX(down) AS down FROM client_global_traffics" +
-			" WHERE updated_at >= ? GROUP BY email) g ON g.email = c.email",
-		args: []any{freshSince},
-	})
-	q.usedExpr = "(CASE WHEN COALESCE(g.up, 0) > COALESCE(ct.up, 0) THEN COALESCE(g.up, 0) ELSE COALESCE(ct.up, 0) END" +
-		" + CASE WHEN COALESCE(g.down, 0) > COALESCE(ct.down, 0) THEN COALESCE(g.down, 0) ELSE COALESCE(ct.down, 0) END)"
 	return q
 }
 
@@ -484,7 +467,6 @@ func (q clientQuery) pageRows(params ClientPageParams, onlines []string, offset,
 		if err := q.db.Where("email IN ?", emails).Find(&stats).Error; err != nil {
 			return nil, err
 		}
-		overlayGlobalTrafficValues(q.db, stats)
 		for i := range stats {
 			trafficByEmail[stats[i].Email] = &stats[i]
 		}

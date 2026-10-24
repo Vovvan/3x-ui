@@ -11,7 +11,7 @@ import (
 )
 
 func TestClientRenewalWriteValidation(t *testing.T) {
-	for _, operation := range []string{"add inbound", "update inbound", "add inbound client", "update inbound client", "sync inbound", "client delta", "add stat", "update stat", "import stat"} {
+	for _, operation := range []string{"add inbound", "add inbound client", "update inbound client", "sync inbound", "client delta", "add stat", "update stat", "import stat"} {
 		for _, schedule := range []struct {
 			name                string
 			reset, day, weekday int
@@ -23,10 +23,10 @@ func TestClientRenewalWriteValidation(t *testing.T) {
 		} {
 			t.Run(operation+"/"+schedule.name, func(t *testing.T) {
 				setupConflictDB(t)
-				nodeID, fake := setupNodeRuntime(t)
+				fake := setupFakeRuntime(t)
 				svc, inboundSvc := &ClientService{}, &InboundService{}
 				client := model.Client{Email: "renewal-boundary", ID: "11111111-1111-1111-1111-111111111111", SubID: "renewal-boundary-sub", Enable: true, ResetWeekday: 3, ResetMax: 4, ExpiryTime: time.Now().Add(time.Hour).UnixMilli()}
-				inbound := nodeInbound(t, nodeID, 41759, []model.Client{client})
+				inbound := fakeRuntimeInbound(t, 41759, []model.Client{client})
 				if err := inboundSvc.AddClientStat(database.GetDB(), inbound.Id, &client); err != nil {
 					t.Fatal(err)
 				}
@@ -48,9 +48,6 @@ func TestClientRenewalWriteValidation(t *testing.T) {
 						update.ClientStats = []xray.ClientTraffic{{Email: "invalid-import-stat", Reset: schedule.reset, ResetDay: schedule.day, ResetWeekday: schedule.weekday}}
 					}
 					_, _, err = inboundSvc.AddInbound(&update)
-				case "update inbound":
-					// A panel save keeps the stored clients; only a master's push writes them.
-					_, _, err = (&InboundService{FromNodeSync: true}).UpdateInbound(&update)
 				case "add inbound client":
 					client.Email = "invalid-new-client"
 					update.Settings = clientsSettings(t, []model.Client{client})
@@ -103,13 +100,13 @@ func TestInboundRenewalModesRemainEditable(t *testing.T) {
 		}
 		t.Run(name, func(t *testing.T) {
 			setupConflictDB(t)
-			nodeID, _ := setupNodeRuntime(t)
+			setupFakeRuntime(t)
 			svc, inboundSvc := &ClientService{}, &InboundService{}
 			client := model.Client{Email: "renewal-editable", ID: "11111111-1111-1111-1111-111111111111", Enable: true, Reset: 7, ResetDay: 1, ResetMax: 4, ExpiryTime: time.Now().Add(time.Hour).UnixMilli()}
 			if weekly {
 				client.Reset, client.ResetDay, client.ResetWeekday = 0, 0, 3
 			}
-			inbound := &model.Inbound{Tag: "renewal-editable", NodeID: &nodeID, Port: 41761, Protocol: model.VLESS, Enable: true, Settings: clientsSettings(t, []model.Client{client})}
+			inbound := &model.Inbound{Tag: "renewal-editable", Port: 41761, Protocol: model.VLESS, Enable: true, Settings: clientsSettings(t, []model.Client{client})}
 			if _, _, err := inboundSvc.AddInbound(inbound); err != nil {
 				t.Fatal(err)
 			}

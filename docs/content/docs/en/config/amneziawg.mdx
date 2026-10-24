@@ -211,10 +211,3 @@ AllowedIPs = 0.0.0.0/0, ::/0
 Endpoint = your-server:443
 PersistentKeepalive = 25
 ```
-
-## Multi-node (sub-nodes)
-
-An AmneziaWG inbound can be created on, or cloned to, a sub-node. The node's
-own panel runs the interface, so the node must run panel **v3.7.0** or newer;
-the master refuses an older node, or one that has not reported its version yet.
-A client's `forwardedPorts` are checked against the ports in use on that node.

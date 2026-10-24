@@ -45,7 +45,7 @@ describe('inbounds page tunnel configs follow Hosts', () => {
       },
     });
     const peers = genWireguardPeerConfigs({
-      inbound: withHostEndpoints(inbound, 7, HOSTS, '', PANEL),
+      inbound: withHostEndpoints(inbound, 7, HOSTS, PANEL),
       remark: 'wg',
       fallbackHostname: PANEL,
     });
@@ -64,7 +64,7 @@ describe('inbounds page tunnel configs follow Hosts', () => {
       streamSettings: {},
     } as unknown as Inbound;
     const peers = genAmneziaWGPeerConfigs({
-      inbound: withHostEndpoints(inbound, 7, HOSTS, '', PANEL),
+      inbound: withHostEndpoints(inbound, 7, HOSTS, PANEL),
       remark: 'awg',
       fallbackHostname: PANEL,
     });

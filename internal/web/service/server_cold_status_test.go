@@ -8,8 +8,8 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/dbtest"
 )
 
-// A panel restarts with an empty snapshot until the @2s ticker fires, and a
-// master probing that window reads the empty answer as an offline node.
+// A panel restarts with an empty snapshot until the @2s ticker fires; an API
+// caller reading that window must still get an on-demand sample.
 func TestCurrentStatusSamplesBeforeFirstTick(t *testing.T) {
 	dbDir := t.TempDir()
 	t.Setenv("XUI_DB_FOLDER", dbDir)

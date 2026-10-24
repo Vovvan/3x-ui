@@ -39,8 +39,7 @@ inbounds** at once, with per-client traffic accounting.
 - **Limit IP** caps simultaneous source IPs. Enforcement relies on Fail2ban —
   see [Security](/docs/operations/security). You can view a client's recent IPs
   and clear them from the client's actions.
-- **Online status** and **last-online** times are tracked per client (and per
-  node in multi-node setups).
+- **Online status** and **last-online** times are tracked per client.
 
 ## Automatic renewal
 
@@ -107,16 +106,15 @@ additional reset. Quarterly, yearly, and every-N-week/month schedules are not
 part of these modes.
 
 <Callout type="warn">
-  Upgrade the main panel and every participating node before enabling weekly
-  renewal. Older versions ignore `resetWeekday`; a weekly-only client would not
-  auto-renew and, after its expiry or quota is exhausted, can be deleted by
-  **delete depleted clients** because older versions lack the weekly protection.
-  Back up the database and convert weekly schedules to a renewal mode supported
-  by every participating version before downgrading. Merely disabling weekly
-  renewal does not protect a depleted client from deletion. Avoid depleted-client
-  cleanup while a mixed-version fleet or unconverted weekly clients remain.
-  Database upgrades default this new field to `0` and preserve existing limits
-  and dates.
+  Upgrade the panel before enabling weekly renewal. Older versions ignore
+  `resetWeekday`; a weekly-only client would not auto-renew and, after its expiry
+  or quota is exhausted, can be deleted by **delete depleted clients** because
+  older versions lack the weekly protection. Back up the database and convert
+  weekly schedules to a renewal mode supported by the installed version before
+  downgrading. Merely disabling weekly renewal does not protect a depleted
+  client from deletion. Avoid depleted-client cleanup while unconverted weekly
+  clients remain. Database upgrades default this field to `0` and preserve
+  existing limits and dates.
 </Callout>
 
 ## Share links and external links

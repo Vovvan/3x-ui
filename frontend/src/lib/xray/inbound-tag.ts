@@ -72,13 +72,8 @@ function baseInboundTag(port: number): string {
   return `in-${port}`;
 }
 
-function nodeTagPrefix(nodeId: number | null | undefined): string {
-  return nodeId == null ? '' : `n${nodeId}-`;
-}
-
 export interface InboundTagInput {
   port: number;
-  nodeId: number | null | undefined;
   protocol: string;
   streamSettings?: Record<string, unknown>;
   settings?: Record<string, unknown>;
@@ -86,9 +81,7 @@ export interface InboundTagInput {
 
 export function composeInboundTag(input: InboundTagInput): string {
   const bits = inboundTransports(input.protocol, input.streamSettings, input.settings);
-  return (
-    nodeTagPrefix(input.nodeId) + baseInboundTag(input.port ?? 0) + '-' + transportTagSuffix(bits)
-  );
+  return baseInboundTag(input.port ?? 0) + '-' + transportTagSuffix(bits);
 }
 
 export function isAutoInboundTag(tag: string, input: InboundTagInput): boolean {

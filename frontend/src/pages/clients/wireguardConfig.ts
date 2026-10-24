@@ -33,8 +33,7 @@ export function buildWireguardClientConfig(
   hostEndpoint?: HostEndpoint,
 ): string {
   const endpointHost =
-    hostEndpoint?.dest ||
-    resolveShareHost(inbound ?? {}, inbound?.nodeAddress ?? '', preferPublicHost(host, publicHost));
+    hostEndpoint?.dest || resolveShareHost(inbound ?? {}, preferPublicHost(host, publicHost));
   const address = addressOverride || client.allowedIPs || '10.0.0.2/32';
   const endpoint = `${endpointHost}:${hostEndpoint?.port || inbound?.port || ''}`;
   const inboundName = inbound ? formatInboundLabel(inbound.tag, inbound.remark) : '';

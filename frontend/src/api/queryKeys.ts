@@ -3,10 +3,6 @@ export const keys = {
     status: () => ['server', 'status'] as const,
     fail2banStatus: () => ['server', 'fail2banStatus'] as const,
   },
-  nodes: {
-    root: () => ['nodes'] as const,
-    list: () => ['nodes', 'list'] as const,
-  },
   hosts: {
     root: () => ['hosts'] as const,
     list: () => ['hosts', 'list'] as const,
@@ -31,8 +27,6 @@ export const keys = {
     list: (params: unknown) => ['clients', 'list', params] as const,
     all: () => ['clients', 'all'] as const,
     onlines: () => ['clients', 'onlines'] as const,
-    onlinesByGuid: () => ['clients', 'onlinesByGuid'] as const,
-    activeInbounds: () => ['clients', 'activeInbounds'] as const,
     lastOnline: () => ['clients', 'lastOnline'] as const,
     groups: () => ['clients', 'groups'] as const,
   },

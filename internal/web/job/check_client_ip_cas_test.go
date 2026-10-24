@@ -12,14 +12,14 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-// A node sync landing between the scan's read and its write must keep its remote
+// A concurrent write landing between the scan's read and its write must keep its
 // IP (#6587); the hook injects that write, since SQLite serializes real writers.
-func TestProcessObserved_KeepsNodeSyncWriteThatLandsMidScan(t *testing.T) {
+func TestProcessObserved_KeepsConcurrentWriteThatLandsMidScan(t *testing.T) {
 	setupIntegrationDB(t)
-	processObservedKeepsNodeSyncWrite(t)
+	processObservedKeepsConcurrentWrite(t)
 }
 
-func processObservedKeepsNodeSyncWrite(t *testing.T) {
+func processObservedKeepsConcurrentWrite(t *testing.T) {
 	t.Helper()
 	db := database.GetDB()
 
@@ -33,7 +33,7 @@ func processObservedKeepsNodeSyncWrite(t *testing.T) {
 		{IP: "203.0.113.77", Timestamp: now - 5},
 	})
 	if err != nil {
-		t.Fatalf("marshal node blob: %v", err)
+		t.Fatalf("marshal concurrent blob: %v", err)
 	}
 	const callback = "test:client_ip_scan_cas_inject"
 	injected := false
@@ -71,6 +71,6 @@ func processObservedKeepsNodeSyncWrite(t *testing.T) {
 	got := ipSet(readClientIps(t, email))
 	want := map[string]int64{"203.0.113.77": now - 5, "198.51.100.1": now}
 	if !maps.Equal(got, want) {
-		t.Fatalf("scan/node union = %v, want %v", got, want)
+		t.Fatalf("scan/concurrent union = %v, want %v", got, want)
 	}
 }

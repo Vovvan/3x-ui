@@ -109,10 +109,8 @@ func (j *XrayTrafficJob) Run() {
 		j.xrayService.SetToNeedRestart()
 	}
 
-	// Derive the local online set from this poll's per-email deltas rather
-	// than the shared last_online column, which remote-node syncs also bump
-	// and would otherwise make a client active only on a remote node appear
-	// online on local inbounds.
+	// Derive the online set from this poll's per-email deltas rather than the
+	// shared last_online column, which may lag behind xray's current activity.
 	movedTraffics, activeEmails, deltaActive := splitMovedClientTraffics(clientTraffics)
 	// When the core supports the online-stats API, union in connection-based
 	// onlines. Neither signal alone covers everything: an idle-but-connected
@@ -135,18 +133,7 @@ func (j *XrayTrafficJob) Run() {
 			logger.Warning("bump last online for connected clients failed:", err)
 		}
 	}
-	// Pair the email signal with the inbound tags that moved bytes this poll.
-	// Xray's user>>>email counter aggregates across every inbound a client is
-	// attached to, so an online email alone can't say which inbound it used —
-	// gating the per-inbound view on these tags keeps a multi-inbound client
-	// off inbounds that saw no traffic. See issue #4859.
-	activeInboundTags := make([]string, 0, len(traffics))
-	for _, tr := range traffics {
-		if tr != nil && tr.IsInbound && tr.Up+tr.Down > 0 {
-			activeInboundTags = append(activeInboundTags, tr.Tag)
-		}
-	}
-	j.inboundService.RefreshLocalOnlineClients(activeEmails, activeInboundTags)
+	j.inboundService.RefreshLocalOnlineClients(activeEmails)
 
 	if !websocket.HasClients() {
 		return
@@ -199,8 +186,6 @@ func (j *XrayTrafficJob) Run() {
 		"traffics":       traffics,
 		"clientTraffics": movedTraffics,
 		"onlineClients":  onlineClients,
-		"onlineByGuid":   j.inboundService.GetOnlineClientsByGuid(),
-		"activeInbounds": j.inboundService.GetActiveInboundsByGuid(),
 		"lastOnlineMap":  lastOnlineMap,
 	})
 

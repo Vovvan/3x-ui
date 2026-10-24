@@ -57,12 +57,8 @@ func NormalizeScope(scope string) (string, error) {
 		return model.ApiScopeAdmin, nil
 	case model.ApiScopeMonitor:
 		return model.ApiScopeMonitor, nil
-	case model.ApiScopeNodeSync:
-		return model.ApiScopeNodeSync, nil
-	case model.ApiScopeNodeAdmin:
-		return model.ApiScopeNodeAdmin, nil
 	default:
-		return "", common.NewError("scope must be 'admin', 'monitor', 'node-sync', or 'node-admin'")
+		return "", common.NewError("scope must be 'admin' or 'monitor'")
 	}
 }
 
@@ -153,7 +149,7 @@ func (s *ApiTokenService) RecreateByName(name, scope string) (*ApiTokenView, err
 		}
 		if row.Scope == "" {
 			// An empty Scope takes the column default of admin, so a rotated
-			// monitor or node-sync token would silently gain full access.
+			// monitor token would silently gain full access.
 			row.Scope = model.ApiScopeAdmin
 			if len(replaced) > 0 {
 				if !model.IsKnownApiScope(replaced[0].Scope) {

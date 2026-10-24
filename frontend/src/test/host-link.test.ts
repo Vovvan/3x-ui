@@ -99,7 +99,6 @@ describe('withHostEndpoints', () => {
           remark: 'public',
         },
       ],
-      '',
       'panel.example.com',
     );
     expect(got.streamSettings?.externalProxy).toEqual([
@@ -113,7 +112,6 @@ describe('withHostEndpoints', () => {
       inbound,
       7,
       [{ groupId: 'port-only', inboundIds: [7], hosts: [':8443'], port: 8443 }],
-      '',
       'panel.example.com',
     );
     expect(got.streamSettings?.externalProxy).toEqual([
@@ -135,7 +133,6 @@ describe('withHostEndpoints', () => {
         },
         { groupId: 'other', inboundIds: [8], hosts: ['c.example.com:443'] },
       ],
-      '',
       'panel.example.com',
     );
     expect(got).toBe(inbound);

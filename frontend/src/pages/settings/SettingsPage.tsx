@@ -32,11 +32,7 @@ interface ApiMsg {
   success?: boolean;
 }
 
-const tabSlugs = [
-  'general',
-  'security',
-  'email',
-];
+const tabSlugs = ['general', 'security', 'email'];
 
 function isIp(h: string): boolean {
   if (typeof h !== 'string') return false;

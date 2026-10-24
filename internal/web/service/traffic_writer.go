@@ -122,8 +122,8 @@ func runTrafficWriter(ctx context.Context, queue chan *trafficWriteRequest, done
 // reverse), which Postgres aborts as a deadlock (SQLSTATE 40P01). Routing every
 // such mutation through this single writer removes that contention entirely.
 //
-// Keep network I/O (node pushes) OUT of fn: holding the single writer across a
-// remote node call would stall all traffic accounting for up to the remote
+// Keep network I/O OUT of fn: holding the single writer across a remote
+// runtime call would stall all traffic accounting for its whole timeout
 // timeout. Apply runtime changes after this returns.
 func runSerializedTx(fn func(tx *gorm.DB) error) error {
 	return submitTrafficWrite(func() error {

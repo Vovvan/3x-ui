@@ -15,10 +15,11 @@ func TestUpdateInboundLocalMtprotoDefersPushUntilCommit(t *testing.T) {
 	setupConflictDB(t)
 
 	mgr := runtime.NewManager(runtime.LocalDeps{APIPort: func() int { return 0 }})
-	fake := &fakeNodeRuntime{}
+	fake := &fakeRuntime{}
 	mgr.SetLocalRuntimeOverride(fake)
+	prev := runtime.GetManager()
 	runtime.SetManager(mgr)
-	t.Cleanup(func() { runtime.SetManager(nil) })
+	t.Cleanup(func() { runtime.SetManager(prev) })
 
 	seedInboundConflict(t, "mt-txfail", "", 46150, model.MTProto, "",
 		`{"clients":[{"email":"mtx","secret":"`+mtprotoTestSecretA+`","enable":true}]}`)
@@ -51,9 +52,10 @@ func TestSetInboundEnableRoutedMtprotoRequestsRestart(t *testing.T) {
 	setupConflictDB(t)
 
 	mgr := runtime.NewManager(runtime.LocalDeps{APIPort: func() int { return 0 }})
-	mgr.SetLocalRuntimeOverride(&fakeNodeRuntime{})
+	mgr.SetLocalRuntimeOverride(&fakeRuntime{})
+	prev := runtime.GetManager()
 	runtime.SetManager(mgr)
-	t.Cleanup(func() { runtime.SetManager(nil) })
+	t.Cleanup(func() { runtime.SetManager(prev) })
 
 	seedInboundConflict(t, "mt-route", "", 46160, model.MTProto, "",
 		`{"clients":[{"email":"mtr","secret":"`+mtprotoTestSecretA+`","enable":true}],"routeThroughXray":true,"routeXrayPort":12345}`)
