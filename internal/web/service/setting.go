@@ -1034,7 +1034,7 @@ func validateRemoteRoutingURLSetting(name string, value *string) error {
 	return nil
 }
 
-// The same parser the sub server uses, so a value can never be saved as valid
+// The same parser the panel uses, so a value can never be saved as valid
 // and then silently ignored at request time.
 func (s *SettingService) UpdateSecret(key string, value string) error {
 	switch key {

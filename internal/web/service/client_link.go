@@ -537,8 +537,7 @@ func (s *ClientService) ListForInbound(tx *gorm.DB, inboundId int) ([]model.Clie
 }
 
 // ListForInboundBySubId is ListForInbound narrowed to one subscription id —
-// both filter columns are indexed, so the subscription server resolves a
-// subscriber's clients without touching the inbound's settings JSON.
+// both filter columns are indexed, so the lookup avoids the inbound settings JSON.
 func (s *ClientService) ListForInboundBySubId(tx *gorm.DB, inboundId int, subId string) ([]model.Client, error) {
 	if tx == nil {
 		tx = database.GetDB()

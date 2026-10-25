@@ -1,10 +1,9 @@
 # 3x-ui frontend
 
-React 19 + Ant Design 6 + TypeScript + Vite 8. Three SPA bundles —
-`index.html` (admin panel SPA, all `/panel/*` routes), `login.html`
-(login + 2FA), and `subpage.html` (public subscription viewer). All
-three are built into `../internal/web/dist/` and embedded into the Go binary
-via `embed.FS`.
+React 19 + Ant Design 6 + TypeScript + Vite 8. Two SPA bundles —
+`index.html` (admin panel SPA, all `/panel/*` routes) and `login.html`
+(login + 2FA). Both are built into `../internal/web/dist/` and embedded into
+the Go binary via `embed.FS`.
 
 State is split between local `useState`, TanStack Query for server
 state, and `useTheme` / `useWebSocket` contexts. Form validation,
@@ -87,7 +86,7 @@ normal network requests.
 
 ```
 frontend/
-├── index.html, login.html, subpage.html  # 3 Vite entries
+├── index.html, login.html                # 2 Vite entries
 ├── tsconfig.json
 ├── .oxlintrc.json                        # oxlint config (replaces the ESLint flat config)
 ├── .oxfmtrc.json                         # oxfmt config (Prettier-compatible settings)
@@ -105,8 +104,8 @@ frontend/
     ├── main.tsx         # Shared root for the admin SPA (index.html)
     ├── routes.tsx       # react-router routes mounted under /panel/
     ├── pages/           # One folder per route, page component + helpers
-    │   ├── index/, login/, inbounds/, clients/, xray/, nodes/,
-    │   ├── settings/, api-docs/, sub/
+    │   ├── index/, login/, inbounds/, clients/, xray/, groups/, hosts/,
+    │   ├── settings/, api-docs/
     ├── layouts/         # AdminLayout (sidebar + header + outlet)
     ├── components/      # Cross-page React components (+ co-located *.stories.tsx)
     ├── hooks/           # useClients, useTheme, useWebSocket, …

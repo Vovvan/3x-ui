@@ -31,7 +31,7 @@ file locations when it can answer in one hop.
   built into `internal/web/dist/` (gitignored) and embedded via `embed.FS`.
 
 ## Repo map
-- `main.go` — entry point + `x-ui` CLI (run, migrate, migrate-db, encrypt-tokens, setting, cert).
+- `main.go` — entry point + `x-ui` CLI (run, migrate, migrate-db, setting, cert).
 - `internal/config/` — env parsing (XUI_DEBUG, XUI_LOG_LEVEL, XUI_LOG_FOLDER,
   XUI_BIN_FOLDER, XUI_SKIP_HSTS, XUI_PORT, XUI_DB_*).
 - `internal/database/` + `internal/database/model/` — GORM schema (~24 models;
@@ -71,7 +71,7 @@ file locations when it can answer in one hop.
   `frontend/scripts/build-openapi.mjs`.
 - `docs/` — separate Next.js/Fumadocs site (pnpm, own CI in `docs-ci.yml`,
   outside `make verify`). Holds a THIRD independent implementation of
-  link/subscription generation in `docs/lib/xray/` — check it whenever
+  share-link generation in `docs/lib/xray/` — check it whenever
   share-link or install-command output changes.
 
 ## Hard rules (non-negotiable)

@@ -210,7 +210,7 @@ periodic traffic resets (hourly/daily/weekly/monthly). See §5.4.
 │   │   ├── job/               # Cron job structs (one file per job — see §5.4)
 │   │   ├── middleware/        # Gin middleware: security.go (headers/HSTS), bodylimit.go,
 │   │   │                      #   domainValidator.go, validate.go (CSRF), config_envelope.go
-│   │   ├── global/           # Global singletons: web server + sub server handles, restart hook
+│   │   ├── global/           # Global singletons: web server handle, restart hook
 │   │   ├── network/          # Custom net listeners (e.g. proxy-protocol aware)
 │   │   ├── session/          # Session/cookie helpers
 │   │   ├── websocket/        # WS hub implementation

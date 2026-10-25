@@ -836,8 +836,7 @@ function udpHopPorts(stream: NonNullable<Inbound['streamSettings']>): string {
 
 // Hysteria share link: hysteria2://<auth>@<host>:<port>?<query>#<remark>.
 // The scheme is always hysteria2 — xray-core builds version 2 only, so the
-// settings schema pins it there and the subscription server emits the same
-// scheme. Salamander obfuscation pulls its password from
+// settings schema pins it there and the panel emits the same scheme. Salamander obfuscation pulls its password from
 // finalmask.udp[type=salamander] when present; the broader finalmask payload
 // still rides under `fm` like the other links.
 //

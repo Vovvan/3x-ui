@@ -1,4 +1,4 @@
-// Package global provides global variables and interfaces for accessing web and subscription servers.
+// Package global provides the web server handle and in-process restart hook.
 package global
 
 import (

@@ -46,7 +46,7 @@ func Parse(raw string) (map[string]any, error) {
 // run: it resolves geosite tokens from geodata files the panel may not have.
 func validate(block map[string]any) (err error) {
 	// Third-party parser fed by a panel setting: a panic must degrade to
-	// "unusable value", never take the panel or sub server down.
+	// "unusable value", never take the panel down.
 	defer func() {
 		if panicValue := recover(); panicValue != nil {
 			err = fmt.Errorf("invalid DNS config: %v", panicValue)
