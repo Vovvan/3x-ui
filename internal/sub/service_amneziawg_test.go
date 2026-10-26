@@ -332,7 +332,7 @@ func decodeAmneziaWGSubLink(t *testing.T, link string) string {
 }
 
 // The shared clients row holds the last sync's tunnel identity. Each vpn://
-// entry must keep its own inbound address and private key, in either sort order (#6641).
+// entry must keep its own inbound address and private key (#6641).
 func TestGetSubs_PreservesPerInboundAmneziaWGIdentity(t *testing.T) {
 	serverAPriv, serverAPub := mustWireguardKeypair(t)
 	serverBPriv, serverBPub := mustWireguardKeypair(t)
@@ -353,74 +353,62 @@ func TestGetSubs_PreservesPerInboundAmneziaWGIdentity(t *testing.T) {
 		{"awg-b", "203.0.113.11", "10.8.2.2/32", privB, serverBPriv, serverBPub, 51821},
 	}
 
-	for _, tc := range []struct {
-		name  string
-		sort  [2]int
-		order [2]int
-	}{
-		{name: "creation order", sort: [2]int{1, 2}, order: [2]int{0, 1}},
-		{name: "reversed subscription sort", sort: [2]int{2, 1}, order: [2]int{1, 0}},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			initSubDB(t)
-			db := database.GetDB()
-			inbounds := make([]*model.Inbound, len(nodes))
-			for i, n := range nodes {
-				settings := fmt.Sprintf(
-					`{"server":{"privateKey":%q,"publicKey":%q,"mtu":1420},"clients":[{"email":%q,"privateKey":%q,"allowedIPs":[%q],"enable":true}]}`,
-					n.serverPriv, n.serverPub, email, n.priv, n.addr,
-				)
-				ib := &model.Inbound{
-					UserId: 1, Tag: n.tag, Enable: true, Listen: n.listen, Port: n.port,
-					Protocol: model.AmneziaWG, Remark: n.tag, Settings: settings, SubSortIndex: tc.sort[i],
-				}
-				if err := db.Create(ib).Error; err != nil {
-					t.Fatalf("create %s: %v", n.tag, err)
-				}
-				inbounds[i] = ib
-			}
-			rec := &model.ClientRecord{
-				Email: email, SubID: subID, Enable: true,
-				PrivateKey: mergedPriv, AllowedIPs: mergedAddr,
-				PreSharedKey: "sharedpsk", KeepAlive: model.KeepAliveValue("25"),
-			}
-			if err := db.Create(rec).Error; err != nil {
-				t.Fatalf("create client: %v", err)
-			}
-			for _, ib := range inbounds {
-				if err := db.Create(&model.ClientInbound{ClientId: rec.Id, InboundId: ib.Id}).Error; err != nil {
-					t.Fatalf("link %s: %v", ib.Tag, err)
-				}
-			}
+	initSubDB(t)
+	db := database.GetDB()
+	inbounds := make([]*model.Inbound, len(nodes))
+	for i, n := range nodes {
+		settings := fmt.Sprintf(
+			`{"server":{"privateKey":%q,"publicKey":%q,"mtu":1420},"clients":[{"email":%q,"privateKey":%q,"allowedIPs":[%q],"enable":true}]}`,
+			n.serverPriv, n.serverPub, email, n.priv, n.addr,
+		)
+		ib := &model.Inbound{
+			UserId: 1, Tag: n.tag, Enable: true, Listen: n.listen, Port: n.port,
+			Protocol: model.AmneziaWG, Remark: n.tag, Settings: settings,
+		}
+		if err := db.Create(ib).Error; err != nil {
+			t.Fatalf("create %s: %v", n.tag, err)
+		}
+		inbounds[i] = ib
+	}
+	rec := &model.ClientRecord{
+		Email: email, SubID: subID, Enable: true,
+		PrivateKey: mergedPriv, AllowedIPs: mergedAddr,
+		PreSharedKey: "sharedpsk", KeepAlive: model.KeepAliveValue("25"),
+	}
+	if err := db.Create(rec).Error; err != nil {
+		t.Fatalf("create client: %v", err)
+	}
+	for _, ib := range inbounds {
+		if err := db.Create(&model.ClientInbound{ClientId: rec.Id, InboundId: ib.Id}).Error; err != nil {
+			t.Fatalf("link %s: %v", ib.Tag, err)
+		}
+	}
 
-			links, _, _, _, err := NewSubService("").GetSubs(subID, "sub.example.com")
-			if err != nil {
-				t.Fatalf("GetSubs: %v", err)
+	links, _, _, _, err := NewSubService("").GetSubs(subID, "sub.example.com")
+	if err != nil {
+		t.Fatalf("GetSubs: %v", err)
+	}
+	if len(links) != len(nodes) {
+		t.Fatalf("links = %d, want %d: %v", len(links), len(nodes), links)
+	}
+	for i, n := range nodes {
+		other := nodes[1-i]
+		conf := decodeAmneziaWGSubLink(t, links[i])
+		for _, want := range []string{
+			"PrivateKey = " + n.priv,
+			"Address = " + n.addr,
+			"PublicKey = " + n.serverPub,
+			fmt.Sprintf("Endpoint = %s:%d", n.listen, n.port),
+		} {
+			if !strings.Contains(conf, want) {
+				t.Fatalf("config missing %q\n%s", want, conf)
 			}
-			if len(links) != len(nodes) {
-				t.Fatalf("links = %d, want %d: %v", len(links), len(nodes), links)
+		}
+		for _, leaked := range []string{mergedPriv, mergedAddr, "sharedpsk", "PresharedKey", "PersistentKeepalive", other.priv, other.addr, other.serverPub} {
+			if strings.Contains(conf, leaked) {
+				t.Fatalf("config leaked %q\n%s", leaked, conf)
 			}
-			for outIdx, nodeIdx := range tc.order {
-				n := nodes[nodeIdx]
-				other := nodes[1-nodeIdx]
-				conf := decodeAmneziaWGSubLink(t, links[outIdx])
-				for _, want := range []string{
-					"PrivateKey = " + n.priv,
-					"Address = " + n.addr,
-					"PublicKey = " + n.serverPub,
-					fmt.Sprintf("Endpoint = %s:%d", n.listen, n.port),
-				} {
-					if !strings.Contains(conf, want) {
-						t.Fatalf("config missing %q\n%s", want, conf)
-					}
-				}
-				for _, leaked := range []string{mergedPriv, mergedAddr, "sharedpsk", "PresharedKey", "PersistentKeepalive", other.priv, other.addr, other.serverPub} {
-					if strings.Contains(conf, leaked) {
-						t.Fatalf("config leaked %q\n%s", leaked, conf)
-					}
-				}
-			}
-		})
+		}
 	}
 }
 
@@ -460,7 +448,7 @@ func TestGetSubs_AmneziaWGUnavailableSettingsEmitNoSharedConfig(t *testing.T) {
 	for i, sp := range specs {
 		ib := &model.Inbound{
 			UserId: 1, Tag: sp.tag, Enable: true, Listen: sp.listen, Port: sp.port,
-			Protocol: model.AmneziaWG, Remark: sp.tag, Settings: sp.settings, SubSortIndex: i + 1,
+			Protocol: model.AmneziaWG, Remark: sp.tag, Settings: sp.settings,
 		}
 		if err := db.Create(ib).Error; err != nil {
 			t.Fatalf("create %s: %v", sp.tag, err)

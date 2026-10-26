@@ -3142,11 +3142,6 @@ export const SCHEMAS: Record<string, unknown> = {
         "example": true,
         "type": "boolean"
       },
-      "excludeFromSub": {
-        "description": "Whether to omit this inbound from subscription output while keeping it operational",
-        "example": false,
-        "type": "boolean"
-      },
       "expiryTime": {
         "description": "Expiration timestamp",
         "format": "int64",
@@ -3228,11 +3223,6 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "sniffing": {},
       "streamSettings": {},
-      "subSortIndex": {
-        "description": "Sort order of this inbound's links in subscription output only (lower first; negatives allowed; 0/omitted → 1; ties by id)",
-        "example": 1,
-        "type": "integer"
-      },
       "tag": {
         "example": "in-443-tcp",
         "type": "string"
@@ -3271,7 +3261,6 @@ export const SCHEMAS: Record<string, unknown> = {
       "disableFlow",
       "down",
       "enable",
-      "excludeFromSub",
       "expiryTime",
       "id",
       "lastTrafficResetTime",
@@ -3284,7 +3273,6 @@ export const SCHEMAS: Record<string, unknown> = {
       "shareAddrStrategy",
       "sniffing",
       "streamSettings",
-      "subSortIndex",
       "tag",
       "total",
       "trafficReset",
@@ -4638,7 +4626,7 @@ export const SCHEMAS: Record<string, unknown> = {
     "type": "object"
   },
   "SubBalancer": {
-    "description": "SubBalancer is one extra JSON-subscription config document whose members are\nthe selected inbounds' proxy outbounds. SortOrder shares SubSortIndex semantics.",
+    "description": "SubBalancer is one extra JSON-subscription config document whose members are\nthe selected inbounds' proxy outbounds. SortOrder orders the documents.",
     "properties": {
       "createdAt": {
         "example": 1710000000000,

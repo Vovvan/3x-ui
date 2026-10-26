@@ -28,7 +28,6 @@ import type { ClientCountEntry, DBInboundRecord, InboundSpeedEntry, RowAction } 
 
 interface UseInboundColumnsParams {
   hasAnyRemark: boolean;
-  hasAnySubSortIndex: boolean;
   hostRemarksByInboundId: Map<number, string[]>;
   clientCount: Record<number, ClientCountEntry>;
   inboundSpeed: Record<number, InboundSpeedEntry>;
@@ -40,7 +39,6 @@ interface UseInboundColumnsParams {
 
 export function useInboundColumns({
   hasAnyRemark,
-  hasAnySubSortIndex,
   hostRemarksByInboundId,
   clientCount,
   inboundSpeed,
@@ -152,21 +150,6 @@ export function useInboundColumns({
             </div>
           );
         },
-      });
-    }
-
-    if (hasAnySubSortIndex) {
-      cols.push({
-        title: (
-          <Tooltip title={t('pages.inbounds.form.subSortIndex')}>
-            {t('pages.inbounds.subSortIndex')}
-          </Tooltip>
-        ),
-        dataIndex: 'subSortIndex',
-        key: 'subSortIndex',
-        align: 'right',
-        width: 90,
-        sorter: (a, b) => (a.subSortIndex ?? 1) - (b.subSortIndex ?? 1),
       });
     }
 
@@ -442,7 +425,6 @@ export function useInboundColumns({
   }, [
     t,
     hasAnyRemark,
-    hasAnySubSortIndex,
     hostRemarksByInboundId,
     clientCount,
     inboundSpeed,

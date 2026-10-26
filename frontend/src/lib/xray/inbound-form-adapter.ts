@@ -58,8 +58,6 @@ export interface RawInboundRow {
   lastTrafficResetTime?: number;
   shareAddrStrategy?: string;
   shareAddr?: string;
-  subSortIndex?: number;
-  excludeFromSub?: boolean;
   disableFlow?: boolean;
   clientStats?: unknown;
 }
@@ -87,8 +85,6 @@ export interface WireInboundPayload {
   clientStats?: unknown;
   shareAddrStrategy: ShareAddrStrategy;
   shareAddr: string;
-  subSortIndex: number;
-  excludeFromSub: boolean;
   disableFlow: boolean;
 }
 
@@ -231,8 +227,6 @@ export function rawInboundToFormValues(row: RawInboundRow): InboundFormValues {
     lastTrafficResetTime: row.lastTrafficResetTime ?? 0,
     shareAddrStrategy: coerceShareAddrStrategy(row.shareAddrStrategy),
     shareAddr: row.shareAddr ?? '',
-    subSortIndex: row.subSortIndex == null || row.subSortIndex === 0 ? 1 : row.subSortIndex,
-    excludeFromSub: row.excludeFromSub ?? false,
     disableFlow: row.disableFlow ?? false,
     protocol,
     settings,
@@ -401,8 +395,6 @@ export function formValuesToWirePayload(
     tag: values.tag,
     shareAddrStrategy: values.shareAddrStrategy,
     shareAddr: values.shareAddr,
-    subSortIndex: values.subSortIndex,
-    excludeFromSub: values.excludeFromSub,
     disableFlow: values.disableFlow,
   };
   return payload;

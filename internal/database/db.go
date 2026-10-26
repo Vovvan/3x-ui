@@ -101,14 +101,6 @@ func migrateOutboundSubscriptionUserAgentColumn() error {
 	return migrator.AddColumn(&model.OutboundSubscription{}, "UserAgent")
 }
 
-func migrateInboundExcludeFromSubColumn() error {
-	migrator := db.Migrator()
-	if !migrator.HasTable(&model.Inbound{}) || migrator.HasColumn(&model.Inbound{}, "exclude_from_sub") {
-		return nil
-	}
-	return migrator.AddColumn(&model.Inbound{}, "ExcludeFromSub")
-}
-
 func migrateClientKeepAliveRangeColumn() error {
 	migrator := db.Migrator()
 	if !migrator.HasTable(&model.ClientRecord{}) || migrator.HasColumn(&model.ClientRecord{}, "wg_keep_alive_range") {
@@ -125,9 +117,6 @@ func initModels() error {
 		return err
 	}
 	if err := migrateOutboundSubscriptionUserAgentColumn(); err != nil {
-		return err
-	}
-	if err := migrateInboundExcludeFromSubColumn(); err != nil {
 		return err
 	}
 	models := allModels()
@@ -147,6 +136,9 @@ func initModels() error {
 	if err := dropLegacyInboundPortUnique(); err != nil {
 		return err
 	}
+	if err := migrateDropInboundSubscriptionColumns(); err != nil {
+		return err
+	}
 	if err := migrateHostVerifyPeerCertByNameColumn(); err != nil {
 		return err
 	}
@@ -163,9 +155,6 @@ func initModels() error {
 		return err
 	}
 	if err := pruneOrphanedHosts(); err != nil {
-		return err
-	}
-	if err := normalizeInboundSubSortIndex(); err != nil {
 		return err
 	}
 	if err := normalizeClientExternalLinkEnable(); err != nil {
@@ -1293,16 +1282,21 @@ func migrateTgIDIndex() error {
 	return db.Migrator().CreateIndex(&model.ClientRecord{}, "TgID")
 }
 
-// normalizeInboundSubSortIndex lifts legacy zero defaults to 1.
-// Explicit negatives are left alone so primary inbounds can sort first.
-func normalizeInboundSubSortIndex() error {
-	res := db.Exec("UPDATE inbounds SET sub_sort_index = 1 WHERE sub_sort_index = 0")
-	if res.Error != nil {
-		log.Printf("Error normalizing inbound sub_sort_index: %v", res.Error)
-		return res.Error
+// migrateDropInboundSubscriptionColumns removes the retired ordering and
+// exclusion columns; subscription output now follows inbound id.
+func migrateDropInboundSubscriptionColumns() error {
+	m := db.Migrator()
+	if !m.HasTable(&model.Inbound{}) {
+		return nil
 	}
-	if res.RowsAffected > 0 {
-		log.Printf("Normalized sub_sort_index on %d inbound(s)", res.RowsAffected)
+	for _, col := range []string{"sub_sort_index", "exclude_from_sub"} {
+		if !m.HasColumn(&model.Inbound{}, col) {
+			continue
+		}
+		if err := db.Exec("ALTER TABLE inbounds DROP COLUMN " + col).Error; err != nil {
+			log.Printf("Error dropping retired inbound column %s: %v", col, err)
+			return err
+		}
 	}
 	return nil
 }

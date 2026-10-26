@@ -670,23 +670,6 @@ export default function InboundFormModal({
         </>
       )}
 
-      <FormField
-        name="subSortIndex"
-        label={t('pages.inbounds.form.subSortIndex')}
-        tooltip={t('pages.inbounds.form.subSortIndexHelp')}
-      >
-        <InputNumber />
-      </FormField>
-
-      <FormField
-        name="excludeFromSub"
-        valueProp="checked"
-        label={t('pages.inbounds.form.excludeFromSub')}
-        tooltip={t('pages.inbounds.form.excludeFromSubHelp')}
-      >
-        <Switch />
-      </FormField>
-
       {protocol === Protocols.VLESS && (
         <FormField
           name="disableFlow"

@@ -725,7 +725,6 @@ export interface Inbound {
   disableFlow: boolean;
   down: number;
   enable: boolean;
-  excludeFromSub: boolean;
   expiryTime: number;
   fallbackParent?: FallbackParentInfo | null;
   id: number;
@@ -741,7 +740,6 @@ export interface Inbound {
   shareAddrStrategy: string;
   sniffing: unknown;
   streamSettings: unknown;
-  subSortIndex: number;
   tag: string;
   total: number;
   trafficReset: string;

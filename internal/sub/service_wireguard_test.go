@@ -155,7 +155,7 @@ func parseWireguardSubLink(t *testing.T, link string) *url.URL {
 }
 
 // The shared clients row holds the last sync's tunnel identity. Each wireguard://
-// entry must keep its own key and both IPv4 and IPv6 addresses, in either sort order (#6641).
+// entry must keep its own key and both IPv4 and IPv6 addresses (#6641).
 func TestGetSubs_PreservesPerInboundWireGuardIdentity(t *testing.T) {
 	serverAPriv, serverAPub := mustWireguardKeypair(t)
 	serverBPriv, serverBPub := mustWireguardKeypair(t)
@@ -177,78 +177,66 @@ func TestGetSubs_PreservesPerInboundWireGuardIdentity(t *testing.T) {
 		{"wg-b", "203.0.113.11", privB, serverBPriv, serverBPub, 51821, []string{"10.2.0.2/32", "fd00:2::2/128"}},
 	}
 
-	for _, tc := range []struct {
-		name  string
-		sort  [2]int
-		order [2]int
-	}{
-		{name: "creation order", sort: [2]int{1, 2}, order: [2]int{0, 1}},
-		{name: "reversed subscription sort", sort: [2]int{2, 1}, order: [2]int{1, 0}},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			initSubDB(t)
-			db := database.GetDB()
-			inbounds := make([]*model.Inbound, len(nodes))
-			for i, n := range nodes {
-				settings := fmt.Sprintf(
-					`{"secretKey":%q,"mtu":1420,"clients":[{"email":%q,"privateKey":%q,"allowedIPs":[%q,%q],"enable":true}]}`,
-					n.serverPriv, email, n.priv, n.allowed[0], n.allowed[1],
-				)
-				ib := &model.Inbound{
-					UserId: 1, Tag: n.tag, Enable: true, Listen: n.listen, Port: n.port,
-					Protocol: model.WireGuard, Remark: n.tag, Settings: settings, SubSortIndex: tc.sort[i],
-				}
-				if err := db.Create(ib).Error; err != nil {
-					t.Fatalf("create %s: %v", n.tag, err)
-				}
-				inbounds[i] = ib
-			}
-			rec := &model.ClientRecord{
-				Email: email, SubID: subID, Enable: true,
-				PrivateKey: mergedPriv, AllowedIPs: mergedAddr,
-				PreSharedKey: "sharedpsk", KeepAlive: model.KeepAliveValue("25"),
-			}
-			if err := db.Create(rec).Error; err != nil {
-				t.Fatalf("create client: %v", err)
-			}
-			for _, ib := range inbounds {
-				if err := db.Create(&model.ClientInbound{ClientId: rec.Id, InboundId: ib.Id}).Error; err != nil {
-					t.Fatalf("link %s: %v", ib.Tag, err)
-				}
-			}
+	initSubDB(t)
+	db := database.GetDB()
+	inbounds := make([]*model.Inbound, len(nodes))
+	for i, n := range nodes {
+		settings := fmt.Sprintf(
+			`{"secretKey":%q,"mtu":1420,"clients":[{"email":%q,"privateKey":%q,"allowedIPs":[%q,%q],"enable":true}]}`,
+			n.serverPriv, email, n.priv, n.allowed[0], n.allowed[1],
+		)
+		ib := &model.Inbound{
+			UserId: 1, Tag: n.tag, Enable: true, Listen: n.listen, Port: n.port,
+			Protocol: model.WireGuard, Remark: n.tag, Settings: settings,
+		}
+		if err := db.Create(ib).Error; err != nil {
+			t.Fatalf("create %s: %v", n.tag, err)
+		}
+		inbounds[i] = ib
+	}
+	rec := &model.ClientRecord{
+		Email: email, SubID: subID, Enable: true,
+		PrivateKey: mergedPriv, AllowedIPs: mergedAddr,
+		PreSharedKey: "sharedpsk", KeepAlive: model.KeepAliveValue("25"),
+	}
+	if err := db.Create(rec).Error; err != nil {
+		t.Fatalf("create client: %v", err)
+	}
+	for _, ib := range inbounds {
+		if err := db.Create(&model.ClientInbound{ClientId: rec.Id, InboundId: ib.Id}).Error; err != nil {
+			t.Fatalf("link %s: %v", ib.Tag, err)
+		}
+	}
 
-			links, _, _, _, err := NewSubService("").GetSubs(subID, "sub.example.com")
-			if err != nil {
-				t.Fatalf("GetSubs: %v", err)
-			}
-			if len(links) != len(nodes) {
-				t.Fatalf("links = %d, want %d: %v", len(links), len(nodes), links)
-			}
-			for outIdx, nodeIdx := range tc.order {
-				n := nodes[nodeIdx]
-				other := nodes[1-nodeIdx]
-				u := parseWireguardSubLink(t, links[outIdx])
-				if u.Host != fmt.Sprintf("%s:%d", n.listen, n.port) {
-					t.Fatalf("host = %q, want %s:%d", u.Host, n.listen, n.port)
-				}
-				if u.User.Username() != n.priv {
-					t.Fatalf("private key = %q, want inbound key %q", u.User.Username(), n.priv)
-				}
-				q := u.Query()
-				if got, want := q.Get("address"), strings.Join(n.allowed, ","); got != want {
-					t.Fatalf("address = %q, want %q", got, want)
-				}
-				if q.Get("publickey") != n.serverPub {
-					t.Fatalf("publickey = %q, want %q", q.Get("publickey"), n.serverPub)
-				}
-				if q.Get("presharedkey") != "" || q.Get("keepalive") != "" {
-					t.Fatalf("optional fields inherited shared values: %s", u.RawQuery)
-				}
-				if u.User.Username() == mergedPriv || strings.Contains(q.Get("address"), "10.9.9.9") || strings.Contains(q.Get("address"), other.allowed[0]) || strings.Contains(q.Get("address"), other.allowed[1]) {
-					t.Fatalf("link borrowed another tunnel identity: %s", links[outIdx])
-				}
-			}
-		})
+	links, _, _, _, err := NewSubService("").GetSubs(subID, "sub.example.com")
+	if err != nil {
+		t.Fatalf("GetSubs: %v", err)
+	}
+	if len(links) != len(nodes) {
+		t.Fatalf("links = %d, want %d: %v", len(links), len(nodes), links)
+	}
+	for i, n := range nodes {
+		other := nodes[1-i]
+		u := parseWireguardSubLink(t, links[i])
+		if u.Host != fmt.Sprintf("%s:%d", n.listen, n.port) {
+			t.Fatalf("host = %q, want %s:%d", u.Host, n.listen, n.port)
+		}
+		if u.User.Username() != n.priv {
+			t.Fatalf("private key = %q, want inbound key %q", u.User.Username(), n.priv)
+		}
+		q := u.Query()
+		if got, want := q.Get("address"), strings.Join(n.allowed, ","); got != want {
+			t.Fatalf("address = %q, want %q", got, want)
+		}
+		if q.Get("publickey") != n.serverPub {
+			t.Fatalf("publickey = %q, want %q", q.Get("publickey"), n.serverPub)
+		}
+		if q.Get("presharedkey") != "" || q.Get("keepalive") != "" {
+			t.Fatalf("optional fields inherited shared values: %s", u.RawQuery)
+		}
+		if u.User.Username() == mergedPriv || strings.Contains(q.Get("address"), "10.9.9.9") || strings.Contains(q.Get("address"), other.allowed[0]) || strings.Contains(q.Get("address"), other.allowed[1]) {
+			t.Fatalf("link borrowed another tunnel identity: %s", links[i])
+		}
 	}
 }
 
@@ -288,7 +276,7 @@ func TestGetSubs_WireGuardUnavailableSettingsEmitNoSharedConfig(t *testing.T) {
 	for i, sp := range specs {
 		ib := &model.Inbound{
 			UserId: 1, Tag: sp.tag, Enable: true, Listen: sp.listen, Port: sp.port,
-			Protocol: model.WireGuard, Remark: sp.tag, Settings: sp.settings, SubSortIndex: i + 1,
+			Protocol: model.WireGuard, Remark: sp.tag, Settings: sp.settings,
 		}
 		if err := db.Create(ib).Error; err != nil {
 			t.Fatalf("create %s: %v", sp.tag, err)

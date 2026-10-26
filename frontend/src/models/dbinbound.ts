@@ -42,8 +42,6 @@ export type DBInboundInit = Partial<{
   clientStats: ClientStats[];
   shareAddrStrategy: string;
   shareAddr: string;
-  subSortIndex: number;
-  excludeFromSub: boolean;
   disableFlow: boolean;
   fallbackParent: FallbackParentRef | null;
 }>;
@@ -90,8 +88,6 @@ export class DBInbound {
   clientStats: ClientStats[];
   shareAddrStrategy: string;
   shareAddr: string;
-  subSortIndex: number;
-  excludeFromSub: boolean;
   disableFlow: boolean;
   fallbackParent: FallbackParentRef | null;
 
@@ -120,8 +116,6 @@ export class DBInbound {
     this.clientStats = [];
     this.shareAddrStrategy = 'listen';
     this.shareAddr = '';
-    this.subSortIndex = 1;
-    this.excludeFromSub = false;
     this.disableFlow = false;
     this.fallbackParent = null;
     if (data == null) {

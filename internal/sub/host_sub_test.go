@@ -28,7 +28,7 @@ func seedSubDB(t *testing.T) {
 
 // seedSubInbound creates a VLESS inbound with one client wired into the
 // normalized clients/client_inbounds tables so getInboundsBySubId resolves it.
-func seedSubInbound(t *testing.T, subId, tag string, port, subSortIndex int, stream string) *model.Inbound {
+func seedSubInbound(t *testing.T, subId, tag string, port int, stream string) *model.Inbound {
 	t.Helper()
 	db := database.GetDB()
 	uuid := "11111111-2222-4333-8444-" + fmt.Sprintf("%012d", port)
@@ -37,7 +37,6 @@ func seedSubInbound(t *testing.T, subId, tag string, port, subSortIndex int, str
 	ib := &model.Inbound{
 		UserId: 1, Tag: tag, Enable: true, Listen: "203.0.113.5", Port: port,
 		Protocol: model.VLESS, Remark: tag, Settings: settings, StreamSettings: stream,
-		SubSortIndex: subSortIndex,
 	}
 	if err := db.Create(ib).Error; err != nil {
 		t.Fatalf("seed inbound %s: %v", tag, err)
@@ -66,7 +65,7 @@ const wsTLSStream = `{"network":"ws","security":"tls","wsSettings":{"path":"/bas
 // link from the inbound's own address. Mutation-checks the zero-hosts fallback.
 func TestSub_ZeroHosts_IdenticalOutput(t *testing.T) {
 	seedSubDB(t)
-	seedSubInbound(t, "s1", "z", 4431, 1, `{"network":"tcp","security":"tls","tlsSettings":{"serverName":"base.sni"}}`)
+	seedSubInbound(t, "s1", "z", 4431, `{"network":"tcp","security":"tls","tlsSettings":{"serverName":"base.sni"}}`)
 	links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
 	if err != nil {
 		t.Fatalf("GetSubs: %v", err)
@@ -86,7 +85,7 @@ func TestSub_ZeroHosts_IdenticalOutput(t *testing.T) {
 // own address/port/sni and host-header/path override.
 func TestSub_NHosts_EmitsNLinksOrdered(t *testing.T) {
 	seedSubDB(t)
-	ib := seedSubInbound(t, "s1", "n", 4432, 1, wsTLSStream)
+	ib := seedSubInbound(t, "s1", "n", 4432, wsTLSStream)
 	seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 2, Remark: "B", Address: "b.cdn.com", Port: 8443, Security: "tls", Sni: "b.sni", HostHeader: "b.host", Path: "/b"})
 	seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 1, Remark: "A", Address: "a.cdn.com", Port: 2096, Security: "tls", Sni: "a.sni", HostHeader: "a.host", Path: "/a"})
 
@@ -111,7 +110,7 @@ func TestSub_NHosts_EmitsNLinksOrdered(t *testing.T) {
 // #3 — a disabled host is omitted; the inbound falls back to its legacy link.
 func TestSub_DisabledHostSkipped(t *testing.T) {
 	seedSubDB(t)
-	ib := seedSubInbound(t, "s1", "d", 4433, 1, wsTLSStream)
+	ib := seedSubInbound(t, "s1", "d", 4433, wsTLSStream)
 	seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 1, Remark: "OFF", Address: "off.cdn.com", Port: 8443, IsDisabled: true})
 
 	links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
@@ -132,7 +131,7 @@ func TestSub_DisabledHostSkipped(t *testing.T) {
 func TestSub_HostAndExternalProxy_Precedence(t *testing.T) {
 	seedSubDB(t)
 	stream := `{"network":"ws","security":"tls","wsSettings":{"path":"/base","host":"base.host"},"tlsSettings":{"serverName":"base.sni"},"externalProxy":[{"forceTls":"tls","dest":"legacy.cdn.com","port":7443,"remark":"L"}]}`
-	ib := seedSubInbound(t, "s1", "p", 4434, 1, stream)
+	ib := seedSubInbound(t, "s1", "p", 4434, stream)
 	seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 1, Remark: "H", Address: "host.cdn.com", Port: 8443, Security: "tls", Sni: "host.sni"})
 
 	links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
@@ -152,7 +151,7 @@ func TestSub_HostAndExternalProxy_Precedence(t *testing.T) {
 // distinct hosts produce distinct links. Mutation-checks the (absent) dedup.
 func TestSub_NHosts_NoDedup(t *testing.T) {
 	seedSubDB(t)
-	ib := seedSubInbound(t, "s1", "dd", 4435, 1, wsTLSStream)
+	ib := seedSubInbound(t, "s1", "dd", 4435, wsTLSStream)
 	seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 1, Remark: "SAME", Address: "one.cdn.com", Port: 8443, Security: "tls"})
 	seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 2, Remark: "SAME", Address: "two.cdn.com", Port: 8443, Security: "tls"})
 
@@ -170,13 +169,11 @@ func TestSub_NHosts_NoDedup(t *testing.T) {
 	}
 }
 
-// #6 — host sort_order composes with inbound SubSortIndex: inbounds order by
-// SubSortIndex, hosts within an inbound by sort_order.
-func TestSub_HostSortComposesWithSubSortIndex(t *testing.T) {
+// #6 — inbound id orders inbounds; hosts within an inbound follow sort_order.
+func TestSub_HostSortComposesWithInboundId(t *testing.T) {
 	seedSubDB(t)
-	// inbound "second" has a higher SubSortIndex so it must come after "first".
-	ibFirst := seedSubInbound(t, "s1", "first", 4436, 1, wsTLSStream)
-	ibSecond := seedSubInbound(t, "s1", "second", 4437, 2, wsTLSStream)
+	ibFirst := seedSubInbound(t, "s1", "first", 4436, wsTLSStream)
+	ibSecond := seedSubInbound(t, "s1", "second", 4437, wsTLSStream)
 	seedHost(t, &model.Host{InboundId: ibSecond.Id, SortOrder: 1, Remark: "S", Address: "second-host.com", Port: 8443, Security: "tls"})
 	seedHost(t, &model.Host{InboundId: ibFirst.Id, SortOrder: 1, Remark: "F", Address: "first-host.com", Port: 8443, Security: "tls"})
 
@@ -191,7 +188,7 @@ func TestSub_HostSortComposesWithSubSortIndex(t *testing.T) {
 		t.Fatalf("both inbound hosts should render: %s", joined)
 	}
 	if firstAt > secondAt {
-		t.Fatalf("inbound order must follow SubSortIndex (first before second): %s", joined)
+		t.Fatalf("inbound order must follow id (first before second): %s", joined)
 	}
 }
 
@@ -210,7 +207,7 @@ func TestSub_HostOverFallback(t *testing.T) {
 		t.Fatalf("seed master: %v", err)
 	}
 	// child listens internal-only so projection triggers.
-	child := seedSubInbound(t, "s1", "child", 4438, 1, `{"network":"tcp","security":"none"}`)
+	child := seedSubInbound(t, "s1", "child", 4438, `{"network":"tcp","security":"none"}`)
 	child.Listen = "127.0.0.1"
 	if err := db.Model(&model.Inbound{}).Where("id = ?", child.Id).Update("listen", "127.0.0.1").Error; err != nil {
 		t.Fatalf("set child listen: %v", err)
@@ -237,8 +234,8 @@ func TestSub_HostOverFallback(t *testing.T) {
 // clients ⋈ client_inbounds ⋈ inbounds join), never arbitrary inbounds.
 func TestSub_HostsResolveViaClientInbounds(t *testing.T) {
 	seedSubDB(t)
-	seedSubInbound(t, "s1", "mine", 4439, 1, wsTLSStream)           // client on s1
-	other := seedSubInbound(t, "s2", "other", 4440, 1, wsTLSStream) // client on s2 only
+	seedSubInbound(t, "s1", "mine", 4439, wsTLSStream)           // client on s1
+	other := seedSubInbound(t, "s2", "other", 4440, wsTLSStream) // client on s2 only
 	seedHost(t, &model.Host{InboundId: other.Id, SortOrder: 1, Remark: "X", Address: "other-host.com", Port: 8443, Security: "tls"})
 
 	links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
@@ -261,7 +258,7 @@ func TestSub_HostsResolveViaClientInbounds(t *testing.T) {
 // any inbound-level mask (#5831).
 func TestSub_HostFinalMask_RawLink(t *testing.T) {
 	seedSubDB(t)
-	ib := seedSubInbound(t, "s1", "fmh", 4455, 1,
+	ib := seedSubInbound(t, "s1", "fmh", 4455,
 		`{"network":"tcp","security":"tls","tlsSettings":{"serverName":"base.sni"},"finalmask":{"tcp":[{"type":"sudoku"}]}}`)
 	finalMask := `{"tcp":[{"type":"fragment","settings":{"packets":"tlshello","lengths":["5-10","10-15","15-20","20-25","25-30"],"delays":["10-20","5-20","5-25","15-25","10-30"],"maxSplit":"10-15"}}]}`
 	seedHost(t, &model.Host{
@@ -301,7 +298,7 @@ func TestSub_HostFinalMask_RawLink(t *testing.T) {
 func TestSub_HostRealitySniOverride(t *testing.T) {
 	seedSubDB(t)
 	realityStream := `{"network":"tcp","security":"reality","tcpSettings":{"header":{"type":"none"}},"realitySettings":{"serverNames":["base.reality.com"],"shortIds":["abcd"],"settings":{"publicKey":"PBK","fingerprint":"chrome"}}}`
-	ib := seedSubInbound(t, "s1", "rl", 4490, 1, realityStream)
+	ib := seedSubInbound(t, "s1", "rl", 4490, realityStream)
 	seedHost(t, &model.Host{
 		InboundId: ib.Id, SortOrder: 0, Remark: "RL", Address: "rl.cdn.com", Port: 8443,
 		Security: "reality", Sni: "host.reality.com", Fingerprint: "firefox",
@@ -431,7 +428,7 @@ func TestSub_HostMihomoX25519RawLink(t *testing.T) {
 func TestSub_HostTlsOverRealityDropsRealityParams(t *testing.T) {
 	seedSubDB(t)
 	reality := `{"network":"tcp","security":"reality","realitySettings":{"serverNames":["master-dest.example.com"],"publicKey":"MASTERPBK","shortIds":["ab12"],"fingerprint":"chrome"}}`
-	ib := seedSubInbound(t, "s1", "reality-in", 4461, 1, reality)
+	ib := seedSubInbound(t, "s1", "reality-in", 4461, reality)
 	seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 1, Remark: "H", Address: "edge.example.com", Port: 443, Security: "tls"})
 
 	links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")

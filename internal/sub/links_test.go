@@ -45,7 +45,7 @@ func TestSplitLinkLines_WhitespaceOnlyHasNoEntries(t *testing.T) {
 
 func TestLinksForClient_UsesHostEndpoints(t *testing.T) {
 	seedSubDB(t)
-	inbound := seedSubInbound(t, "s-gate", "gate", 4431, 1, `{"network":"tcp","security":"none"}`)
+	inbound := seedSubInbound(t, "s-gate", "gate", 4431, `{"network":"tcp","security":"none"}`)
 	seedHost(t, &model.Host{
 		InboundId: inbound.Id, Remark: "public", Address: "proxy.example.com",
 		Port: 443, Security: "same",

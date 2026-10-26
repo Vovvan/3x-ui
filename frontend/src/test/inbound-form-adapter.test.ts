@@ -7,7 +7,7 @@ import {
   type RawInboundRow,
 } from '@/lib/xray/inbound-form-adapter';
 import { DBInbound, type DBInboundInit } from '@/models/dbinbound';
-import { InboundDbFieldsSchema, InboundFormSchema } from '@/schemas/forms/inbound-form';
+import { InboundFormSchema } from '@/schemas/forms/inbound-form';
 import { normalizeXhttpForWire } from '@/lib/xray/stream-wire-normalize';
 import { SockoptStreamSettingsSchema } from '@/schemas/protocols/stream/sockopt';
 
@@ -280,35 +280,6 @@ describe('formValuesToWirePayload', () => {
   });
 });
 
-describe('excludeFromSub', () => {
-  it('DBInbound constructor preserves excludeFromSub from the API row', () => {
-    expect(new DBInbound({ excludeFromSub: true }).excludeFromSub).toBe(true);
-    expect(new DBInbound({ excludeFromSub: false }).excludeFromSub).toBe(false);
-  });
-
-  it('DBInbound defaults excludeFromSub to false when the API omits it', () => {
-    expect(new DBInbound({ protocol: 'vless' }).excludeFromSub).toBe(false);
-    expect(new DBInbound().excludeFromSub).toBe(false);
-  });
-
-  it('rawInboundToFormValues reads excludeFromSub and defaults to false', () => {
-    expect(rawInboundToFormValues({ ...vlessRow, excludeFromSub: true }).excludeFromSub).toBe(true);
-    expect(rawInboundToFormValues(vlessRow).excludeFromSub).toBe(false);
-  });
-
-  it('formValuesToWirePayload includes excludeFromSub', () => {
-    const values = rawInboundToFormValues({ ...vlessRow, excludeFromSub: true });
-    expect(formValuesToWirePayload(values).excludeFromSub).toBe(true);
-  });
-
-  it('excludeFromSub survives raw → DBInbound → values → payload (the edit round-trip)', () => {
-    const db = new DBInbound({ ...vlessRow, excludeFromSub: true } as unknown as DBInboundInit);
-    const values = rawInboundToFormValues(db as unknown as RawInboundRow);
-    const payload = formValuesToWirePayload(values);
-    expect(payload.excludeFromSub).toBe(true);
-  });
-});
-
 describe('disableFlow', () => {
   it('DBInbound constructor preserves disableFlow from the API row', () => {
     expect(new DBInbound({ disableFlow: true }).disableFlow).toBe(true);
@@ -335,45 +306,6 @@ describe('disableFlow', () => {
     const values = rawInboundToFormValues(db as unknown as RawInboundRow);
     const payload = formValuesToWirePayload(values);
     expect(payload.disableFlow).toBe(true);
-  });
-});
-
-describe('subSortIndex', () => {
-  it('rawInboundToFormValues defaults to 1 when field is absent', () => {
-    const values = rawInboundToFormValues({ ...vlessRow, subSortIndex: undefined });
-    expect(values.subSortIndex).toBe(1);
-  });
-
-  it('rawInboundToFormValues preserves positives and negatives; maps 0/absent to 1', () => {
-    expect(rawInboundToFormValues({ ...vlessRow, subSortIndex: 5 }).subSortIndex).toBe(5);
-    expect(rawInboundToFormValues({ ...vlessRow, subSortIndex: 0 }).subSortIndex).toBe(1);
-    expect(rawInboundToFormValues({ ...vlessRow, subSortIndex: -10 }).subSortIndex).toBe(-10);
-  });
-
-  it('formValuesToWirePayload includes subSortIndex in the payload', () => {
-    const values = rawInboundToFormValues({ ...vlessRow, subSortIndex: 3 });
-    const payload = formValuesToWirePayload(values);
-    expect(payload.subSortIndex).toBe(3);
-  });
-
-  it('subSortIndex round-trips through raw → values → payload', () => {
-    const values = rawInboundToFormValues({ ...vlessRow, subSortIndex: 42 });
-    const payload = formValuesToWirePayload(values);
-    const replay = rawInboundToFormValues({ ...vlessRow, subSortIndex: payload.subSortIndex });
-    expect(replay.subSortIndex).toBe(42);
-  });
-
-  it('InboundDbFieldsSchema accepts integers including negatives and defaults to 1', () => {
-    // Reject for the RIGHT reason: the issue must be about subSortIndex, not some
-    // unrelated field — otherwise a schema that rejects everything would pass.
-    const nonInt = InboundDbFieldsSchema.partial().safeParse({ subSortIndex: 1.5 });
-    expect(nonInt.success).toBe(false);
-    if (!nonInt.success) expect(nonInt.error.issues[0]?.path).toContain('subSortIndex');
-
-    expect(InboundDbFieldsSchema.partial().safeParse({ subSortIndex: 0 }).success).toBe(true);
-    expect(InboundDbFieldsSchema.partial().safeParse({ subSortIndex: -1 }).success).toBe(true);
-    expect(InboundDbFieldsSchema.partial().safeParse({ subSortIndex: 5 }).success).toBe(true);
-    expect(InboundDbFieldsSchema.parse({}).subSortIndex).toBe(1);
   });
 });
 

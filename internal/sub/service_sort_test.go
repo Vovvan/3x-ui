@@ -10,11 +10,9 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 )
 
-// TestGetSubs_OrdersBySubSortIndexThenId verifies that subscription output
-// lists inbound links ordered by sub_sort_index ASC, breaking ties by id ASC.
-// The same query feeds the raw body, the HTML sub page, and the JSON/Clash
-// formats, so asserting on GetSubs covers all of them.
-func TestGetSubs_OrdersBySubSortIndexThenId(t *testing.T) {
+// TestGetSubs_OrdersByInboundId verifies subscription output lists inbound
+// links in creation order, so every format shares one deterministic order.
+func TestGetSubs_OrdersByInboundId(t *testing.T) {
 	dbDir := t.TempDir()
 	t.Setenv("XUI_DB_FOLDER", dbDir)
 	dbtest.InitDB(t, filepath.Join(dbDir, "x-ui.db"))
@@ -23,18 +21,15 @@ func TestGetSubs_OrdersBySubSortIndexThenId(t *testing.T) {
 	db := database.GetDB()
 
 	seed := []struct {
-		tag          string
-		port         int
-		subSortIndex int
-		email        string
-		uuid         string
+		tag   string
+		port  int
+		email string
+		uuid  string
 	}{
-		// Created in this order on purpose: without the ORDER BY the links
-		// would come out s3, s1, s2a, s2b (creation order).
-		{"sort-3", 42101, 3, "s3@example.com", "0d68a695-4be1-4d92-a9c3-8c0f1c2cf001"},
-		{"sort-1", 42102, 1, "s1@example.com", "0d68a695-4be1-4d92-a9c3-8c0f1c2cf002"},
-		{"sort-2a", 42103, 2, "s2a@example.com", "0d68a695-4be1-4d92-a9c3-8c0f1c2cf003"},
-		{"sort-2b", 42104, 2, "s2b@example.com", "0d68a695-4be1-4d92-a9c3-8c0f1c2cf004"},
+		{"sort-3", 42101, "s3@example.com", "0d68a695-4be1-4d92-a9c3-8c0f1c2cf001"},
+		{"sort-1", 42102, "s1@example.com", "0d68a695-4be1-4d92-a9c3-8c0f1c2cf002"},
+		{"sort-2a", 42103, "s2a@example.com", "0d68a695-4be1-4d92-a9c3-8c0f1c2cf003"},
+		{"sort-2b", 42104, "s2b@example.com", "0d68a695-4be1-4d92-a9c3-8c0f1c2cf004"},
 	}
 	for _, s := range seed {
 		settings := fmt.Sprintf(`{"clients": [{"id": %q, "email": %q, "subId": %q, "enable": true}]}`, s.uuid, s.email, subId)
@@ -46,7 +41,6 @@ func TestGetSubs_OrdersBySubSortIndexThenId(t *testing.T) {
 			Protocol:       model.VLESS,
 			Settings:       settings,
 			StreamSettings: `{"network": "tcp", "security": "none"}`,
-			SubSortIndex:   s.subSortIndex,
 		}
 		if err := db.Create(ib).Error; err != nil {
 			t.Fatalf("seed inbound %s: %v", s.tag, err)
@@ -68,10 +62,10 @@ func TestGetSubs_OrdersBySubSortIndexThenId(t *testing.T) {
 	if len(links) != len(seed) {
 		t.Fatalf("links = %d, want %d", len(links), len(seed))
 	}
-	want := []string{"s1@example.com", "s2a@example.com", "s2b@example.com", "s3@example.com"}
+	want := []string{"s3@example.com", "s1@example.com", "s2a@example.com", "s2b@example.com"}
 	for i, email := range want {
 		if emails[i] != email {
-			t.Fatalf("emails order = %v, want %v (sub_sort_index ASC, id ASC)", emails, want)
+			t.Fatalf("emails order = %v, want %v (id ASC)", emails, want)
 		}
 	}
 }

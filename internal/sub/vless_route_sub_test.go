@@ -22,7 +22,7 @@ func TestHostToExternalProxyMap_VlessRoute(t *testing.T) {
 // -> 01bb, 53 -> 0035, and a route-less host keeps 4333.
 func TestSub_HostVlessRoute_RawMultiHost(t *testing.T) {
 	seedSubDB(t)
-	ib := seedSubInbound(t, "s1", "vr", 4500, 1, wsTLSStream)
+	ib := seedSubInbound(t, "s1", "vr", 4500, wsTLSStream)
 	seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 1, Remark: "A", Address: "a.cdn.com", Port: 8443, Security: "tls", VlessRoute: "443"})
 	seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 2, Remark: "B", Address: "b.cdn.com", Port: 8443, Security: "tls", VlessRoute: "53"})
 	seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 3, Remark: "C", Address: "c.cdn.com", Port: 8443, Security: "tls"})

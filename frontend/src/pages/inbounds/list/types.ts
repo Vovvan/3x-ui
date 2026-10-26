@@ -24,7 +24,6 @@ export interface DBInboundRecord extends ProtocolFlags {
   id: number;
   enable: boolean;
   remark: string;
-  subSortIndex: number;
   port: number;
   protocol: string;
   up: number;
