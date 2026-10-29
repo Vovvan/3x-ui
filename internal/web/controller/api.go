@@ -122,7 +122,7 @@ func (a *APIController) initRouter(g *gin.RouterGroup) {
 	api := g.Group("/panel/api")
 	api.Use(a.checkAPIAuth)
 	api.Use(a.enforceTokenScope)
-	api.Use(middleware.CSRFMiddleware())
+	api.Use(middleware.CSRFMiddleware(getRemoteIp))
 
 	api.GET("/openapi.json", ServeOpenAPISpec)
 

@@ -14,7 +14,6 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/dbtest"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
@@ -377,7 +376,7 @@ const mihomoRealityStream = `{"network":"tcp","security":"reality","tcpSettings"
 // reality inbound, so each test proves the toggle is per host, not per inbound.
 func seedMihomoX25519Hosts(t *testing.T) {
 	t.Helper()
-	ib := seedSubInbound(t, "s1", "mx", 4493, 1, mihomoRealityStream)
+	ib := seedSubInbound(t, "s1", "mx", 4493, mihomoRealityStream)
 	seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 0, Remark: "PQ", Address: "pq.cdn.com", Port: 443})
 	seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 1, Remark: "CLASSIC", Address: "classic.cdn.com", Port: 443, MihomoX25519: true})
 }
@@ -459,8 +458,7 @@ func TestSub_HostTlsOverRealityDropsRealityParams(t *testing.T) {
 // cipher suites alone, cipher suites under chrome, and neither.
 func seedCipherSuitesHosts(t *testing.T) {
 	t.Helper()
-	ib := seedSubInbound(t, "s1", "csfp", 4463, 1,
-		`{"network":"tcp","security":"tls","tlsSettings":{"serverName":"base.sni","settings":{"fingerprint":""}}}`)
+	ib := seedSubInbound(t, "s1", "csfp", 4463, `{"network":"tcp","security":"tls","tlsSettings":{"serverName":"base.sni","settings":{"fingerprint":""}}}`)
 	seedHost(t, &model.Host{
 		InboundId: ib.Id, SortOrder: 0, Remark: "CS", Address: "cs.cdn.com", Port: 443, Security: "tls",
 		CipherSuites: "TLS_AES_128_GCM_SHA256",
@@ -509,8 +507,7 @@ func TestSub_HostCipherSuitesPinUnsafeFingerprint_RawLink(t *testing.T) {
 
 func TestSub_HostCIDR_RawLinks(t *testing.T) {
 	seedSubDB(t)
-	ib := seedSubInbound(t, "s1", "cidr-raw", 4462, 1,
-		`{"network":"tcp","security":"tls","tlsSettings":{"serverName":"sni.example.com"}}`)
+	ib := seedSubInbound(t, "s1", "cidr-raw", 4462, `{"network":"tcp","security":"tls","tlsSettings":{"serverName":"sni.example.com"}}`)
 	seedHost(t, &model.Host{
 		InboundId:   ib.Id,
 		SortOrder:   0,
@@ -558,8 +555,7 @@ func TestSub_HostCIDR_RawLinks(t *testing.T) {
 
 func TestSub_HostCIDR_SingleCountKeepsBaseRemark(t *testing.T) {
 	seedSubDB(t)
-	ib := seedSubInbound(t, "s1", "cidr-single", 4463, 1,
-		`{"network":"tcp","security":"none"}`)
+	ib := seedSubInbound(t, "s1", "cidr-single", 4463, `{"network":"tcp","security":"none"}`)
 	seedHost(t, &model.Host{
 		InboundId:   ib.Id,
 		SortOrder:   0,
@@ -610,7 +606,7 @@ const tcpTLSStream = `{"network":"tcp","security":"tls","tlsSettings":{"serverNa
 // while an unbound client on the same inbound still fans out to every host.
 func TestSub_ClientHostRule_SingleBinding(t *testing.T) {
 	seedSubDB(t)
-	ib := seedSubInbound(t, "s1", "cb", 443, 1, tcpTLSStream)
+	ib := seedSubInbound(t, "s1", "cb", 443, tcpTLSStream)
 	seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 1, Remark: "A", Address: "a.cdn.com", Port: 443, Security: "tls", Sni: "a.sni"})
 	hostB := seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 2, Remark: "B", Address: "b.cdn.com", Port: 443, Security: "tls", Sni: "b.sni"})
 	seedSubClient(t, ib, "s1", "other@e")
@@ -659,7 +655,7 @@ func TestSub_ClientHostRule_SingleBinding(t *testing.T) {
 // and only those hosts — a third inbound host stays out of its links.
 func TestSub_ClientHostRule_MultipleBindings(t *testing.T) {
 	seedSubDB(t)
-	ib := seedSubInbound(t, "s1", "mb", 444, 1, tcpTLSStream)
+	ib := seedSubInbound(t, "s1", "mb", 444, tcpTLSStream)
 	hostA := seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 1, Remark: "A", Address: "a.cdn.com", Port: 443, Security: "tls", Sni: "a.sni"})
 	hostB := seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 2, Remark: "B", Address: "b.cdn.com", Port: 443, Security: "tls", Sni: "b.sni"})
 	seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 3, Remark: "C", Address: "c.cdn.com", Port: 443, Security: "tls", Sni: "c.sni"})
@@ -692,7 +688,7 @@ func TestSub_ClientHostRule_MultipleBindings(t *testing.T) {
 func TestSub_ClientHostRule_DeletedFallsBack(t *testing.T) {
 	t.Run("deleted and valid binding renders only the valid host", func(t *testing.T) {
 		seedSubDB(t)
-		ib := seedSubInbound(t, "s1", "fb", 445, 1, tcpTLSStream)
+		ib := seedSubInbound(t, "s1", "fb", 445, tcpTLSStream)
 		seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 1, Remark: "A", Address: "a.cdn.com", Port: 443, Security: "tls", Sni: "a.sni"})
 		hostB := seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 2, Remark: "B", Address: "b.cdn.com", Port: 443, Security: "tls", Sni: "b.sni"})
 
@@ -720,7 +716,7 @@ func TestSub_ClientHostRule_DeletedFallsBack(t *testing.T) {
 
 	t.Run("binding that resolves to no inbound fails closed with zero links", func(t *testing.T) {
 		seedSubDB(t)
-		ib := seedSubInbound(t, "s1", "fb", 445, 1, tcpTLSStream)
+		ib := seedSubInbound(t, "s1", "fb", 445, tcpTLSStream)
 		seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 1, Remark: "A", Address: "a.cdn.com", Port: 443, Security: "tls", Sni: "a.sni"})
 		seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 2, Remark: "B", Address: "b.cdn.com", Port: 443, Security: "tls", Sni: "b.sni"})
 
@@ -759,8 +755,8 @@ func TestSub_ClientHostRule_DeletedFallsBack(t *testing.T) {
 	// live and deleted hosts the ids resolve to decide which inbounds the binding guards.
 	t.Run("deleted id on one inbound does not silence an unrelated inbound", func(t *testing.T) {
 		seedSubDB(t)
-		ibA := seedSubInbound(t, "s1", "xa", 4471, 1, tcpTLSStream)
-		ibB := seedSubInbound(t, "s1", "xb", 4472, 2, tcpTLSStream)
+		ibA := seedSubInbound(t, "s1", "xa", 4471, tcpTLSStream)
+		ibB := seedSubInbound(t, "s1", "xb", 4472, tcpTLSStream)
 
 		// Put the client on both inbounds under one email.
 		db := database.GetDB()
@@ -816,8 +812,8 @@ func TestSub_ClientHostRule_DeletedHostClosesOnlyItsInbound(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			seedSubDB(t)
-			ibA := seedSubInbound(t, tc.subId, tc.subId+"a", tc.portA, 1, tcpTLSStream)
-			ibB := seedSubInbound(t, tc.subId, tc.subId+"b", tc.portA+1, 2, tcpTLSStream)
+			ibA := seedSubInbound(t, tc.subId, tc.subId+"a", tc.portA, tcpTLSStream)
+			ibB := seedSubInbound(t, tc.subId, tc.subId+"b", tc.portA+1, tcpTLSStream)
 			email, groupId := tc.subId+"b@e", tc.subId+"-grp"
 
 			db := database.GetDB()
@@ -870,8 +866,7 @@ func TestSub_ClientHostRule_DeletedHostClosesOnlyItsInbound(t *testing.T) {
 
 func TestSub_HostMultiSNI_RandomizePerConfig(t *testing.T) {
 	seedSubDB(t)
-	ib := seedSubInbound(t, "s1", "sni-rand", 4465, 1,
-		`{"network":"tcp","security":"tls"}`)
+	ib := seedSubInbound(t, "s1", "sni-rand", 4465, `{"network":"tcp","security":"tls"}`)
 	snis := []string{"sni1.example.com", "sni2.example.com"}
 	seedHost(t, &model.Host{
 		InboundId:   ib.Id,
@@ -910,8 +905,7 @@ func TestSub_HostMultiSNI_RandomizePerConfig(t *testing.T) {
 
 func TestSub_HostMultiSNI_SharedRandom(t *testing.T) {
 	seedSubDB(t)
-	ib := seedSubInbound(t, "s1", "sni-shared", 4466, 1,
-		`{"network":"tcp","security":"tls"}`)
+	ib := seedSubInbound(t, "s1", "sni-shared", 4466, `{"network":"tcp","security":"tls"}`)
 	snis := []string{"sniA.example.com", "sniB.example.com"}
 	groupId := "grp_multi_sni_shared"
 	seedHost(t, &model.Host{
@@ -994,8 +988,7 @@ func TestSub_HostMultiSNI_SharedRandom(t *testing.T) {
 
 func TestSub_HostMultiSNI_Overrides(t *testing.T) {
 	seedSubDB(t)
-	ib := seedSubInbound(t, "s1", "sni-overrides", 4467, 1,
-		`{"network":"tcp","security":"tls"}`)
+	ib := seedSubInbound(t, "s1", "sni-overrides", 4467, `{"network":"tcp","security":"tls"}`)
 	snis := []string{"sni1.example.com", "sni2.example.com"}
 
 	// When OverrideSniFromAddress is true, address is used as SNI.

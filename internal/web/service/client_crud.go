@@ -644,6 +644,7 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 		}
 		inboundIds = filtered
 	}
+	attachedIds := inboundIds
 
 	if strings.TrimSpace(updated.Email) == "" {
 		return false, common.NewError("client email is required")

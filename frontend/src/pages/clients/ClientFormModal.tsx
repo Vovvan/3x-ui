@@ -1539,6 +1539,8 @@ export default function ClientFormModal({
 
                       <Button
                         type="primary"
+                        icon={<PlusOutlined aria-hidden />}
+                        onClick={addExternalLinkRow}
                       >
                         {t('pages.clients.addExternalLink')}
                       </Button>

@@ -433,7 +433,6 @@ describe('InboundFormModal', () => {
         finalmask: { udp: [filter] },
       },
       sniffing: { enabled: false },
-      nodeId: null,
       shareAddrStrategy: 'listen',
       shareAddr: '',
     });

@@ -128,7 +128,7 @@ func TestBuildFallbacksJSON_DerivesXverFromTheChild(t *testing.T) {
 func TestUpdateInbound_FallbackChildChangeRebuildsItsMaster(t *testing.T) {
 	setupBulkDB(t)
 	mgr := useTestRuntimeManager(t)
-	mgr.SetLocalRuntimeOverride(&fakeNodeRuntime{})
+	mgr.SetLocalRuntimeOverride(&fakeRuntime{})
 	db := database.GetDB()
 	master := mkInboundStream(t, 30401, model.VLESS, `{"clients":[]}`, `{"network":"tcp","security":"tls"}`)
 	linked := mkInboundStream(t, 30402, model.VLESS, `{"clients":[]}`, `{"network":"tcp"}`)

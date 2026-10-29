@@ -161,7 +161,7 @@ func setupClientIpTestDB(t *testing.T) {
 	dbtest.InitDB(t, filepath.Join(dbDir, "x-ui.db"))
 }
 
-func marshalIps(t *testing.T, entries ...clientIpEntry) string {
+func marshalIps(t *testing.T, entries ...model.ClientIpEntry) string {
 	t.Helper()
 	b, err := json.Marshal(entries)
 	if err != nil {
@@ -180,7 +180,7 @@ func readClientIps(t *testing.T, email string) (map[string]int64, bool) {
 	if err != nil {
 		t.Fatalf("read client ips for %s: %v", email, err)
 	}
-	var entries []clientIpEntry
+	var entries []model.ClientIpEntry
 	if row.Ips != "" {
 		if err := json.Unmarshal([]byte(row.Ips), &entries); err != nil {
 			t.Fatalf("unmarshal stored ips for %s: %v", email, err)

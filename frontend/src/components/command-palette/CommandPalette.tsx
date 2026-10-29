@@ -24,7 +24,6 @@ import {
   SettingOutlined,
   SunOutlined,
   SwapOutlined,
-  TelegramFilled,
   ToolOutlined,
 } from '@ant-design/icons';
 

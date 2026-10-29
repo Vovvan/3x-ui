@@ -128,22 +128,14 @@ func runTrafficWriter(ctx context.Context, queue chan *trafficWriteRequest, done
 func runSerializedTx(fn func(tx *gorm.DB) error) error {
 	return submitTrafficWrite(func() error {
 		state := &serializedTx{}
-		err := database.GetDB().Transaction(func(tx *gorm.DB) error {
+		return database.GetDB().Transaction(func(tx *gorm.DB) error {
 			ctx := context.WithValue(tx.Statement.Context, serializedTxContextKey{}, state)
 			return fn(tx.WithContext(ctx))
 		})
-		if err == nil {
-			// Still on the writer, so no node merge runs between the commit and the lift.
-			withdrawClientTombstones(state.createdClientEmails...)
-		}
-		return err
 	})
 }
 
-// serializedTx carries what may only take effect once its transaction commits.
-type serializedTx struct {
-	createdClientEmails []string
-}
+type serializedTx struct{}
 
 func serializedTxOf(tx *gorm.DB) *serializedTx {
 	if tx == nil || tx.Statement == nil || tx.Statement.Context == nil {

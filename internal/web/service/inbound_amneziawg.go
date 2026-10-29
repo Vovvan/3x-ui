@@ -309,7 +309,7 @@ func (s *InboundService) normalizeAmneziaWGSettings(inbound *model.Inbound, old 
 
 	// Host readiness gates only a save that starts the kernel datapath: a host that
 	// later loses its module must still let the admin edit, disable or switch it.
-	if parsed.Server.KernelMode && inbound.NodeID == nil {
+	if parsed.Server.KernelMode {
 		inst, ok := amneziawg.InstanceFromInbound(inbound)
 		if !ok {
 			inst = amneziawg.Instance{

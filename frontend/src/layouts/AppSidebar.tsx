@@ -12,7 +12,6 @@ import {
   GithubOutlined,
   HeartOutlined,
   LogoutOutlined,
-  MailOutlined,
   MenuOutlined,
   MoonFilled,
   MoonOutlined,
@@ -23,7 +22,6 @@ import {
   SearchOutlined,
   SettingOutlined,
   SunOutlined,
-  TelegramFilled,
 } from '@ant-design/icons';
 
 import { HttpUtil } from '@/utils';
@@ -208,6 +206,7 @@ export default function AppSidebar() {
         icon: <SafetyOutlined aria-hidden />,
         label: t('pages.settings.securitySettings'),
       },
+    ];
     return children;
   }, [t]);
 

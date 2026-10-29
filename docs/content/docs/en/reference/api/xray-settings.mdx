@@ -86,38 +86,6 @@ _openapi:
         ones that do not resolve. Plain domains and CIDRs are ignored. Each
         issue carries a reason: syntax, fileMissing or categoryMissing.'
       url: '#check-routing-tokens-against-the-databases-on-disk-and-return-only-the-ones-that-do-not-resolve-plain-domains-and-cidrs-are-ignored-each-issue-carries-a-reason-syntax-filemissing-or-categorymissing'
-    - depth: 2
-      title: List all outbound subscriptions (remote URLs that supply additional
-        outbounds), newest first.
-      url: '#list-all-outbound-subscriptions-remote-urls-that-supply-additional-outbounds-newest-first'
-    - depth: 2
-      title: Create an outbound subscription. The URL is fetched, parsed into
-        outbounds with stable tags, and merged additively into the running Xray
-        config.
-      url: '#create-an-outbound-subscription-the-url-is-fetched-parsed-into-outbounds-with-stable-tags-and-merged-additively-into-the-running-xray-config'
-    - depth: 2
-      title: Update an existing outbound subscription by id. Accepts the same form
-        fields as create.
-      url: '#update-an-existing-outbound-subscription-by-id-accepts-the-same-form-fields-as-create'
-    - depth: 2
-      title: Delete an outbound subscription by id.
-      url: '#delete-an-outbound-subscription-by-id'
-    - depth: 2
-      title: Delete an outbound subscription by id (POST alias of DELETE for clients
-        that cannot send DELETE).
-      url: '#delete-an-outbound-subscription-by-id-post-alias-of-delete-for-clients-that-cannot-send-delete'
-    - depth: 2
-      title: Force an immediate re-fetch of the subscription and return the parsed
-        outbounds. Signals Xray to reload.
-      url: '#force-an-immediate-re-fetch-of-the-subscription-and-return-the-parsed-outbounds-signals-xray-to-reload'
-    - depth: 2
-      title: Reorder a subscription one step up or down in priority (controls its
-        position in the merged outbounds).
-      url: '#reorder-a-subscription-one-step-up-or-down-in-priority-controls-its-position-in-the-merged-outbounds'
-    - depth: 2
-      title: 'Preview a subscription URL: fetch and parse it into outbounds without
-        persisting anything.'
-      url: '#preview-a-subscription-url-fetch-and-parse-it-into-outbounds-without-persisting-anything'
   structuredData:
     headings:
       - content: Return the Xray config template (JSON string), available inbound tags,
@@ -183,30 +151,6 @@ _openapi:
           ones that do not resolve. Plain domains and CIDRs are ignored. Each
           issue carries a reason: syntax, fileMissing or categoryMissing.'
         id: check-routing-tokens-against-the-databases-on-disk-and-return-only-the-ones-that-do-not-resolve-plain-domains-and-cidrs-are-ignored-each-issue-carries-a-reason-syntax-filemissing-or-categorymissing
-      - content: List all outbound subscriptions (remote URLs that supply additional
-          outbounds), newest first.
-        id: list-all-outbound-subscriptions-remote-urls-that-supply-additional-outbounds-newest-first
-      - content: Create an outbound subscription. The URL is fetched, parsed into
-          outbounds with stable tags, and merged additively into the running
-          Xray config.
-        id: create-an-outbound-subscription-the-url-is-fetched-parsed-into-outbounds-with-stable-tags-and-merged-additively-into-the-running-xray-config
-      - content: Update an existing outbound subscription by id. Accepts the same form
-          fields as create.
-        id: update-an-existing-outbound-subscription-by-id-accepts-the-same-form-fields-as-create
-      - content: Delete an outbound subscription by id.
-        id: delete-an-outbound-subscription-by-id
-      - content: Delete an outbound subscription by id (POST alias of DELETE for clients
-          that cannot send DELETE).
-        id: delete-an-outbound-subscription-by-id-post-alias-of-delete-for-clients-that-cannot-send-delete
-      - content: Force an immediate re-fetch of the subscription and return the parsed
-          outbounds. Signals Xray to reload.
-        id: force-an-immediate-re-fetch-of-the-subscription-and-return-the-parsed-outbounds-signals-xray-to-reload
-      - content: Reorder a subscription one step up or down in priority (controls its
-          position in the merged outbounds).
-        id: reorder-a-subscription-one-step-up-or-down-in-priority-controls-its-position-in-the-merged-outbounds
-      - content: 'Preview a subscription URL: fetch and parse it into outbounds without
-          persisting anything.'
-        id: preview-a-subscription-url-fetch-and-parse-it-into-outbounds-without-persisting-anything
     contents: []
 ---
 
@@ -217,7 +161,7 @@ export default function Layout(props) {
   return (
     <>
       {props.children}
-      <OpenAPIPage document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/xray/","method":"post"},{"path":"/panel/api/xray/getDefaultJsonConfig","method":"get"},{"path":"/panel/api/xray/getOutboundsTraffic","method":"get"},{"path":"/panel/api/xray/getXrayResult","method":"get"},{"path":"/panel/api/xray/update","method":"post"},{"path":"/panel/api/xray/warp/{action}","method":"post"},{"path":"/panel/api/xray/nord/{action}","method":"post"},{"path":"/panel/api/xray/pia/{action}","method":"post"},{"path":"/panel/api/xray/resetOutboundsTraffic","method":"post"},{"path":"/panel/api/xray/testOutbound","method":"post"},{"path":"/panel/api/xray/testOutbounds","method":"post"},{"path":"/panel/api/xray/balancerStatus","method":"post"},{"path":"/panel/api/xray/balancerOverride","method":"post"},{"path":"/panel/api/xray/routeTest","method":"post"},{"path":"/panel/api/xray/geodata/files","method":"get"},{"path":"/panel/api/xray/geodata/categories","method":"get"},{"path":"/panel/api/xray/geodata/entries","method":"get"},{"path":"/panel/api/xray/geodata/validate","method":"post"},{"path":"/panel/api/xray/outbound-subs","method":"get"},{"path":"/panel/api/xray/outbound-subs","method":"post"},{"path":"/panel/api/xray/outbound-subs/{id}","method":"post"},{"path":"/panel/api/xray/outbound-subs/{id}","method":"delete"},{"path":"/panel/api/xray/outbound-subs/{id}/del","method":"post"},{"path":"/panel/api/xray/outbound-subs/{id}/refresh","method":"post"},{"path":"/panel/api/xray/outbound-subs/{id}/move","method":"post"},{"path":"/panel/api/xray/outbound-subs/parse","method":"post"}]} showTitle />
+      <OpenAPIPage document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/xray/","method":"post"},{"path":"/panel/api/xray/getDefaultJsonConfig","method":"get"},{"path":"/panel/api/xray/getOutboundsTraffic","method":"get"},{"path":"/panel/api/xray/getXrayResult","method":"get"},{"path":"/panel/api/xray/update","method":"post"},{"path":"/panel/api/xray/warp/{action}","method":"post"},{"path":"/panel/api/xray/nord/{action}","method":"post"},{"path":"/panel/api/xray/pia/{action}","method":"post"},{"path":"/panel/api/xray/resetOutboundsTraffic","method":"post"},{"path":"/panel/api/xray/testOutbound","method":"post"},{"path":"/panel/api/xray/testOutbounds","method":"post"},{"path":"/panel/api/xray/balancerStatus","method":"post"},{"path":"/panel/api/xray/balancerOverride","method":"post"},{"path":"/panel/api/xray/routeTest","method":"post"},{"path":"/panel/api/xray/geodata/files","method":"get"},{"path":"/panel/api/xray/geodata/categories","method":"get"},{"path":"/panel/api/xray/geodata/entries","method":"get"},{"path":"/panel/api/xray/geodata/validate","method":"post"}]} showTitle />
     </>
   );
 }

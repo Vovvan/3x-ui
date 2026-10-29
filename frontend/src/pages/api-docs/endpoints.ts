@@ -525,7 +525,7 @@ export const sections: readonly Section[] = [
         method: 'POST',
         path: '/panel/api/server/updatePanel',
         summary:
-          'Self-update the panel to the latest version. The server restarts on success. Bearer-token callers need admin or node-admin scope.',
+          'Self-update the panel to the latest version. The server restarts on success. Bearer-token callers need admin scope.',
         params: [
           {
             name: 'dev',
@@ -1757,6 +1757,7 @@ export const sections: readonly Section[] = [
     id: 'api-tokens',
     title: 'API Tokens',
     description:
+      'Create, list, toggle and delete scoped panel API tokens. Tokens authenticate REST calls through the Authorization header.',
     endpoints: [
       {
         method: 'GET',
@@ -1764,7 +1765,7 @@ export const sections: readonly Section[] = [
         summary:
           'List every API token, enabled or not. The token value is never returned — only metadata.',
         response:
-          '{\n  "success": true,\n  "obj": [\n    {\n      "id": 1,\n      "name": "central-panel-a",\n      "enabled": true,\n      "createdAt": 1736000000,\n      "scope": "node-admin",\n      "expiresAt": 0\n    }\n  ]\n}',
+          '{\n  "success": true,\n  "obj": [\n    {\n      "id": 1,\n      "name": "central-panel-a",\n      "enabled": true,\n      "createdAt": 1736000000,\n      "scope": "admin",\n      "expiresAt": 0\n    }\n  ]\n}',
       },
       {
         method: 'POST',

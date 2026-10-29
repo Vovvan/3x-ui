@@ -35,7 +35,6 @@ type updateUserForm struct {
 type updateSettingForm struct {
 	entity.AllSetting
 	TwoFactorCode     string `json:"twoFactorCode" form:"twoFactorCode"`
-	ClearTgBotToken   bool   `json:"clearTgBotToken" form:"clearTgBotToken"`
 	ClearLdapPassword bool   `json:"clearLdapPassword" form:"clearLdapPassword"`
 	ClearSmtpPassword bool   `json:"clearSmtpPassword" form:"clearSmtpPassword"`
 }

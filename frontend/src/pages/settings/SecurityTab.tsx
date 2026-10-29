@@ -362,7 +362,11 @@ export default function SecurityTab({ allSetting, updateSetting, saveSetting }: 
           },
           {
             key: '3',
-            label: catTabLabel(<ApiOutlined aria-hidden />, t('pages.settings.security.apiToken'), isMobile),
+            label: catTabLabel(
+              <ApiOutlined aria-hidden />,
+              t('pages.settings.security.apiToken'),
+              isMobile,
+            ),
             children: (
               <div className="api-token-section">
                 <div className="api-token-header">

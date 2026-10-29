@@ -1,6 +1,7 @@
 package sub
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"reflect"
 	"strings"

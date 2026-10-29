@@ -3,6 +3,7 @@ import { z } from 'zod';
 const port = z.number().int().min(1).max(65535);
 const nonNegativeInt = z.number().int().min(0);
 const absolutePath = z.string().regex(/^\//, 'pages.settings.validation.pathLeadingSlash');
+export const SubHostSortModeSchema = z.enum(['inbound-first', 'hosts-first']);
 
 export const AllSettingSchema = z
   .object({
@@ -37,7 +38,6 @@ export const AllSettingSchema = z
     tgBotBackup: z.boolean().optional(),
     tgCpu: z.number().int().min(0).max(100).optional(),
     outboundDownThreshold: z.number().int().min(1).max(100).optional(),
-    nodeDownThreshold: z.number().int().min(1).max(100).optional(),
     tgLang: z.string().optional(),
     twoFactorEnable: z.boolean().optional(),
     twoFactorToken: z.string().optional(),

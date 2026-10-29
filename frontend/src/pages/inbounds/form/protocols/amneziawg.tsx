@@ -21,12 +21,9 @@ export default function AmneziawgFields({
   const { t } = useTranslation();
   const uid = useId();
   const kernelModeOn = useWatch({ name: 'settings.server.kernelMode' });
-  const nodeId = useWatch({ name: 'nodeId' }) as number | null | undefined;
-  const remoteTarget = typeof nodeId === 'number';
   const { formState } = useFormContext();
-  const { data: readiness } = useAmneziawgKernelReadiness(!remoteTarget);
-  const hostReady = remoteTarget || readiness?.ready !== false;
-  // The master can probe only its local host; a remote node checks on apply.
+  const { data: readiness } = useAmneziawgKernelReadiness(true);
+  const hostReady = readiness?.ready !== false;
   const savedKernelMode = Boolean(
     (formState.defaultValues as { settings?: { server?: { kernelMode?: boolean } } } | undefined)
       ?.settings?.server?.kernelMode,

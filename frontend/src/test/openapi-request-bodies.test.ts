@@ -44,9 +44,6 @@ describe('generated OpenAPI request bodies', () => {
     expect(login.schema.properties).toHaveProperty('username');
     expect(login.schema.required).toEqual(['username', 'password']);
 
-    const json = requestBody('/panel/api/inbounds/pushClientTraffics').content['application/json'];
-    expect(json.schema.properties).toHaveProperty('traffics');
-
     const form = requestBody('/panel/api/inbounds/import').content[
       'application/x-www-form-urlencoded'
     ];
@@ -76,27 +73,6 @@ describe('generated OpenAPI request bodies', () => {
     });
     expect(multipart.schema.properties).toHaveProperty('keepHostSettings');
     expect(multipart.schema.properties?.keepHostSettings?.default).toBe(true);
-
-    const array = requestBody('/panel/api/server/clientIps').content['application/json'];
-    expect(array.schema).toEqual({
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          clientEmail: { type: 'string' },
-          ips: {
-            type: 'array',
-            nullable: true,
-            items: {
-              type: 'object',
-              properties: { ip: { type: 'string' }, timestamp: { type: 'integer' } },
-              required: ['ip', 'timestamp'],
-            },
-          },
-        },
-        required: ['clientEmail', 'ips'],
-      },
-    });
 
     const certHash = requestBody('/panel/api/server/getCertHash');
     expect(certHash.required).toBe(true);

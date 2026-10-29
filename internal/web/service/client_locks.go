@@ -2,7 +2,6 @@ package service
 
 import (
 	"sync"
-	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
@@ -77,81 +76,4 @@ func compactOrphans(db *gorm.DB, clients []any) []any {
 		}
 	}
 	return out
-}
-
-func tombstoneClientEmail(email string) {
-	if email == "" {
-		return
-	}
-	recentlyDeletedMu.Lock()
-	defer recentlyDeletedMu.Unlock()
-	recentlyDeleted[email] = time.Now()
-	cutoff := time.Now().Add(-deleteTombstoneTTL)
-	for e, ts := range recentlyDeleted {
-		if ts.Before(cutoff) {
-			delete(recentlyDeleted, e)
-		}
-	}
-}
-
-func withdrawClientTombstones(emails ...string) {
-	if len(emails) == 0 {
-		return
-	}
-	recentlyDeletedMu.Lock()
-	defer recentlyDeletedMu.Unlock()
-	for _, email := range emails {
-		if email != "" {
-			delete(recentlyDeleted, email)
-		}
-	}
-}
-
-// liftTombstonesOnCommit withdraws the delete tombstones of clients a serialized
-// tx re-created once it commits; a rolled-back create leaves them standing.
-func liftTombstonesOnCommit(tx *gorm.DB, created []*model.ClientRecord) {
-	state := serializedTxOf(tx)
-	if state == nil {
-		return
-	}
-	for _, rec := range created {
-		state.createdClientEmails = append(state.createdClientEmails, rec.Email)
-	}
-}
-
-func tombstoneClientEmails(emails []string) {
-	if len(emails) == 0 {
-		return
-	}
-	now := time.Now()
-	cutoff := now.Add(-deleteTombstoneTTL)
-	recentlyDeletedMu.Lock()
-	defer recentlyDeletedMu.Unlock()
-	for _, email := range emails {
-		if email != "" {
-			recentlyDeleted[email] = now
-		}
-	}
-	for e, ts := range recentlyDeleted {
-		if ts.Before(cutoff) {
-			delete(recentlyDeleted, e)
-		}
-	}
-}
-
-func isClientEmailTombstoned(email string) bool {
-	if email == "" {
-		return false
-	}
-	recentlyDeletedMu.Lock()
-	defer recentlyDeletedMu.Unlock()
-	ts, ok := recentlyDeleted[email]
-	if !ok {
-		return false
-	}
-	if time.Since(ts) > deleteTombstoneTTL {
-		delete(recentlyDeleted, email)
-		return false
-	}
-	return true
 }

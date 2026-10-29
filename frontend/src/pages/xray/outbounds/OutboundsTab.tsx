@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Button,
@@ -78,7 +79,6 @@ export default function OutboundsTab({
   onShowPia,
 }: OutboundsTabProps) {
   const { t } = useTranslation();
-  const uid = useId();
   const [modal, modalContextHolder] = Modal.useModal();
   const [messageApi, messageContextHolder] = message.useMessage();
   const [testMode, setTestMode] = useState<OutboundTestMode>('tcp');

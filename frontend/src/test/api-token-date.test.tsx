@@ -16,7 +16,7 @@ describe('API token creation date', () => {
           name: 'seconds-token',
           enabled: true,
           createdAt: 1782485394,
-          scope: 'node-sync',
+          scope: 'admin',
           expiresAt: 0,
         },
         {
@@ -24,7 +24,7 @@ describe('API token creation date', () => {
           name: 'legacy-milliseconds-token',
           enabled: true,
           createdAt: 1782485394270,
-          scope: 'node-admin',
+          scope: 'monitor',
           expiresAt: 0,
         },
       ],
@@ -38,8 +38,8 @@ describe('API token creation date', () => {
     expect(await screen.findByText('seconds-token')).toBeTruthy();
     expect(screen.getByText('legacy-milliseconds-token')).toBeTruthy();
     expect(screen.getAllByText(/2026/)).toHaveLength(2);
-    expect(screen.getByText('Node synchronization')).toBeTruthy();
-    expect(screen.getByText('Node administrator')).toBeTruthy();
+    expect(screen.getByText('Administrator')).toBeTruthy();
+    expect(screen.getByText('Monitoring')).toBeTruthy();
   });
 
   it('creates a token with the selected scope', async () => {
@@ -56,27 +56,25 @@ describe('API token creation date', () => {
     fireEvent.click(screen.getByRole('tab', { name: /API Token/ }));
     fireEvent.click(await screen.findByRole('button', { name: /New token/ }));
     fireEvent.change(screen.getByPlaceholderText('e.g. central-panel-a'), {
-      target: { value: 'central-node' },
+      target: { value: 'central-admin' },
     });
 
     const scope = screen.getByRole('combobox', { name: 'Scope' });
     fireEvent.mouseDown(scope.closest('.ant-select') ?? scope);
     const option = Array.from(document.querySelectorAll('.ant-select-item-option')).find(
-      (item) => item.textContent === 'Node administrator',
+      (item) => item.textContent === 'Administrator',
     );
-    if (!option) throw new Error('Node administrator option not found');
+    if (!option) throw new Error('Administrator option not found');
     fireEvent.click(option);
     expect(
-      screen.getByText(
-        'Includes node synchronization permissions and can also start panel software updates.',
-      ),
+      screen.getByText('Full access to every panel API endpoint. Use only for trusted automation.'),
     ).toBeTruthy();
 
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Confirm' }));
     await waitFor(() =>
       expect(post).toHaveBeenCalledWith('/panel/api/setting/apiTokens/create', {
-        name: 'central-node',
-        scope: 'node-admin',
+        name: 'central-admin',
+        scope: 'admin',
       }),
     );
   });

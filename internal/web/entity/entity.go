@@ -58,7 +58,6 @@ type AllSetting struct {
 	SmtpMemory         int    `json:"smtpMemory" form:"smtpMemory" validate:"gte=0,lte=100"`
 
 	OutboundDownThreshold int `json:"outboundDownThreshold" form:"outboundDownThreshold" validate:"gte=1,lte=100"`
-	NodeDownThreshold     int `json:"nodeDownThreshold" form:"nodeDownThreshold" validate:"gte=1,lte=100"`
 
 	TimeLocation    string `json:"timeLocation" form:"timeLocation"`
 	TwoFactorEnable bool   `json:"twoFactorEnable" form:"twoFactorEnable"`
@@ -195,6 +194,12 @@ func (s *AllSetting) CheckValid() error {
 		if _, err := cronspec.Parse(sched.spec); err != nil {
 			return common.NewError(sched.name+":", err)
 		}
+	}
+
+	switch s.SubHostSortMode {
+	case "", "inbound-first", "hosts-first":
+	default:
+		return common.NewErrorf("subscription host sort mode must be inbound-first or hosts-first")
 	}
 
 	if err := checkIPOrCIDRList(s.TrustedProxyCIDRs, "trusted proxy CIDR is not valid:"); err != nil {

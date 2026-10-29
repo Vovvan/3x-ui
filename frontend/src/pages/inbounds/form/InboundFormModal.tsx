@@ -85,16 +85,6 @@ import SniffingTab from './SniffingTab';
 
 import type { DBInbound } from '@/models/dbinbound';
 
-/* Render a field label with a hover tooltip icon instead of an `extra` help line below. */
-const labelWithHint = (label: string, hint: string) => (
-  <span>
-    {label}
-    <Tooltip title={hint}>
-      <QuestionCircleOutlined style={{ marginInlineStart: 4, color: 'rgba(128,128,128,0.65)' }} />
-    </Tooltip>
-  </span>
-);
-
 const PROTOCOL_OPTIONS = Object.values(Protocols).map((p) => ({
   value: p,
   label: p,

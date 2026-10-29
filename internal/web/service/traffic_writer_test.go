@@ -250,7 +250,7 @@ func TestDelInboundRunsOnTheSerialWriter(t *testing.T) {
 	release := parkSerializedWriter(t)
 	done := make(chan error, 1)
 	go func() {
-		_, _, err := svc.delInbound(ib.Id)
+		_, err := svc.delInbound(ib.Id)
 		done <- err
 	}()
 

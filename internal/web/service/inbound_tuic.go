@@ -24,7 +24,7 @@ func (s *InboundService) DesiredTuicInstances() ([]tuic.Instance, error) {
 func configuredTuicInstances(inbounds []*model.Inbound) []tuic.Instance {
 	instances := make([]tuic.Instance, 0)
 	for _, inbound := range inbounds {
-		if inbound.Protocol != model.TUIC || !inbound.Enable || inbound.NodeID != nil {
+		if inbound.Protocol != model.TUIC || !inbound.Enable {
 			continue
 		}
 		inst, ok := tuic.ConfiguredInstanceFromInbound(inbound)
@@ -71,7 +71,7 @@ func (s *InboundService) desiredTuicInstances(inbounds []*model.Inbound) ([]tuic
 	}
 	instances := make([]tuic.Instance, 0, len(inbounds))
 	for _, ib := range inbounds {
-		if ib.Protocol != model.TUIC || !ib.Enable || ib.NodeID != nil {
+		if ib.Protocol != model.TUIC || !ib.Enable {
 			continue
 		}
 		if _, ok := tuic.InstanceFromInbound(ib); !ok {

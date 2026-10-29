@@ -11,8 +11,8 @@ import (
 )
 
 type hostEntryOrder struct {
-	sortOrder, inboundSort, inboundID, hostID int
-	remark, groupID                           string
+	sortOrder, inboundID, hostID int
+	remark, groupID              string
 }
 
 type orderedSubEntry[T any] struct {
@@ -28,7 +28,7 @@ func hostOrderLess(a, b *hostEntryOrder) bool {
 	}
 	for _, c := range []int{
 		cmp.Compare(a.sortOrder, b.sortOrder), cmp.Compare(a.remark, b.remark), cmp.Compare(a.groupID, b.groupID),
-		cmp.Compare(a.inboundSort, b.inboundSort), cmp.Compare(a.inboundID, b.inboundID), cmp.Compare(a.hostID, b.hostID),
+		cmp.Compare(a.inboundID, b.inboundID), cmp.Compare(a.hostID, b.hostID),
 	} {
 		if c != 0 {
 			return c < 0
@@ -91,7 +91,7 @@ func (s *SubService) subscriptionHostVariants(inbound *model.Inbound, format str
 			continue
 		}
 		order := s.hostGroupOrders[hostOrderGroupID(h)]
-		order.inboundSort, order.inboundID, order.hostID = inbound.SubSortIndex, inbound.Id, h.Id
+		order.inboundID, order.hostID = inbound.Id, h.Id
 		variants = append(variants, subscriptionHostVariant{h, &order})
 	}
 	if len(variants) == 0 {
