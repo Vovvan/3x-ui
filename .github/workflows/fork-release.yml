@@ -20,6 +20,7 @@ jobs:
     env:
       GOOS: linux
       GOARCH: amd64
+      GOAMD64: v1
       CGO_ENABLED: "1"
       GH_TOKEN: ${{ github.token }}
       TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
