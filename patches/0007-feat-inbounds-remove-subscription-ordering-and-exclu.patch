@@ -1,0 +1,2036 @@
+From 5f1c0c8cff9ff5b58f607374ac775a8b49153be1 Mon Sep 17 00:00:00 2001
+From: HolyCode User <noreply@holycode.local>
+Date: Mon, 26 Oct 2026 15:07:33 +0000
+Subject: [PATCH 7/8] feat(inbounds)!: remove subscription ordering and
+ exclusion
+
+Drop subSortIndex and excludeFromSub from the inbound model, API, UI, and storage. Subscription links now follow inbound id. Add a migration that removes the retired columns.
+---
+ docs/public/openapi.json                      |  18 +--
+ frontend/public/openapi.json                  |  18 +--
+ frontend/src/generated/examples.ts            |   2 -
+ frontend/src/generated/schemas.ts             |  14 +-
+ frontend/src/generated/types.ts               |   2 -
+ frontend/src/generated/zod.ts                 |   2 -
+ frontend/src/lib/xray/inbound-form-adapter.ts |   8 -
+ frontend/src/models/dbinbound.ts              |   6 -
+ .../pages/inbounds/form/InboundFormModal.tsx  |  17 ---
+ .../src/pages/inbounds/list/InboundList.tsx   |   6 -
+ frontend/src/pages/inbounds/list/types.ts     |   1 -
+ .../pages/inbounds/list/useInboundColumns.tsx |  18 ---
+ frontend/src/schemas/forms/inbound-form.ts    |   2 -
+ .../src/test/inbound-form-adapter.test.ts     |  70 +--------
+ internal/database/db.go                       |  40 +++--
+ ...inbound_exclude_from_sub_migration_test.go |  58 --------
+ .../inbound_sub_order_columns_removal_test.go |  59 ++++++++
+ internal/database/model/model.go              |   4 +-
+ internal/sub/host_sub_test.go                 |  37 +++--
+ internal/sub/links_test.go                    |   2 +-
+ internal/sub/service.go                       |  20 +--
+ internal/sub/service_amneziawg_test.go        | 122 +++++++--------
+ internal/sub/service_sort_test.go             |  32 ++--
+ internal/sub/service_wireguard_test.go        | 134 ++++++++---------
+ internal/sub/vless_route_sub_test.go          |   2 +-
+ internal/web/service/inbound.go               |   4 -
+ .../service/inbound_exclude_from_sub_test.go  |  57 -------
+ internal/web/service/inbound_sub_sort_test.go | 139 ------------------
+ internal/web/service/inbound_util.go          |   9 --
+ internal/web/service/inbound_util_test.go     |  17 ---
+ internal/web/translation/ar-EG.json           |   5 -
+ internal/web/translation/en-US.json           |   5 -
+ internal/web/translation/es-ES.json           |   5 -
+ internal/web/translation/fa-IR.json           |   5 -
+ internal/web/translation/id-ID.json           |   5 -
+ internal/web/translation/ja-JP.json           |   5 -
+ internal/web/translation/pt-BR.json           |   5 -
+ internal/web/translation/ru-RU.json           |   5 -
+ internal/web/translation/tr-TR.json           |   5 -
+ internal/web/translation/uk-UA.json           |   5 -
+ internal/web/translation/vi-VN.json           |   5 -
+ internal/web/translation/zh-CN.json           |   5 -
+ internal/web/translation/zh-TW.json           |   5 -
+ 43 files changed, 230 insertions(+), 755 deletions(-)
+ delete mode 100644 internal/database/inbound_exclude_from_sub_migration_test.go
+ create mode 100644 internal/database/inbound_sub_order_columns_removal_test.go
+ delete mode 100644 internal/web/service/inbound_exclude_from_sub_test.go
+ delete mode 100644 internal/web/service/inbound_sub_sort_test.go
+
+diff --git a/docs/public/openapi.json b/docs/public/openapi.json
+index cdfb0da6..a9c57089 100644
+--- a/docs/public/openapi.json
++++ b/docs/public/openapi.json
+@@ -3168,11 +3168,6 @@
+             "example": true,
+             "type": "boolean"
+           },
+-          "excludeFromSub": {
+-            "description": "Whether to omit this inbound from subscription output while keeping it operational",
+-            "example": false,
+-            "type": "boolean"
+-          },
+           "expiryTime": {
+             "description": "Expiration timestamp",
+             "format": "int64",
+@@ -3254,11 +3249,6 @@
+           },
+           "sniffing": {},
+           "streamSettings": {},
+-          "subSortIndex": {
+-            "description": "Sort order of this inbound's links in subscription output only (lower first; negatives allowed; 0/omitted → 1; ties by id)",
+-            "example": 1,
+-            "type": "integer"
+-          },
+           "tag": {
+             "example": "in-443-tcp",
+             "type": "string"
+@@ -3297,7 +3287,6 @@
+           "disableFlow",
+           "down",
+           "enable",
+-          "excludeFromSub",
+           "expiryTime",
+           "id",
+           "lastTrafficResetTime",
+@@ -3310,7 +3299,6 @@
+           "shareAddrStrategy",
+           "sniffing",
+           "streamSettings",
+-          "subSortIndex",
+           "tag",
+           "total",
+           "trafficReset",
+@@ -4664,7 +4652,7 @@
+         "type": "object"
+       },
+       "SubBalancer": {
+-        "description": "SubBalancer is one extra JSON-subscription config document whose members are\nthe selected inbounds' proxy outbounds. SortOrder shares SubSortIndex semantics.",
++        "description": "SubBalancer is one extra JSON-subscription config document whose members are\nthe selected inbounds' proxy outbounds. SortOrder orders the documents.",
+         "properties": {
+           "createdAt": {
+             "example": 1710000000000,
+@@ -5235,7 +5223,6 @@
+                       "disableFlow": false,
+                       "down": 0,
+                       "enable": true,
+-                      "excludeFromSub": false,
+                       "expiryTime": 0,
+                       "fallbackParent": null,
+                       "id": 1,
+@@ -5251,7 +5238,6 @@
+                       "shareAddrStrategy": "node",
+                       "sniffing": null,
+                       "streamSettings": null,
+-                      "subSortIndex": 1,
+                       "tag": "in-443-tcp",
+                       "total": 0,
+                       "trafficReset": "never",
+@@ -16648,7 +16634,6 @@
+                   "disableFlow": false,
+                   "down": 0,
+                   "enable": true,
+-                  "excludeFromSub": false,
+                   "expiryTime": 0,
+                   "fallbackParent": null,
+                   "id": 1,
+@@ -16664,7 +16649,6 @@
+                   "shareAddrStrategy": "node",
+                   "sniffing": null,
+                   "streamSettings": null,
+-                  "subSortIndex": 1,
+                   "tag": "in-443-tcp",
+                   "total": 0,
+                   "trafficReset": "never",
+diff --git a/frontend/public/openapi.json b/frontend/public/openapi.json
+index cdfb0da6..a9c57089 100644
+--- a/frontend/public/openapi.json
++++ b/frontend/public/openapi.json
+@@ -3168,11 +3168,6 @@
+             "example": true,
+             "type": "boolean"
+           },
+-          "excludeFromSub": {
+-            "description": "Whether to omit this inbound from subscription output while keeping it operational",
+-            "example": false,
+-            "type": "boolean"
+-          },
+           "expiryTime": {
+             "description": "Expiration timestamp",
+             "format": "int64",
+@@ -3254,11 +3249,6 @@
+           },
+           "sniffing": {},
+           "streamSettings": {},
+-          "subSortIndex": {
+-            "description": "Sort order of this inbound's links in subscription output only (lower first; negatives allowed; 0/omitted → 1; ties by id)",
+-            "example": 1,
+-            "type": "integer"
+-          },
+           "tag": {
+             "example": "in-443-tcp",
+             "type": "string"
+@@ -3297,7 +3287,6 @@
+           "disableFlow",
+           "down",
+           "enable",
+-          "excludeFromSub",
+           "expiryTime",
+           "id",
+           "lastTrafficResetTime",
+@@ -3310,7 +3299,6 @@
+           "shareAddrStrategy",
+           "sniffing",
+           "streamSettings",
+-          "subSortIndex",
+           "tag",
+           "total",
+           "trafficReset",
+@@ -4664,7 +4652,7 @@
+         "type": "object"
+       },
+       "SubBalancer": {
+-        "description": "SubBalancer is one extra JSON-subscription config document whose members are\nthe selected inbounds' proxy outbounds. SortOrder shares SubSortIndex semantics.",
++        "description": "SubBalancer is one extra JSON-subscription config document whose members are\nthe selected inbounds' proxy outbounds. SortOrder orders the documents.",
+         "properties": {
+           "createdAt": {
+             "example": 1710000000000,
+@@ -5235,7 +5223,6 @@
+                       "disableFlow": false,
+                       "down": 0,
+                       "enable": true,
+-                      "excludeFromSub": false,
+                       "expiryTime": 0,
+                       "fallbackParent": null,
+                       "id": 1,
+@@ -5251,7 +5238,6 @@
+                       "shareAddrStrategy": "node",
+                       "sniffing": null,
+                       "streamSettings": null,
+-                      "subSortIndex": 1,
+                       "tag": "in-443-tcp",
+                       "total": 0,
+                       "trafficReset": "never",
+@@ -16648,7 +16634,6 @@
+                   "disableFlow": false,
+                   "down": 0,
+                   "enable": true,
+-                  "excludeFromSub": false,
+                   "expiryTime": 0,
+                   "fallbackParent": null,
+                   "id": 1,
+@@ -16664,7 +16649,6 @@
+                   "shareAddrStrategy": "node",
+                   "sniffing": null,
+                   "streamSettings": null,
+-                  "subSortIndex": 1,
+                   "tag": "in-443-tcp",
+                   "total": 0,
+                   "trafficReset": "never",
+diff --git a/frontend/src/generated/examples.ts b/frontend/src/generated/examples.ts
+index 861781bd..fef04103 100644
+--- a/frontend/src/generated/examples.ts
++++ b/frontend/src/generated/examples.ts
+@@ -824,7 +824,6 @@ export const EXAMPLES: Record<string, unknown> = {
+     "disableFlow": false,
+     "down": 0,
+     "enable": true,
+-    "excludeFromSub": false,
+     "expiryTime": 0,
+     "fallbackParent": null,
+     "id": 1,
+@@ -840,7 +839,6 @@ export const EXAMPLES: Record<string, unknown> = {
+     "shareAddrStrategy": "node",
+     "sniffing": null,
+     "streamSettings": null,
+-    "subSortIndex": 1,
+     "tag": "in-443-tcp",
+     "total": 0,
+     "trafficReset": "never",
+diff --git a/frontend/src/generated/schemas.ts b/frontend/src/generated/schemas.ts
+index d542ea4e..41cf5ce4 100644
+--- a/frontend/src/generated/schemas.ts
++++ b/frontend/src/generated/schemas.ts
+@@ -3142,11 +3142,6 @@ export const SCHEMAS: Record<string, unknown> = {
+         "example": true,
+         "type": "boolean"
+       },
+-      "excludeFromSub": {
+-        "description": "Whether to omit this inbound from subscription output while keeping it operational",
+-        "example": false,
+-        "type": "boolean"
+-      },
+       "expiryTime": {
+         "description": "Expiration timestamp",
+         "format": "int64",
+@@ -3228,11 +3223,6 @@ export const SCHEMAS: Record<string, unknown> = {
+       },
+       "sniffing": {},
+       "streamSettings": {},
+-      "subSortIndex": {
+-        "description": "Sort order of this inbound's links in subscription output only (lower first; negatives allowed; 0/omitted → 1; ties by id)",
+-        "example": 1,
+-        "type": "integer"
+-      },
+       "tag": {
+         "example": "in-443-tcp",
+         "type": "string"
+@@ -3271,7 +3261,6 @@ export const SCHEMAS: Record<string, unknown> = {
+       "disableFlow",
+       "down",
+       "enable",
+-      "excludeFromSub",
+       "expiryTime",
+       "id",
+       "lastTrafficResetTime",
+@@ -3284,7 +3273,6 @@ export const SCHEMAS: Record<string, unknown> = {
+       "shareAddrStrategy",
+       "sniffing",
+       "streamSettings",
+-      "subSortIndex",
+       "tag",
+       "total",
+       "trafficReset",
+@@ -4638,7 +4626,7 @@ export const SCHEMAS: Record<string, unknown> = {
+     "type": "object"
+   },
+   "SubBalancer": {
+-    "description": "SubBalancer is one extra JSON-subscription config document whose members are\nthe selected inbounds' proxy outbounds. SortOrder shares SubSortIndex semantics.",
++    "description": "SubBalancer is one extra JSON-subscription config document whose members are\nthe selected inbounds' proxy outbounds. SortOrder orders the documents.",
+     "properties": {
+       "createdAt": {
+         "example": 1710000000000,
+diff --git a/frontend/src/generated/types.ts b/frontend/src/generated/types.ts
+index 669e8fa0..8dd2b921 100644
+--- a/frontend/src/generated/types.ts
++++ b/frontend/src/generated/types.ts
+@@ -725,7 +725,6 @@ export interface Inbound {
+   disableFlow: boolean;
+   down: number;
+   enable: boolean;
+-  excludeFromSub: boolean;
+   expiryTime: number;
+   fallbackParent?: FallbackParentInfo | null;
+   id: number;
+@@ -741,7 +740,6 @@ export interface Inbound {
+   shareAddrStrategy: string;
+   sniffing: unknown;
+   streamSettings: unknown;
+-  subSortIndex: number;
+   tag: string;
+   total: number;
+   trafficReset: string;
+diff --git a/frontend/src/generated/zod.ts b/frontend/src/generated/zod.ts
+index 981fb8d7..6eb5ca4f 100644
+--- a/frontend/src/generated/zod.ts
++++ b/frontend/src/generated/zod.ts
+@@ -771,7 +771,6 @@ export const InboundSchema = z.object({
+   disableFlow: z.boolean(),
+   down: z.number().int(),
+   enable: z.boolean(),
+-  excludeFromSub: z.boolean(),
+   expiryTime: z.number().int(),
+   fallbackParent: z.lazy(() => FallbackParentInfoSchema).nullable().optional(),
+   id: z.number().int(),
+@@ -787,7 +786,6 @@ export const InboundSchema = z.object({
+   shareAddrStrategy: z.enum(['node', 'listen', 'custom']),
+   sniffing: z.unknown(),
+   streamSettings: z.unknown(),
+-  subSortIndex: z.number().int(),
+   tag: z.string(),
+   total: z.number().int(),
+   trafficReset: z.enum(['never', 'hourly', 'daily', 'weekly', 'monthly']),
+diff --git a/frontend/src/lib/xray/inbound-form-adapter.ts b/frontend/src/lib/xray/inbound-form-adapter.ts
+index 7d0f3af8..8f883dfb 100644
+--- a/frontend/src/lib/xray/inbound-form-adapter.ts
++++ b/frontend/src/lib/xray/inbound-form-adapter.ts
+@@ -58,8 +58,6 @@ export interface RawInboundRow {
+   lastTrafficResetTime?: number;
+   shareAddrStrategy?: string;
+   shareAddr?: string;
+-  subSortIndex?: number;
+-  excludeFromSub?: boolean;
+   disableFlow?: boolean;
+   clientStats?: unknown;
+ }
+@@ -87,8 +85,6 @@ export interface WireInboundPayload {
+   clientStats?: unknown;
+   shareAddrStrategy: ShareAddrStrategy;
+   shareAddr: string;
+-  subSortIndex: number;
+-  excludeFromSub: boolean;
+   disableFlow: boolean;
+ }
+ 
+@@ -231,8 +227,6 @@ export function rawInboundToFormValues(row: RawInboundRow): InboundFormValues {
+     lastTrafficResetTime: row.lastTrafficResetTime ?? 0,
+     shareAddrStrategy: coerceShareAddrStrategy(row.shareAddrStrategy),
+     shareAddr: row.shareAddr ?? '',
+-    subSortIndex: row.subSortIndex == null || row.subSortIndex === 0 ? 1 : row.subSortIndex,
+-    excludeFromSub: row.excludeFromSub ?? false,
+     disableFlow: row.disableFlow ?? false,
+     protocol,
+     settings,
+@@ -401,8 +395,6 @@ export function formValuesToWirePayload(
+     tag: values.tag,
+     shareAddrStrategy: values.shareAddrStrategy,
+     shareAddr: values.shareAddr,
+-    subSortIndex: values.subSortIndex,
+-    excludeFromSub: values.excludeFromSub,
+     disableFlow: values.disableFlow,
+   };
+   return payload;
+diff --git a/frontend/src/models/dbinbound.ts b/frontend/src/models/dbinbound.ts
+index 499564ec..d485679f 100644
+--- a/frontend/src/models/dbinbound.ts
++++ b/frontend/src/models/dbinbound.ts
+@@ -42,8 +42,6 @@ export type DBInboundInit = Partial<{
+   clientStats: ClientStats[];
+   shareAddrStrategy: string;
+   shareAddr: string;
+-  subSortIndex: number;
+-  excludeFromSub: boolean;
+   disableFlow: boolean;
+   fallbackParent: FallbackParentRef | null;
+ }>;
+@@ -90,8 +88,6 @@ export class DBInbound {
+   clientStats: ClientStats[];
+   shareAddrStrategy: string;
+   shareAddr: string;
+-  subSortIndex: number;
+-  excludeFromSub: boolean;
+   disableFlow: boolean;
+   fallbackParent: FallbackParentRef | null;
+ 
+@@ -120,8 +116,6 @@ export class DBInbound {
+     this.clientStats = [];
+     this.shareAddrStrategy = 'listen';
+     this.shareAddr = '';
+-    this.subSortIndex = 1;
+-    this.excludeFromSub = false;
+     this.disableFlow = false;
+     this.fallbackParent = null;
+     if (data == null) {
+diff --git a/frontend/src/pages/inbounds/form/InboundFormModal.tsx b/frontend/src/pages/inbounds/form/InboundFormModal.tsx
+index 0a8ffbe5..403a068f 100644
+--- a/frontend/src/pages/inbounds/form/InboundFormModal.tsx
++++ b/frontend/src/pages/inbounds/form/InboundFormModal.tsx
+@@ -670,23 +670,6 @@ export default function InboundFormModal({
+         </>
+       )}
+ 
+-      <FormField
+-        name="subSortIndex"
+-        label={t('pages.inbounds.form.subSortIndex')}
+-        tooltip={t('pages.inbounds.form.subSortIndexHelp')}
+-      >
+-        <InputNumber />
+-      </FormField>
+-
+-      <FormField
+-        name="excludeFromSub"
+-        valueProp="checked"
+-        label={t('pages.inbounds.form.excludeFromSub')}
+-        tooltip={t('pages.inbounds.form.excludeFromSubHelp')}
+-      >
+-        <Switch />
+-      </FormField>
+-
+       {protocol === Protocols.VLESS && (
+         <FormField
+           name="disableFlow"
+diff --git a/frontend/src/pages/inbounds/list/InboundList.tsx b/frontend/src/pages/inbounds/list/InboundList.tsx
+index 2096b90b..0007c32b 100644
+--- a/frontend/src/pages/inbounds/list/InboundList.tsx
++++ b/frontend/src/pages/inbounds/list/InboundList.tsx
+@@ -112,11 +112,6 @@ export default function InboundList({
+     [dbInbounds, hostRemarksByInboundId],
+   );
+ 
+-  const hasAnySubSortIndex = useMemo(
+-    () => dbInbounds.some((i) => (i.subSortIndex ?? 1) !== 1),
+-    [dbInbounds],
+-  );
+-
+   const toggleSelect = useCallback((id: number, checked: boolean) => {
+     setSelectedRowKeys((prev) => {
+       const next = new Set(prev);
+@@ -145,7 +140,6 @@ export default function InboundList({
+ 
+   const columns = useInboundColumns({
+     hasAnyRemark,
+-    hasAnySubSortIndex,
+     hostRemarksByInboundId,
+     clientCount,
+     inboundSpeed,
+diff --git a/frontend/src/pages/inbounds/list/types.ts b/frontend/src/pages/inbounds/list/types.ts
+index bbb46796..a9642519 100644
+--- a/frontend/src/pages/inbounds/list/types.ts
++++ b/frontend/src/pages/inbounds/list/types.ts
+@@ -24,7 +24,6 @@ export interface DBInboundRecord extends ProtocolFlags {
+   id: number;
+   enable: boolean;
+   remark: string;
+-  subSortIndex: number;
+   port: number;
+   protocol: string;
+   up: number;
+diff --git a/frontend/src/pages/inbounds/list/useInboundColumns.tsx b/frontend/src/pages/inbounds/list/useInboundColumns.tsx
+index a5a3062c..9fc7df37 100644
+--- a/frontend/src/pages/inbounds/list/useInboundColumns.tsx
++++ b/frontend/src/pages/inbounds/list/useInboundColumns.tsx
+@@ -28,7 +28,6 @@ import type { ClientCountEntry, DBInboundRecord, InboundSpeedEntry, RowAction }
+ 
+ interface UseInboundColumnsParams {
+   hasAnyRemark: boolean;
+-  hasAnySubSortIndex: boolean;
+   hostRemarksByInboundId: Map<number, string[]>;
+   clientCount: Record<number, ClientCountEntry>;
+   inboundSpeed: Record<number, InboundSpeedEntry>;
+@@ -40,7 +39,6 @@ interface UseInboundColumnsParams {
+ 
+ export function useInboundColumns({
+   hasAnyRemark,
+-  hasAnySubSortIndex,
+   hostRemarksByInboundId,
+   clientCount,
+   inboundSpeed,
+@@ -155,21 +153,6 @@ export function useInboundColumns({
+       });
+     }
+ 
+-    if (hasAnySubSortIndex) {
+-      cols.push({
+-        title: (
+-          <Tooltip title={t('pages.inbounds.form.subSortIndex')}>
+-            {t('pages.inbounds.subSortIndex')}
+-          </Tooltip>
+-        ),
+-        dataIndex: 'subSortIndex',
+-        key: 'subSortIndex',
+-        align: 'right',
+-        width: 90,
+-        sorter: (a, b) => (a.subSortIndex ?? 1) - (b.subSortIndex ?? 1),
+-      });
+-    }
+-
+     cols.push(
+       {
+         title: t('pages.inbounds.port'),
+@@ -442,7 +425,6 @@ export function useInboundColumns({
+   }, [
+     t,
+     hasAnyRemark,
+-    hasAnySubSortIndex,
+     hostRemarksByInboundId,
+     clientCount,
+     inboundSpeed,
+diff --git a/frontend/src/schemas/forms/inbound-form.ts b/frontend/src/schemas/forms/inbound-form.ts
+index 58331730..ff414e24 100644
+--- a/frontend/src/schemas/forms/inbound-form.ts
++++ b/frontend/src/schemas/forms/inbound-form.ts
+@@ -79,8 +79,6 @@ export const InboundDbFieldsSchema = z.object({
+   lastTrafficResetTime: z.number().int().default(0),
+   shareAddrStrategy: ShareAddrStrategySchema.default('listen'),
+   shareAddr: z.string().default(''),
+-  subSortIndex: z.number().int().default(1),
+-  excludeFromSub: z.boolean().default(false),
+   disableFlow: z.boolean().default(false),
+ });
+ export type InboundDbFields = z.infer<typeof InboundDbFieldsSchema>;
+diff --git a/frontend/src/test/inbound-form-adapter.test.ts b/frontend/src/test/inbound-form-adapter.test.ts
+index 3f244e7b..6bf59c64 100644
+--- a/frontend/src/test/inbound-form-adapter.test.ts
++++ b/frontend/src/test/inbound-form-adapter.test.ts
+@@ -7,7 +7,7 @@ import {
+   type RawInboundRow,
+ } from '@/lib/xray/inbound-form-adapter';
+ import { DBInbound, type DBInboundInit } from '@/models/dbinbound';
+-import { InboundDbFieldsSchema, InboundFormSchema } from '@/schemas/forms/inbound-form';
++import { InboundFormSchema } from '@/schemas/forms/inbound-form';
+ import { normalizeXhttpForWire } from '@/lib/xray/stream-wire-normalize';
+ import { SockoptStreamSettingsSchema } from '@/schemas/protocols/stream/sockopt';
+ 
+@@ -280,35 +280,6 @@ describe('formValuesToWirePayload', () => {
+   });
+ });
+ 
+-describe('excludeFromSub', () => {
+-  it('DBInbound constructor preserves excludeFromSub from the API row', () => {
+-    expect(new DBInbound({ excludeFromSub: true }).excludeFromSub).toBe(true);
+-    expect(new DBInbound({ excludeFromSub: false }).excludeFromSub).toBe(false);
+-  });
+-
+-  it('DBInbound defaults excludeFromSub to false when the API omits it', () => {
+-    expect(new DBInbound({ protocol: 'vless' }).excludeFromSub).toBe(false);
+-    expect(new DBInbound().excludeFromSub).toBe(false);
+-  });
+-
+-  it('rawInboundToFormValues reads excludeFromSub and defaults to false', () => {
+-    expect(rawInboundToFormValues({ ...vlessRow, excludeFromSub: true }).excludeFromSub).toBe(true);
+-    expect(rawInboundToFormValues(vlessRow).excludeFromSub).toBe(false);
+-  });
+-
+-  it('formValuesToWirePayload includes excludeFromSub', () => {
+-    const values = rawInboundToFormValues({ ...vlessRow, excludeFromSub: true });
+-    expect(formValuesToWirePayload(values).excludeFromSub).toBe(true);
+-  });
+-
+-  it('excludeFromSub survives raw → DBInbound → values → payload (the edit round-trip)', () => {
+-    const db = new DBInbound({ ...vlessRow, excludeFromSub: true } as unknown as DBInboundInit);
+-    const values = rawInboundToFormValues(db as unknown as RawInboundRow);
+-    const payload = formValuesToWirePayload(values);
+-    expect(payload.excludeFromSub).toBe(true);
+-  });
+-});
+-
+ describe('disableFlow', () => {
+   it('DBInbound constructor preserves disableFlow from the API row', () => {
+     expect(new DBInbound({ disableFlow: true }).disableFlow).toBe(true);
+@@ -338,45 +309,6 @@ describe('disableFlow', () => {
+   });
+ });
+ 
+-describe('subSortIndex', () => {
+-  it('rawInboundToFormValues defaults to 1 when field is absent', () => {
+-    const values = rawInboundToFormValues({ ...vlessRow, subSortIndex: undefined });
+-    expect(values.subSortIndex).toBe(1);
+-  });
+-
+-  it('rawInboundToFormValues preserves positives and negatives; maps 0/absent to 1', () => {
+-    expect(rawInboundToFormValues({ ...vlessRow, subSortIndex: 5 }).subSortIndex).toBe(5);
+-    expect(rawInboundToFormValues({ ...vlessRow, subSortIndex: 0 }).subSortIndex).toBe(1);
+-    expect(rawInboundToFormValues({ ...vlessRow, subSortIndex: -10 }).subSortIndex).toBe(-10);
+-  });
+-
+-  it('formValuesToWirePayload includes subSortIndex in the payload', () => {
+-    const values = rawInboundToFormValues({ ...vlessRow, subSortIndex: 3 });
+-    const payload = formValuesToWirePayload(values);
+-    expect(payload.subSortIndex).toBe(3);
+-  });
+-
+-  it('subSortIndex round-trips through raw → values → payload', () => {
+-    const values = rawInboundToFormValues({ ...vlessRow, subSortIndex: 42 });
+-    const payload = formValuesToWirePayload(values);
+-    const replay = rawInboundToFormValues({ ...vlessRow, subSortIndex: payload.subSortIndex });
+-    expect(replay.subSortIndex).toBe(42);
+-  });
+-
+-  it('InboundDbFieldsSchema accepts integers including negatives and defaults to 1', () => {
+-    // Reject for the RIGHT reason: the issue must be about subSortIndex, not some
+-    // unrelated field — otherwise a schema that rejects everything would pass.
+-    const nonInt = InboundDbFieldsSchema.partial().safeParse({ subSortIndex: 1.5 });
+-    expect(nonInt.success).toBe(false);
+-    if (!nonInt.success) expect(nonInt.error.issues[0]?.path).toContain('subSortIndex');
+-
+-    expect(InboundDbFieldsSchema.partial().safeParse({ subSortIndex: 0 }).success).toBe(true);
+-    expect(InboundDbFieldsSchema.partial().safeParse({ subSortIndex: -1 }).success).toBe(true);
+-    expect(InboundDbFieldsSchema.partial().safeParse({ subSortIndex: 5 }).success).toBe(true);
+-    expect(InboundDbFieldsSchema.parse({}).subSortIndex).toBe(1);
+-  });
+-});
+-
+ describe('legacy xhttp session keys on edit (#5621)', () => {
+   const legacyXhttpRow: RawInboundRow = {
+     ...vlessRow,
+diff --git a/internal/database/db.go b/internal/database/db.go
+index 1aff111d..46dfd14f 100644
+--- a/internal/database/db.go
++++ b/internal/database/db.go
+@@ -101,14 +101,6 @@ func migrateOutboundSubscriptionUserAgentColumn() error {
+ 	return migrator.AddColumn(&model.OutboundSubscription{}, "UserAgent")
+ }
+ 
+-func migrateInboundExcludeFromSubColumn() error {
+-	migrator := db.Migrator()
+-	if !migrator.HasTable(&model.Inbound{}) || migrator.HasColumn(&model.Inbound{}, "exclude_from_sub") {
+-		return nil
+-	}
+-	return migrator.AddColumn(&model.Inbound{}, "ExcludeFromSub")
+-}
+-
+ func migrateClientKeepAliveRangeColumn() error {
+ 	migrator := db.Migrator()
+ 	if !migrator.HasTable(&model.ClientRecord{}) || migrator.HasColumn(&model.ClientRecord{}, "wg_keep_alive_range") {
+@@ -127,9 +119,6 @@ func initModels() error {
+ 	if err := migrateOutboundSubscriptionUserAgentColumn(); err != nil {
+ 		return err
+ 	}
+-	if err := migrateInboundExcludeFromSubColumn(); err != nil {
+-		return err
+-	}
+ 	models := allModels()
+ 	for _, mdl := range models {
+ 		if IsPostgres() && postgresModelSettled(mdl) {
+@@ -147,6 +136,9 @@ func initModels() error {
+ 	if err := dropLegacyInboundPortUnique(); err != nil {
+ 		return err
+ 	}
++	if err := migrateDropInboundSubscriptionColumns(); err != nil {
++		return err
++	}
+ 	if err := migrateHostVerifyPeerCertByNameColumn(); err != nil {
+ 		return err
+ 	}
+@@ -165,9 +157,6 @@ func initModels() error {
+ 	if err := pruneOrphanedHosts(); err != nil {
+ 		return err
+ 	}
+-	if err := normalizeInboundSubSortIndex(); err != nil {
+-		return err
+-	}
+ 	if err := normalizeClientExternalLinkEnable(); err != nil {
+ 		return err
+ 	}
+@@ -1293,16 +1282,21 @@ func migrateTgIDIndex() error {
+ 	return db.Migrator().CreateIndex(&model.ClientRecord{}, "TgID")
+ }
+ 
+-// normalizeInboundSubSortIndex lifts legacy zero defaults to 1.
+-// Explicit negatives are left alone so primary inbounds can sort first.
+-func normalizeInboundSubSortIndex() error {
+-	res := db.Exec("UPDATE inbounds SET sub_sort_index = 1 WHERE sub_sort_index = 0")
+-	if res.Error != nil {
+-		log.Printf("Error normalizing inbound sub_sort_index: %v", res.Error)
+-		return res.Error
++// migrateDropInboundSubscriptionColumns removes the retired ordering and
++// exclusion columns; subscription output now follows inbound id.
++func migrateDropInboundSubscriptionColumns() error {
++	m := db.Migrator()
++	if !m.HasTable(&model.Inbound{}) {
++		return nil
+ 	}
+-	if res.RowsAffected > 0 {
+-		log.Printf("Normalized sub_sort_index on %d inbound(s)", res.RowsAffected)
++	for _, col := range []string{"sub_sort_index", "exclude_from_sub"} {
++		if !m.HasColumn(&model.Inbound{}, col) {
++			continue
++		}
++		if err := db.Exec("ALTER TABLE inbounds DROP COLUMN " + col).Error; err != nil {
++			log.Printf("Error dropping retired inbound column %s: %v", col, err)
++			return err
++		}
+ 	}
+ 	return nil
+ }
+diff --git a/internal/database/inbound_exclude_from_sub_migration_test.go b/internal/database/inbound_exclude_from_sub_migration_test.go
+deleted file mode 100644
+index 0c484480..00000000
+--- a/internal/database/inbound_exclude_from_sub_migration_test.go
++++ /dev/null
+@@ -1,58 +0,0 @@
+-package database
+-
+-import (
+-	"path/filepath"
+-	"testing"
+-
+-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+-
+-	"gorm.io/driver/sqlite"
+-	"gorm.io/gorm"
+-)
+-
+-// Legacy inbounds schema without exclude_from_sub — the upgrade path AddColumn must cover.
+-const legacyInboundNoExcludeFromSubDDL = "CREATE TABLE `inbounds` (`id` integer PRIMARY KEY AUTOINCREMENT,`user_id` integer,`up` integer,`down` integer,`total` integer,`remark` text,`enable` numeric,`expiry_time` integer,`listen` text,`port` integer,`protocol` text,`settings` text,`stream_settings` text,`tag` text UNIQUE,`sniffing` text)"
+-
+-func TestMigrateInboundExcludeFromSubColumn(t *testing.T) {
+-	dbPath := filepath.Join(t.TempDir(), "x-ui.db")
+-	legacy, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
+-	if err != nil {
+-		t.Fatalf("open legacy db: %v", err)
+-	}
+-	if err := legacy.Exec(legacyInboundNoExcludeFromSubDDL).Error; err != nil {
+-		t.Fatalf("create legacy inbounds: %v", err)
+-	}
+-	if err := legacy.Exec(
+-		`INSERT INTO inbounds (user_id, remark, enable, port, protocol, settings, stream_settings, tag, sniffing)
+-		 VALUES (1, 'preexisting', 1, 443, 'vless', '{"clients":[]}', '{}', 'in-443-tcp', '{}')`,
+-	).Error; err != nil {
+-		t.Fatalf("seed legacy inbound: %v", err)
+-	}
+-	sqlDB, err := legacy.DB()
+-	if err != nil {
+-		t.Fatalf("legacy db handle: %v", err)
+-	}
+-	if err := sqlDB.Close(); err != nil {
+-		t.Fatalf("close legacy db: %v", err)
+-	}
+-
+-	if err := InitDB(dbPath); err != nil {
+-		t.Fatalf("InitDB over legacy schema: %v", err)
+-	}
+-	t.Cleanup(func() { _ = CloseDB() })
+-
+-	if !GetDB().Migrator().HasColumn(&model.Inbound{}, "exclude_from_sub") {
+-		t.Fatal("exclude_from_sub column missing after migrateInboundExcludeFromSubColumn")
+-	}
+-
+-	var row model.Inbound
+-	if err := GetDB().Where("tag = ?", "in-443-tcp").First(&row).Error; err != nil {
+-		t.Fatalf("preexisting inbound lost: %v", err)
+-	}
+-	if row.ExcludeFromSub {
+-		t.Fatal("preexisting row must default exclude_from_sub to false, got true")
+-	}
+-	if err := migrateInboundExcludeFromSubColumn(); err != nil {
+-		t.Fatalf("idempotent migrate: %v", err)
+-	}
+-}
+diff --git a/internal/database/inbound_sub_order_columns_removal_test.go b/internal/database/inbound_sub_order_columns_removal_test.go
+new file mode 100644
+index 00000000..11bb0f4e
+--- /dev/null
++++ b/internal/database/inbound_sub_order_columns_removal_test.go
+@@ -0,0 +1,59 @@
++package database
++
++import (
++	"path/filepath"
++	"testing"
++
++	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
++
++	"gorm.io/driver/sqlite"
++	"gorm.io/gorm"
++)
++
++const legacyInboundSubOrderDDL = "CREATE TABLE `inbounds` (`id` integer PRIMARY KEY AUTOINCREMENT,`user_id` integer,`up` integer,`down` integer,`total` integer,`remark` text,`enable` numeric,`expiry_time` integer,`listen` text,`port` integer,`protocol` text,`settings` text,`stream_settings` text,`tag` text UNIQUE,`sniffing` text,`sub_sort_index` integer DEFAULT 1,`exclude_from_sub` numeric DEFAULT false)"
++
++func TestInitDBDropsInboundSubscriptionColumns(t *testing.T) {
++	dbPath := filepath.Join(t.TempDir(), "x-ui.db")
++	legacy, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
++	if err != nil {
++		t.Fatalf("open legacy db: %v", err)
++	}
++	if err := legacy.Exec(legacyInboundSubOrderDDL).Error; err != nil {
++		t.Fatalf("create legacy inbounds: %v", err)
++	}
++	if err := legacy.Exec(
++		`INSERT INTO inbounds (user_id, remark, enable, port, protocol, settings, stream_settings, tag, sniffing, sub_sort_index, exclude_from_sub)
++		 VALUES (1, 'preexisting', 1, 443, 'vless', '{"clients":[]}', '{}', 'in-443-tcp', '{}', 7, 1)`,
++	).Error; err != nil {
++		t.Fatalf("seed legacy inbound: %v", err)
++	}
++	sqlDB, err := legacy.DB()
++	if err != nil {
++		t.Fatalf("legacy db handle: %v", err)
++	}
++	if err := sqlDB.Close(); err != nil {
++		t.Fatalf("close legacy db: %v", err)
++	}
++
++	if err := InitDB(dbPath); err != nil {
++		t.Fatalf("InitDB over legacy schema: %v", err)
++	}
++	t.Cleanup(func() { _ = CloseDB() })
++
++	for _, col := range []string{"sub_sort_index", "exclude_from_sub"} {
++		if GetDB().Migrator().HasColumn(&model.Inbound{}, col) {
++			t.Errorf("legacy column %q still exists on inbounds", col)
++		}
++	}
++
++	var row model.Inbound
++	if err := GetDB().Where("tag = ?", "in-443-tcp").First(&row).Error; err != nil {
++		t.Fatalf("preexisting inbound lost: %v", err)
++	}
++	if row.Remark != "preexisting" || row.Port != 443 {
++		t.Fatalf("preexisting inbound corrupted: remark=%q port=%d", row.Remark, row.Port)
++	}
++	if err := migrateDropInboundSubscriptionColumns(); err != nil {
++		t.Fatalf("idempotent drop: %v", err)
++	}
++}
+diff --git a/internal/database/model/model.go b/internal/database/model/model.go
+index 25206b5f..4edd7db8 100644
+--- a/internal/database/model/model.go
++++ b/internal/database/model/model.go
+@@ -56,8 +56,6 @@ type Inbound struct {
+ 	Down                 int64                `json:"down" form:"down"`                                                                                                                                             // Download traffic in bytes
+ 	Total                int64                `json:"total" form:"total"`                                                                                                                                           // Total traffic limit in bytes
+ 	Remark               string               `json:"remark" form:"remark" example:"VLESS-443"`                                                                                                                     // Human-readable remark
+-	SubSortIndex         int                  `json:"subSortIndex" form:"subSortIndex" gorm:"default:1" validate:"omitempty" example:"1"`                                                                           // Sort order of this inbound's links in subscription output only (lower first; negatives allowed; 0/omitted → 1; ties by id)
+-	ExcludeFromSub       bool                 `json:"excludeFromSub" form:"excludeFromSub" gorm:"column:exclude_from_sub;default:false" example:"false"`                                                            // Whether to omit this inbound from subscription output while keeping it operational
+ 	Enable               bool                 `json:"enable" form:"enable" gorm:"index:idx_enable_traffic_reset,priority:1" example:"true"`                                                                         // Whether the inbound is enabled
+ 	ExpiryTime           int64                `json:"expiryTime" form:"expiryTime"`                                                                                                                                 // Expiration timestamp
+ 	TrafficReset         string               `json:"trafficReset" form:"trafficReset" gorm:"default:never;index:idx_enable_traffic_reset,priority:2" validate:"omitempty,oneof=never hourly daily weekly monthly"` // Traffic reset schedule
+@@ -1345,7 +1343,7 @@ type OutboundSubscription struct {
+ }
+ 
+ // SubBalancer is one extra JSON-subscription config document whose members are
+-// the selected inbounds' proxy outbounds. SortOrder shares SubSortIndex semantics.
++// the selected inbounds' proxy outbounds. SortOrder orders the documents.
+ type SubBalancer struct {
+ 	Id         int    `json:"id" form:"id" gorm:"primaryKey;autoIncrement" example:"1"`
+ 	Remark     string `json:"remark" form:"remark" validate:"required,max=256" example:"auto-fastest"`
+diff --git a/internal/sub/host_sub_test.go b/internal/sub/host_sub_test.go
+index 8442f278..b0fcd97b 100644
+--- a/internal/sub/host_sub_test.go
++++ b/internal/sub/host_sub_test.go
+@@ -28,7 +28,7 @@ func seedSubDB(t *testing.T) {
+ 
+ // seedSubInbound creates a VLESS inbound with one client wired into the
+ // normalized clients/client_inbounds tables so getInboundsBySubId resolves it.
+-func seedSubInbound(t *testing.T, subId, tag string, port, subSortIndex int, stream string) *model.Inbound {
++func seedSubInbound(t *testing.T, subId, tag string, port int, stream string) *model.Inbound {
+ 	t.Helper()
+ 	db := database.GetDB()
+ 	uuid := "11111111-2222-4333-8444-" + fmt.Sprintf("%012d", port)
+@@ -37,7 +37,6 @@ func seedSubInbound(t *testing.T, subId, tag string, port, subSortIndex int, str
+ 	ib := &model.Inbound{
+ 		UserId: 1, Tag: tag, Enable: true, Listen: "203.0.113.5", Port: port,
+ 		Protocol: model.VLESS, Remark: tag, Settings: settings, StreamSettings: stream,
+-		SubSortIndex: subSortIndex,
+ 	}
+ 	if err := db.Create(ib).Error; err != nil {
+ 		t.Fatalf("seed inbound %s: %v", tag, err)
+@@ -66,7 +65,7 @@ const wsTLSStream = `{"network":"ws","security":"tls","wsSettings":{"path":"/bas
+ // link from the inbound's own address. Mutation-checks the zero-hosts fallback.
+ func TestSub_ZeroHosts_IdenticalOutput(t *testing.T) {
+ 	seedSubDB(t)
+-	seedSubInbound(t, "s1", "z", 4431, 1, `{"network":"tcp","security":"tls","tlsSettings":{"serverName":"base.sni"}}`)
++	seedSubInbound(t, "s1", "z", 4431, `{"network":"tcp","security":"tls","tlsSettings":{"serverName":"base.sni"}}`)
+ 	links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
+ 	if err != nil {
+ 		t.Fatalf("GetSubs: %v", err)
+@@ -86,7 +85,7 @@ func TestSub_ZeroHosts_IdenticalOutput(t *testing.T) {
+ // own address/port/sni and host-header/path override.
+ func TestSub_NHosts_EmitsNLinksOrdered(t *testing.T) {
+ 	seedSubDB(t)
+-	ib := seedSubInbound(t, "s1", "n", 4432, 1, wsTLSStream)
++	ib := seedSubInbound(t, "s1", "n", 4432, wsTLSStream)
+ 	seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 2, Remark: "B", Address: "b.cdn.com", Port: 8443, Security: "tls", Sni: "b.sni", HostHeader: "b.host", Path: "/b"})
+ 	seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 1, Remark: "A", Address: "a.cdn.com", Port: 2096, Security: "tls", Sni: "a.sni", HostHeader: "a.host", Path: "/a"})
+ 
+@@ -111,7 +110,7 @@ func TestSub_NHosts_EmitsNLinksOrdered(t *testing.T) {
+ // #3 — a disabled host is omitted; the inbound falls back to its legacy link.
+ func TestSub_DisabledHostSkipped(t *testing.T) {
+ 	seedSubDB(t)
+-	ib := seedSubInbound(t, "s1", "d", 4433, 1, wsTLSStream)
++	ib := seedSubInbound(t, "s1", "d", 4433, wsTLSStream)
+ 	seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 1, Remark: "OFF", Address: "off.cdn.com", Port: 8443, IsDisabled: true})
+ 
+ 	links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
+@@ -132,7 +131,7 @@ func TestSub_DisabledHostSkipped(t *testing.T) {
+ func TestSub_HostAndExternalProxy_Precedence(t *testing.T) {
+ 	seedSubDB(t)
+ 	stream := `{"network":"ws","security":"tls","wsSettings":{"path":"/base","host":"base.host"},"tlsSettings":{"serverName":"base.sni"},"externalProxy":[{"forceTls":"tls","dest":"legacy.cdn.com","port":7443,"remark":"L"}]}`
+-	ib := seedSubInbound(t, "s1", "p", 4434, 1, stream)
++	ib := seedSubInbound(t, "s1", "p", 4434, stream)
+ 	seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 1, Remark: "H", Address: "host.cdn.com", Port: 8443, Security: "tls", Sni: "host.sni"})
+ 
+ 	links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
+@@ -152,7 +151,7 @@ func TestSub_HostAndExternalProxy_Precedence(t *testing.T) {
+ // distinct hosts produce distinct links. Mutation-checks the (absent) dedup.
+ func TestSub_NHosts_NoDedup(t *testing.T) {
+ 	seedSubDB(t)
+-	ib := seedSubInbound(t, "s1", "dd", 4435, 1, wsTLSStream)
++	ib := seedSubInbound(t, "s1", "dd", 4435, wsTLSStream)
+ 	seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 1, Remark: "SAME", Address: "one.cdn.com", Port: 8443, Security: "tls"})
+ 	seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 2, Remark: "SAME", Address: "two.cdn.com", Port: 8443, Security: "tls"})
+ 
+@@ -170,13 +169,11 @@ func TestSub_NHosts_NoDedup(t *testing.T) {
+ 	}
+ }
+ 
+-// #6 — host sort_order composes with inbound SubSortIndex: inbounds order by
+-// SubSortIndex, hosts within an inbound by sort_order.
+-func TestSub_HostSortComposesWithSubSortIndex(t *testing.T) {
++// #6 — inbound id orders inbounds; hosts within an inbound follow sort_order.
++func TestSub_HostSortComposesWithInboundId(t *testing.T) {
+ 	seedSubDB(t)
+-	// inbound "second" has a higher SubSortIndex so it must come after "first".
+-	ibFirst := seedSubInbound(t, "s1", "first", 4436, 1, wsTLSStream)
+-	ibSecond := seedSubInbound(t, "s1", "second", 4437, 2, wsTLSStream)
++	ibFirst := seedSubInbound(t, "s1", "first", 4436, wsTLSStream)
++	ibSecond := seedSubInbound(t, "s1", "second", 4437, wsTLSStream)
+ 	seedHost(t, &model.Host{InboundId: ibSecond.Id, SortOrder: 1, Remark: "S", Address: "second-host.com", Port: 8443, Security: "tls"})
+ 	seedHost(t, &model.Host{InboundId: ibFirst.Id, SortOrder: 1, Remark: "F", Address: "first-host.com", Port: 8443, Security: "tls"})
+ 
+@@ -191,7 +188,7 @@ func TestSub_HostSortComposesWithSubSortIndex(t *testing.T) {
+ 		t.Fatalf("both inbound hosts should render: %s", joined)
+ 	}
+ 	if firstAt > secondAt {
+-		t.Fatalf("inbound order must follow SubSortIndex (first before second): %s", joined)
++		t.Fatalf("inbound order must follow id (first before second): %s", joined)
+ 	}
+ }
+ 
+@@ -210,7 +207,7 @@ func TestSub_HostOverFallback(t *testing.T) {
+ 		t.Fatalf("seed master: %v", err)
+ 	}
+ 	// child listens internal-only so projection triggers.
+-	child := seedSubInbound(t, "s1", "child", 4438, 1, `{"network":"tcp","security":"none"}`)
++	child := seedSubInbound(t, "s1", "child", 4438, `{"network":"tcp","security":"none"}`)
+ 	child.Listen = "127.0.0.1"
+ 	if err := db.Model(&model.Inbound{}).Where("id = ?", child.Id).Update("listen", "127.0.0.1").Error; err != nil {
+ 		t.Fatalf("set child listen: %v", err)
+@@ -237,8 +234,8 @@ func TestSub_HostOverFallback(t *testing.T) {
+ // clients ⋈ client_inbounds ⋈ inbounds join), never arbitrary inbounds.
+ func TestSub_HostsResolveViaClientInbounds(t *testing.T) {
+ 	seedSubDB(t)
+-	seedSubInbound(t, "s1", "mine", 4439, 1, wsTLSStream)           // client on s1
+-	other := seedSubInbound(t, "s2", "other", 4440, 1, wsTLSStream) // client on s2 only
++	seedSubInbound(t, "s1", "mine", 4439, wsTLSStream)           // client on s1
++	other := seedSubInbound(t, "s2", "other", 4440, wsTLSStream) // client on s2 only
+ 	seedHost(t, &model.Host{InboundId: other.Id, SortOrder: 1, Remark: "X", Address: "other-host.com", Port: 8443, Security: "tls"})
+ 
+ 	links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
+@@ -261,7 +258,7 @@ func TestSub_HostsResolveViaClientInbounds(t *testing.T) {
+ // any inbound-level mask (#5831).
+ func TestSub_HostFinalMask_RawLink(t *testing.T) {
+ 	seedSubDB(t)
+-	ib := seedSubInbound(t, "s1", "fmh", 4455, 1,
++	ib := seedSubInbound(t, "s1", "fmh", 4455,
+ 		`{"network":"tcp","security":"tls","tlsSettings":{"serverName":"base.sni"},"finalmask":{"tcp":[{"type":"sudoku"}]}}`)
+ 	finalMask := `{"tcp":[{"type":"fragment","settings":{"packets":"tlshello","lengths":["5-10","10-15","15-20","20-25","25-30"],"delays":["10-20","5-20","5-25","15-25","10-30"],"maxSplit":"10-15"}}]}`
+ 	seedHost(t, &model.Host{
+@@ -301,7 +298,7 @@ func TestSub_HostFinalMask_RawLink(t *testing.T) {
+ func TestSub_HostRealitySniOverride(t *testing.T) {
+ 	seedSubDB(t)
+ 	realityStream := `{"network":"tcp","security":"reality","tcpSettings":{"header":{"type":"none"}},"realitySettings":{"serverNames":["base.reality.com"],"shortIds":["abcd"],"settings":{"publicKey":"PBK","fingerprint":"chrome"}}}`
+-	ib := seedSubInbound(t, "s1", "rl", 4490, 1, realityStream)
++	ib := seedSubInbound(t, "s1", "rl", 4490, realityStream)
+ 	seedHost(t, &model.Host{
+ 		InboundId: ib.Id, SortOrder: 0, Remark: "RL", Address: "rl.cdn.com", Port: 8443,
+ 		Security: "reality", Sni: "host.reality.com", Fingerprint: "firefox",
+@@ -431,7 +428,7 @@ func TestSub_HostMihomoX25519RawLink(t *testing.T) {
+ func TestSub_HostTlsOverRealityDropsRealityParams(t *testing.T) {
+ 	seedSubDB(t)
+ 	reality := `{"network":"tcp","security":"reality","realitySettings":{"serverNames":["master-dest.example.com"],"publicKey":"MASTERPBK","shortIds":["ab12"],"fingerprint":"chrome"}}`
+-	ib := seedSubInbound(t, "s1", "reality-in", 4461, 1, reality)
++	ib := seedSubInbound(t, "s1", "reality-in", 4461, reality)
+ 	seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 1, Remark: "H", Address: "edge.example.com", Port: 443, Security: "tls"})
+ 
+ 	links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
+diff --git a/internal/sub/links_test.go b/internal/sub/links_test.go
+index 790e165c..9776ddfb 100644
+--- a/internal/sub/links_test.go
++++ b/internal/sub/links_test.go
+@@ -45,7 +45,7 @@ func TestSplitLinkLines_WhitespaceOnlyHasNoEntries(t *testing.T) {
+ 
+ func TestLinksForClient_UsesHostEndpoints(t *testing.T) {
+ 	seedSubDB(t)
+-	inbound := seedSubInbound(t, "s-gate", "gate", 4431, 1, `{"network":"tcp","security":"none"}`)
++	inbound := seedSubInbound(t, "s-gate", "gate", 4431, `{"network":"tcp","security":"none"}`)
+ 	seedHost(t, &model.Host{
+ 		InboundId: inbound.Id, Remark: "public", Address: "proxy.example.com",
+ 		Port: 443, Security: "same",
+diff --git a/internal/sub/service.go b/internal/sub/service.go
+index afc8ecda..a1de92f8 100644
+--- a/internal/sub/service.go
++++ b/internal/sub/service.go
+@@ -342,18 +342,6 @@ func (s *SubService) matchingClients(inbound *model.Inbound, subId string) []mod
+ 	return out
+ }
+ 
+-// countHiddenClients adds an excludeFromSub inbound's clients to the usage set:
+-// the inbound still serves them, so only its links leave the subscription.
+-func countHiddenClients(clients []model.Client, seenEmails map[string]struct{}) (anyEnabled bool) {
+-	for _, client := range clients {
+-		seenEmails[client.Email] = struct{}{}
+-		if client.Enable {
+-			anyEnabled = true
+-		}
+-	}
+-	return anyEnabled
+-}
+-
+ // overlayInboundTunnelIdentity copies per-inbound tunnel fields from settings.
+ // An unmatched peer is dropped, malformed settings yield nothing, and empty optional secrets replace shared values (#6641).
+ func (s *SubService) overlayInboundTunnelIdentity(inbound *model.Inbound, clients []model.Client) ([]model.Client, error) {
+@@ -487,12 +475,6 @@ func (s *SubService) GetSubs(subId string, _ string) ([]string, []string, int64,
+ 		if len(clients) == 0 {
+ 			continue
+ 		}
+-		if inbound.ExcludeFromSub {
+-			if countHiddenClients(clients, seenEmails) {
+-				hasEnabledClient = true
+-			}
+-			continue
+-		}
+ 		s.projectThroughFallbackMaster(inbound)
+ 		// Host overrides apply AFTER fallback projection so a host's
+ 		// address/TLS wins over the projected master stream.
+@@ -716,7 +698,7 @@ func (s *SubService) loadInboundsBySubId(subId string) ([]*model.Inbound, error)
+ 		WHERE
+ 			inbounds.protocol in ('vmess','vless','trojan','shadowsocks','hysteria','wireguard','amneziawg','mtproto','tuic','masque')
+ 			AND clients.sub_id = ? AND inbounds.enable = ?
+-	)`, subId, true).Order("sub_sort_index ASC").Order("id ASC")
++	)`, subId, true).Order("id ASC")
+ 	if cached {
+ 		query = query.Omit("settings")
+ 	}
+diff --git a/internal/sub/service_amneziawg_test.go b/internal/sub/service_amneziawg_test.go
+index 40d13c7d..4d3e1df8 100644
+--- a/internal/sub/service_amneziawg_test.go
++++ b/internal/sub/service_amneziawg_test.go
+@@ -332,7 +332,7 @@ func decodeAmneziaWGSubLink(t *testing.T, link string) string {
+ }
+ 
+ // The shared clients row holds the last sync's tunnel identity. Each vpn://
+-// entry must keep its own inbound address and private key, in either sort order (#6641).
++// entry must keep its own inbound address and private key (#6641).
+ func TestGetSubs_PreservesPerInboundAmneziaWGIdentity(t *testing.T) {
+ 	serverAPriv, serverAPub := mustWireguardKeypair(t)
+ 	serverBPriv, serverBPub := mustWireguardKeypair(t)
+@@ -353,74 +353,62 @@ func TestGetSubs_PreservesPerInboundAmneziaWGIdentity(t *testing.T) {
+ 		{"awg-b", "203.0.113.11", "10.8.2.2/32", privB, serverBPriv, serverBPub, 51821},
+ 	}
+ 
+-	for _, tc := range []struct {
+-		name  string
+-		sort  [2]int
+-		order [2]int
+-	}{
+-		{name: "creation order", sort: [2]int{1, 2}, order: [2]int{0, 1}},
+-		{name: "reversed subscription sort", sort: [2]int{2, 1}, order: [2]int{1, 0}},
+-	} {
+-		t.Run(tc.name, func(t *testing.T) {
+-			initSubDB(t)
+-			db := database.GetDB()
+-			inbounds := make([]*model.Inbound, len(nodes))
+-			for i, n := range nodes {
+-				settings := fmt.Sprintf(
+-					`{"server":{"privateKey":%q,"publicKey":%q,"mtu":1420},"clients":[{"email":%q,"privateKey":%q,"allowedIPs":[%q],"enable":true}]}`,
+-					n.serverPriv, n.serverPub, email, n.priv, n.addr,
+-				)
+-				ib := &model.Inbound{
+-					UserId: 1, Tag: n.tag, Enable: true, Listen: n.listen, Port: n.port,
+-					Protocol: model.AmneziaWG, Remark: n.tag, Settings: settings, SubSortIndex: tc.sort[i],
+-				}
+-				if err := db.Create(ib).Error; err != nil {
+-					t.Fatalf("create %s: %v", n.tag, err)
+-				}
+-				inbounds[i] = ib
+-			}
+-			rec := &model.ClientRecord{
+-				Email: email, SubID: subID, Enable: true,
+-				PrivateKey: mergedPriv, AllowedIPs: mergedAddr,
+-				PreSharedKey: "sharedpsk", KeepAlive: model.KeepAliveValue("25"),
+-			}
+-			if err := db.Create(rec).Error; err != nil {
+-				t.Fatalf("create client: %v", err)
+-			}
+-			for _, ib := range inbounds {
+-				if err := db.Create(&model.ClientInbound{ClientId: rec.Id, InboundId: ib.Id}).Error; err != nil {
+-					t.Fatalf("link %s: %v", ib.Tag, err)
+-				}
+-			}
++	initSubDB(t)
++	db := database.GetDB()
++	inbounds := make([]*model.Inbound, len(nodes))
++	for i, n := range nodes {
++		settings := fmt.Sprintf(
++			`{"server":{"privateKey":%q,"publicKey":%q,"mtu":1420},"clients":[{"email":%q,"privateKey":%q,"allowedIPs":[%q],"enable":true}]}`,
++			n.serverPriv, n.serverPub, email, n.priv, n.addr,
++		)
++		ib := &model.Inbound{
++			UserId: 1, Tag: n.tag, Enable: true, Listen: n.listen, Port: n.port,
++			Protocol: model.AmneziaWG, Remark: n.tag, Settings: settings,
++		}
++		if err := db.Create(ib).Error; err != nil {
++			t.Fatalf("create %s: %v", n.tag, err)
++		}
++		inbounds[i] = ib
++	}
++	rec := &model.ClientRecord{
++		Email: email, SubID: subID, Enable: true,
++		PrivateKey: mergedPriv, AllowedIPs: mergedAddr,
++		PreSharedKey: "sharedpsk", KeepAlive: model.KeepAliveValue("25"),
++	}
++	if err := db.Create(rec).Error; err != nil {
++		t.Fatalf("create client: %v", err)
++	}
++	for _, ib := range inbounds {
++		if err := db.Create(&model.ClientInbound{ClientId: rec.Id, InboundId: ib.Id}).Error; err != nil {
++			t.Fatalf("link %s: %v", ib.Tag, err)
++		}
++	}
+ 
+-			links, _, _, _, err := NewSubService("").GetSubs(subID, "sub.example.com")
+-			if err != nil {
+-				t.Fatalf("GetSubs: %v", err)
+-			}
+-			if len(links) != len(nodes) {
+-				t.Fatalf("links = %d, want %d: %v", len(links), len(nodes), links)
++	links, _, _, _, err := NewSubService("").GetSubs(subID, "sub.example.com")
++	if err != nil {
++		t.Fatalf("GetSubs: %v", err)
++	}
++	if len(links) != len(nodes) {
++		t.Fatalf("links = %d, want %d: %v", len(links), len(nodes), links)
++	}
++	for i, n := range nodes {
++		other := nodes[1-i]
++		conf := decodeAmneziaWGSubLink(t, links[i])
++		for _, want := range []string{
++			"PrivateKey = " + n.priv,
++			"Address = " + n.addr,
++			"PublicKey = " + n.serverPub,
++			fmt.Sprintf("Endpoint = %s:%d", n.listen, n.port),
++		} {
++			if !strings.Contains(conf, want) {
++				t.Fatalf("config missing %q\n%s", want, conf)
+ 			}
+-			for outIdx, nodeIdx := range tc.order {
+-				n := nodes[nodeIdx]
+-				other := nodes[1-nodeIdx]
+-				conf := decodeAmneziaWGSubLink(t, links[outIdx])
+-				for _, want := range []string{
+-					"PrivateKey = " + n.priv,
+-					"Address = " + n.addr,
+-					"PublicKey = " + n.serverPub,
+-					fmt.Sprintf("Endpoint = %s:%d", n.listen, n.port),
+-				} {
+-					if !strings.Contains(conf, want) {
+-						t.Fatalf("config missing %q\n%s", want, conf)
+-					}
+-				}
+-				for _, leaked := range []string{mergedPriv, mergedAddr, "sharedpsk", "PresharedKey", "PersistentKeepalive", other.priv, other.addr, other.serverPub} {
+-					if strings.Contains(conf, leaked) {
+-						t.Fatalf("config leaked %q\n%s", leaked, conf)
+-					}
+-				}
++		}
++		for _, leaked := range []string{mergedPriv, mergedAddr, "sharedpsk", "PresharedKey", "PersistentKeepalive", other.priv, other.addr, other.serverPub} {
++			if strings.Contains(conf, leaked) {
++				t.Fatalf("config leaked %q\n%s", leaked, conf)
+ 			}
+-		})
++		}
+ 	}
+ }
+ 
+@@ -460,7 +448,7 @@ func TestGetSubs_AmneziaWGUnavailableSettingsEmitNoSharedConfig(t *testing.T) {
+ 	for i, sp := range specs {
+ 		ib := &model.Inbound{
+ 			UserId: 1, Tag: sp.tag, Enable: true, Listen: sp.listen, Port: sp.port,
+-			Protocol: model.AmneziaWG, Remark: sp.tag, Settings: sp.settings, SubSortIndex: i + 1,
++			Protocol: model.AmneziaWG, Remark: sp.tag, Settings: sp.settings,
+ 		}
+ 		if err := db.Create(ib).Error; err != nil {
+ 			t.Fatalf("create %s: %v", sp.tag, err)
+diff --git a/internal/sub/service_sort_test.go b/internal/sub/service_sort_test.go
+index 0de1aa04..1660f2d9 100644
+--- a/internal/sub/service_sort_test.go
++++ b/internal/sub/service_sort_test.go
+@@ -10,11 +10,9 @@ import (
+ 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+ )
+ 
+-// TestGetSubs_OrdersBySubSortIndexThenId verifies that subscription output
+-// lists inbound links ordered by sub_sort_index ASC, breaking ties by id ASC.
+-// The same query feeds the raw body, the HTML sub page, and the JSON/Clash
+-// formats, so asserting on GetSubs covers all of them.
+-func TestGetSubs_OrdersBySubSortIndexThenId(t *testing.T) {
++// TestGetSubs_OrdersByInboundId verifies subscription output lists inbound
++// links in creation order, so every format shares one deterministic order.
++func TestGetSubs_OrdersByInboundId(t *testing.T) {
+ 	dbDir := t.TempDir()
+ 	t.Setenv("XUI_DB_FOLDER", dbDir)
+ 	dbtest.InitDB(t, filepath.Join(dbDir, "x-ui.db"))
+@@ -23,18 +21,15 @@ func TestGetSubs_OrdersBySubSortIndexThenId(t *testing.T) {
+ 	db := database.GetDB()
+ 
+ 	seed := []struct {
+-		tag          string
+-		port         int
+-		subSortIndex int
+-		email        string
+-		uuid         string
++		tag   string
++		port  int
++		email string
++		uuid  string
+ 	}{
+-		// Created in this order on purpose: without the ORDER BY the links
+-		// would come out s3, s1, s2a, s2b (creation order).
+-		{"sort-3", 42101, 3, "s3@example.com", "0d68a695-4be1-4d92-a9c3-8c0f1c2cf001"},
+-		{"sort-1", 42102, 1, "s1@example.com", "0d68a695-4be1-4d92-a9c3-8c0f1c2cf002"},
+-		{"sort-2a", 42103, 2, "s2a@example.com", "0d68a695-4be1-4d92-a9c3-8c0f1c2cf003"},
+-		{"sort-2b", 42104, 2, "s2b@example.com", "0d68a695-4be1-4d92-a9c3-8c0f1c2cf004"},
++		{"sort-3", 42101, "s3@example.com", "0d68a695-4be1-4d92-a9c3-8c0f1c2cf001"},
++		{"sort-1", 42102, "s1@example.com", "0d68a695-4be1-4d92-a9c3-8c0f1c2cf002"},
++		{"sort-2a", 42103, "s2a@example.com", "0d68a695-4be1-4d92-a9c3-8c0f1c2cf003"},
++		{"sort-2b", 42104, "s2b@example.com", "0d68a695-4be1-4d92-a9c3-8c0f1c2cf004"},
+ 	}
+ 	for _, s := range seed {
+ 		settings := fmt.Sprintf(`{"clients": [{"id": %q, "email": %q, "subId": %q, "enable": true}]}`, s.uuid, s.email, subId)
+@@ -46,7 +41,6 @@ func TestGetSubs_OrdersBySubSortIndexThenId(t *testing.T) {
+ 			Protocol:       model.VLESS,
+ 			Settings:       settings,
+ 			StreamSettings: `{"network": "tcp", "security": "none"}`,
+-			SubSortIndex:   s.subSortIndex,
+ 		}
+ 		if err := db.Create(ib).Error; err != nil {
+ 			t.Fatalf("seed inbound %s: %v", s.tag, err)
+@@ -68,10 +62,10 @@ func TestGetSubs_OrdersBySubSortIndexThenId(t *testing.T) {
+ 	if len(links) != len(seed) {
+ 		t.Fatalf("links = %d, want %d", len(links), len(seed))
+ 	}
+-	want := []string{"s1@example.com", "s2a@example.com", "s2b@example.com", "s3@example.com"}
++	want := []string{"s3@example.com", "s1@example.com", "s2a@example.com", "s2b@example.com"}
+ 	for i, email := range want {
+ 		if emails[i] != email {
+-			t.Fatalf("emails order = %v, want %v (sub_sort_index ASC, id ASC)", emails, want)
++			t.Fatalf("emails order = %v, want %v (id ASC)", emails, want)
+ 		}
+ 	}
+ }
+diff --git a/internal/sub/service_wireguard_test.go b/internal/sub/service_wireguard_test.go
+index d58e8ec6..4c56b33c 100644
+--- a/internal/sub/service_wireguard_test.go
++++ b/internal/sub/service_wireguard_test.go
+@@ -155,7 +155,7 @@ func parseWireguardSubLink(t *testing.T, link string) *url.URL {
+ }
+ 
+ // The shared clients row holds the last sync's tunnel identity. Each wireguard://
+-// entry must keep its own key and both IPv4 and IPv6 addresses, in either sort order (#6641).
++// entry must keep its own key and both IPv4 and IPv6 addresses (#6641).
+ func TestGetSubs_PreservesPerInboundWireGuardIdentity(t *testing.T) {
+ 	serverAPriv, serverAPub := mustWireguardKeypair(t)
+ 	serverBPriv, serverBPub := mustWireguardKeypair(t)
+@@ -177,78 +177,66 @@ func TestGetSubs_PreservesPerInboundWireGuardIdentity(t *testing.T) {
+ 		{"wg-b", "203.0.113.11", privB, serverBPriv, serverBPub, 51821, []string{"10.2.0.2/32", "fd00:2::2/128"}},
+ 	}
+ 
+-	for _, tc := range []struct {
+-		name  string
+-		sort  [2]int
+-		order [2]int
+-	}{
+-		{name: "creation order", sort: [2]int{1, 2}, order: [2]int{0, 1}},
+-		{name: "reversed subscription sort", sort: [2]int{2, 1}, order: [2]int{1, 0}},
+-	} {
+-		t.Run(tc.name, func(t *testing.T) {
+-			initSubDB(t)
+-			db := database.GetDB()
+-			inbounds := make([]*model.Inbound, len(nodes))
+-			for i, n := range nodes {
+-				settings := fmt.Sprintf(
+-					`{"secretKey":%q,"mtu":1420,"clients":[{"email":%q,"privateKey":%q,"allowedIPs":[%q,%q],"enable":true}]}`,
+-					n.serverPriv, email, n.priv, n.allowed[0], n.allowed[1],
+-				)
+-				ib := &model.Inbound{
+-					UserId: 1, Tag: n.tag, Enable: true, Listen: n.listen, Port: n.port,
+-					Protocol: model.WireGuard, Remark: n.tag, Settings: settings, SubSortIndex: tc.sort[i],
+-				}
+-				if err := db.Create(ib).Error; err != nil {
+-					t.Fatalf("create %s: %v", n.tag, err)
+-				}
+-				inbounds[i] = ib
+-			}
+-			rec := &model.ClientRecord{
+-				Email: email, SubID: subID, Enable: true,
+-				PrivateKey: mergedPriv, AllowedIPs: mergedAddr,
+-				PreSharedKey: "sharedpsk", KeepAlive: model.KeepAliveValue("25"),
+-			}
+-			if err := db.Create(rec).Error; err != nil {
+-				t.Fatalf("create client: %v", err)
+-			}
+-			for _, ib := range inbounds {
+-				if err := db.Create(&model.ClientInbound{ClientId: rec.Id, InboundId: ib.Id}).Error; err != nil {
+-					t.Fatalf("link %s: %v", ib.Tag, err)
+-				}
+-			}
++	initSubDB(t)
++	db := database.GetDB()
++	inbounds := make([]*model.Inbound, len(nodes))
++	for i, n := range nodes {
++		settings := fmt.Sprintf(
++			`{"secretKey":%q,"mtu":1420,"clients":[{"email":%q,"privateKey":%q,"allowedIPs":[%q,%q],"enable":true}]}`,
++			n.serverPriv, email, n.priv, n.allowed[0], n.allowed[1],
++		)
++		ib := &model.Inbound{
++			UserId: 1, Tag: n.tag, Enable: true, Listen: n.listen, Port: n.port,
++			Protocol: model.WireGuard, Remark: n.tag, Settings: settings,
++		}
++		if err := db.Create(ib).Error; err != nil {
++			t.Fatalf("create %s: %v", n.tag, err)
++		}
++		inbounds[i] = ib
++	}
++	rec := &model.ClientRecord{
++		Email: email, SubID: subID, Enable: true,
++		PrivateKey: mergedPriv, AllowedIPs: mergedAddr,
++		PreSharedKey: "sharedpsk", KeepAlive: model.KeepAliveValue("25"),
++	}
++	if err := db.Create(rec).Error; err != nil {
++		t.Fatalf("create client: %v", err)
++	}
++	for _, ib := range inbounds {
++		if err := db.Create(&model.ClientInbound{ClientId: rec.Id, InboundId: ib.Id}).Error; err != nil {
++			t.Fatalf("link %s: %v", ib.Tag, err)
++		}
++	}
+ 
+-			links, _, _, _, err := NewSubService("").GetSubs(subID, "sub.example.com")
+-			if err != nil {
+-				t.Fatalf("GetSubs: %v", err)
+-			}
+-			if len(links) != len(nodes) {
+-				t.Fatalf("links = %d, want %d: %v", len(links), len(nodes), links)
+-			}
+-			for outIdx, nodeIdx := range tc.order {
+-				n := nodes[nodeIdx]
+-				other := nodes[1-nodeIdx]
+-				u := parseWireguardSubLink(t, links[outIdx])
+-				if u.Host != fmt.Sprintf("%s:%d", n.listen, n.port) {
+-					t.Fatalf("host = %q, want %s:%d", u.Host, n.listen, n.port)
+-				}
+-				if u.User.Username() != n.priv {
+-					t.Fatalf("private key = %q, want inbound key %q", u.User.Username(), n.priv)
+-				}
+-				q := u.Query()
+-				if got, want := q.Get("address"), strings.Join(n.allowed, ","); got != want {
+-					t.Fatalf("address = %q, want %q", got, want)
+-				}
+-				if q.Get("publickey") != n.serverPub {
+-					t.Fatalf("publickey = %q, want %q", q.Get("publickey"), n.serverPub)
+-				}
+-				if q.Get("presharedkey") != "" || q.Get("keepalive") != "" {
+-					t.Fatalf("optional fields inherited shared values: %s", u.RawQuery)
+-				}
+-				if u.User.Username() == mergedPriv || strings.Contains(q.Get("address"), "10.9.9.9") || strings.Contains(q.Get("address"), other.allowed[0]) || strings.Contains(q.Get("address"), other.allowed[1]) {
+-					t.Fatalf("link borrowed another tunnel identity: %s", links[outIdx])
+-				}
+-			}
+-		})
++	links, _, _, _, err := NewSubService("").GetSubs(subID, "sub.example.com")
++	if err != nil {
++		t.Fatalf("GetSubs: %v", err)
++	}
++	if len(links) != len(nodes) {
++		t.Fatalf("links = %d, want %d: %v", len(links), len(nodes), links)
++	}
++	for i, n := range nodes {
++		other := nodes[1-i]
++		u := parseWireguardSubLink(t, links[i])
++		if u.Host != fmt.Sprintf("%s:%d", n.listen, n.port) {
++			t.Fatalf("host = %q, want %s:%d", u.Host, n.listen, n.port)
++		}
++		if u.User.Username() != n.priv {
++			t.Fatalf("private key = %q, want inbound key %q", u.User.Username(), n.priv)
++		}
++		q := u.Query()
++		if got, want := q.Get("address"), strings.Join(n.allowed, ","); got != want {
++			t.Fatalf("address = %q, want %q", got, want)
++		}
++		if q.Get("publickey") != n.serverPub {
++			t.Fatalf("publickey = %q, want %q", q.Get("publickey"), n.serverPub)
++		}
++		if q.Get("presharedkey") != "" || q.Get("keepalive") != "" {
++			t.Fatalf("optional fields inherited shared values: %s", u.RawQuery)
++		}
++		if u.User.Username() == mergedPriv || strings.Contains(q.Get("address"), "10.9.9.9") || strings.Contains(q.Get("address"), other.allowed[0]) || strings.Contains(q.Get("address"), other.allowed[1]) {
++			t.Fatalf("link borrowed another tunnel identity: %s", links[i])
++		}
+ 	}
+ }
+ 
+@@ -288,7 +276,7 @@ func TestGetSubs_WireGuardUnavailableSettingsEmitNoSharedConfig(t *testing.T) {
+ 	for i, sp := range specs {
+ 		ib := &model.Inbound{
+ 			UserId: 1, Tag: sp.tag, Enable: true, Listen: sp.listen, Port: sp.port,
+-			Protocol: model.WireGuard, Remark: sp.tag, Settings: sp.settings, SubSortIndex: i + 1,
++			Protocol: model.WireGuard, Remark: sp.tag, Settings: sp.settings,
+ 		}
+ 		if err := db.Create(ib).Error; err != nil {
+ 			t.Fatalf("create %s: %v", sp.tag, err)
+diff --git a/internal/sub/vless_route_sub_test.go b/internal/sub/vless_route_sub_test.go
+index d04ba01b..483c788f 100644
+--- a/internal/sub/vless_route_sub_test.go
++++ b/internal/sub/vless_route_sub_test.go
+@@ -22,7 +22,7 @@ func TestHostToExternalProxyMap_VlessRoute(t *testing.T) {
+ // -> 01bb, 53 -> 0035, and a route-less host keeps 4333.
+ func TestSub_HostVlessRoute_RawMultiHost(t *testing.T) {
+ 	seedSubDB(t)
+-	ib := seedSubInbound(t, "s1", "vr", 4500, 1, wsTLSStream)
++	ib := seedSubInbound(t, "s1", "vr", 4500, wsTLSStream)
+ 	seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 1, Remark: "A", Address: "a.cdn.com", Port: 8443, Security: "tls", VlessRoute: "443"})
+ 	seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 2, Remark: "B", Address: "b.cdn.com", Port: 8443, Security: "tls", VlessRoute: "53"})
+ 	seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 3, Remark: "C", Address: "c.cdn.com", Port: 8443, Security: "tls"})
+diff --git a/internal/web/service/inbound.go b/internal/web/service/inbound.go
+index 005df879..38052e3c 100644
+--- a/internal/web/service/inbound.go
++++ b/internal/web/service/inbound.go
+@@ -1258,7 +1258,6 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
+ 	if err := s.normalizeAmneziaWGSettings(inbound, nil); err != nil {
+ 		return inbound, false, err
+ 	}
+-	inbound.SubSortIndex = normalizeSubSortIndex(inbound.SubSortIndex)
+ 	if err := normalizeInboundShareAddressStrict(inbound); err != nil {
+ 		return inbound, false, err
+ 	}
+@@ -1799,7 +1798,6 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound,
+ 	if err := s.normalizeAmneziaWGSettings(inbound, oldInbound); err != nil {
+ 		return inbound, false, err
+ 	}
+-	inbound.SubSortIndex = normalizeSubSortIndex(inbound.SubSortIndex)
+ 
+ 	// Grandfather a row that was already stored incomplete so it stays editable;
+ 	// only a save that breaks a previously valid TLS block is refused.
+@@ -1937,8 +1935,6 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound,
+ 
+ 		oldInbound.Total = inbound.Total
+ 		oldInbound.Remark = inbound.Remark
+-		oldInbound.SubSortIndex = inbound.SubSortIndex
+-		oldInbound.ExcludeFromSub = inbound.ExcludeFromSub
+ 		oldInbound.Enable = inbound.Enable
+ 		oldInbound.ExpiryTime = inbound.ExpiryTime
+ 		oldInbound.TrafficReset = inbound.TrafficReset
+diff --git a/internal/web/service/inbound_exclude_from_sub_test.go b/internal/web/service/inbound_exclude_from_sub_test.go
+deleted file mode 100644
+index 3766b77f..00000000
+--- a/internal/web/service/inbound_exclude_from_sub_test.go
++++ /dev/null
+@@ -1,57 +0,0 @@
+-package service
+-
+-import (
+-	"testing"
+-
+-	"github.com/mhsanaei/3x-ui/v3/internal/database"
+-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+-)
+-
+-func TestUpdateInbound_PersistsExcludeFromSub(t *testing.T) {
+-	setupConflictDB(t)
+-
+-	ib := makeInboundWithSubSortIndex("in-7004-tcp", 7004, 1)
+-	if err := database.GetDB().Create(ib).Error; err != nil {
+-		t.Fatalf("create inbound: %v", err)
+-	}
+-
+-	update := *ib
+-	update.ExcludeFromSub = true
+-	got, _, err := (&InboundService{}).UpdateInbound(&update)
+-	if err != nil {
+-		t.Fatalf("UpdateInbound: %v", err)
+-	}
+-	if !got.ExcludeFromSub {
+-		t.Fatal("returned ExcludeFromSub = false, want true")
+-	}
+-
+-	var reloaded model.Inbound
+-	if err := database.GetDB().First(&reloaded, ib.Id).Error; err != nil {
+-		t.Fatalf("reload: %v", err)
+-	}
+-	if !reloaded.ExcludeFromSub {
+-		t.Fatal("persisted ExcludeFromSub = false, want true")
+-	}
+-}
+-
+-func TestAddInbound_PersistsExcludeFromSub(t *testing.T) {
+-	setupConflictDB(t)
+-
+-	ib := makeInboundWithSubSortIndex("in-7005-tcp", 7005, 1)
+-	ib.ExcludeFromSub = true
+-	got, _, err := (&InboundService{}).AddInbound(ib)
+-	if err != nil {
+-		t.Fatalf("AddInbound: %v", err)
+-	}
+-	if !got.ExcludeFromSub {
+-		t.Fatal("returned ExcludeFromSub = false, want true")
+-	}
+-
+-	var reloaded model.Inbound
+-	if err := database.GetDB().First(&reloaded, got.Id).Error; err != nil {
+-		t.Fatalf("reload: %v", err)
+-	}
+-	if !reloaded.ExcludeFromSub {
+-		t.Fatal("persisted ExcludeFromSub = false, want true")
+-	}
+-}
+diff --git a/internal/web/service/inbound_sub_sort_test.go b/internal/web/service/inbound_sub_sort_test.go
+deleted file mode 100644
+index 15bcb4d0..00000000
+--- a/internal/web/service/inbound_sub_sort_test.go
++++ /dev/null
+@@ -1,139 +0,0 @@
+-package service
+-
+-import (
+-	"testing"
+-
+-	"github.com/mhsanaei/3x-ui/v3/internal/database"
+-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+-)
+-
+-func makeInboundWithSubSortIndex(tag string, port int, subSortIndex int) *model.Inbound {
+-	return &model.Inbound{
+-		UserId:         1,
+-		Tag:            tag,
+-		Enable:         true,
+-		Listen:         "0.0.0.0",
+-		Port:           port,
+-		Protocol:       model.VLESS,
+-		StreamSettings: `{"network":"tcp"}`,
+-		Settings:       `{"clients":[]}`,
+-		SubSortIndex:   subSortIndex,
+-	}
+-}
+-
+-// TestUpdateInbound_PersistsSubSortIndex verifies that UpdateInbound copies
+-// SubSortIndex from the incoming update payload to the persisted row.
+-func TestUpdateInbound_PersistsSubSortIndex(t *testing.T) {
+-	setupConflictDB(t)
+-
+-	ib := makeInboundWithSubSortIndex("in-7001-tcp", 7001, 1)
+-	if err := database.GetDB().Create(ib).Error; err != nil {
+-		t.Fatalf("create inbound: %v", err)
+-	}
+-
+-	update := *ib
+-	update.SubSortIndex = 7
+-
+-	svc := &InboundService{}
+-	got, _, err := svc.UpdateInbound(&update)
+-	if err != nil {
+-		t.Fatalf("UpdateInbound: %v", err)
+-	}
+-	if got.SubSortIndex != 7 {
+-		t.Fatalf("returned SubSortIndex = %d, want 7", got.SubSortIndex)
+-	}
+-
+-	var reloaded model.Inbound
+-	if err := database.GetDB().First(&reloaded, ib.Id).Error; err != nil {
+-		t.Fatalf("reload: %v", err)
+-	}
+-	if reloaded.SubSortIndex != 7 {
+-		t.Fatalf("persisted SubSortIndex = %d, want 7", reloaded.SubSortIndex)
+-	}
+-}
+-
+-// TestUpdateInbound_SubSortIndexZeroMapsToDefault verifies that 0 from clients
+-// that predate the field is normalized to 1 instead of being stored.
+-func TestUpdateInbound_SubSortIndexZeroMapsToDefault(t *testing.T) {
+-	setupConflictDB(t)
+-
+-	ib := makeInboundWithSubSortIndex("in-7002-tcp", 7002, 5)
+-	if err := database.GetDB().Create(ib).Error; err != nil {
+-		t.Fatalf("create inbound: %v", err)
+-	}
+-
+-	svc := &InboundService{}
+-	update := *ib
+-	update.SubSortIndex = 0
+-
+-	got, _, err := svc.UpdateInbound(&update)
+-	if err != nil {
+-		t.Fatalf("UpdateInbound: %v", err)
+-	}
+-	if got.SubSortIndex != 1 {
+-		t.Fatalf("returned SubSortIndex = %d, want 1", got.SubSortIndex)
+-	}
+-
+-	var reloaded model.Inbound
+-	if err := database.GetDB().First(&reloaded, ib.Id).Error; err != nil {
+-		t.Fatalf("reload: %v", err)
+-	}
+-	if reloaded.SubSortIndex != 1 {
+-		t.Fatalf("persisted SubSortIndex = %d, want 1", reloaded.SubSortIndex)
+-	}
+-}
+-
+-// TestUpdateInbound_PreservesNegativeSubSortIndex verifies that an explicitly
+-// set negative index is stored (so it can sort ahead of the default of 1).
+-func TestUpdateInbound_PreservesNegativeSubSortIndex(t *testing.T) {
+-	setupConflictDB(t)
+-
+-	ib := makeInboundWithSubSortIndex("in-7004-tcp", 7004, 5)
+-	if err := database.GetDB().Create(ib).Error; err != nil {
+-		t.Fatalf("create inbound: %v", err)
+-	}
+-
+-	svc := &InboundService{}
+-	update := *ib
+-	update.SubSortIndex = -1
+-
+-	got, _, err := svc.UpdateInbound(&update)
+-	if err != nil {
+-		t.Fatalf("UpdateInbound: %v", err)
+-	}
+-	if got.SubSortIndex != -1 {
+-		t.Fatalf("returned SubSortIndex = %d, want -1", got.SubSortIndex)
+-	}
+-
+-	var reloaded model.Inbound
+-	if err := database.GetDB().First(&reloaded, ib.Id).Error; err != nil {
+-		t.Fatalf("reload: %v", err)
+-	}
+-	if reloaded.SubSortIndex != -1 {
+-		t.Fatalf("persisted SubSortIndex = %d, want -1", reloaded.SubSortIndex)
+-	}
+-}
+-
+-// TestAddInbound_SubSortIndexClampedToMinimum verifies the same clamping on
+-// the create path (an omitted form field binds to 0).
+-func TestAddInbound_SubSortIndexClampedToMinimum(t *testing.T) {
+-	setupConflictDB(t)
+-
+-	svc := &InboundService{}
+-	ib := makeInboundWithSubSortIndex("in-7003-tcp", 7003, 0)
+-	got, _, err := svc.AddInbound(ib)
+-	if err != nil {
+-		t.Fatalf("AddInbound: %v", err)
+-	}
+-	if got.SubSortIndex != 1 {
+-		t.Fatalf("returned SubSortIndex = %d, want 1", got.SubSortIndex)
+-	}
+-
+-	var reloaded model.Inbound
+-	if err := database.GetDB().First(&reloaded, got.Id).Error; err != nil {
+-		t.Fatalf("reload: %v", err)
+-	}
+-	if reloaded.SubSortIndex != 1 {
+-		t.Fatalf("persisted SubSortIndex = %d, want 1", reloaded.SubSortIndex)
+-	}
+-}
+diff --git a/internal/web/service/inbound_util.go b/internal/web/service/inbound_util.go
+index 2917612d..6c46e9e1 100644
+--- a/internal/web/service/inbound_util.go
++++ b/internal/web/service/inbound_util.go
+@@ -9,15 +9,6 @@ import "strings"
+ // installs (>32k clients) where even modern SQLite would refuse a single IN.
+ const sqliteMaxVars = 900
+ 
+-// normalizeSubSortIndex maps omitted/zero to 1; explicit negatives are kept
+-// so a primary inbound can sort ahead of the default.
+-func normalizeSubSortIndex(v int) int {
+-	if v == 0 {
+-		return 1
+-	}
+-	return v
+-}
+-
+ // uniqueNonEmptyStrings returns a deduplicated copy of in with empty strings
+ // removed, preserving the order of first occurrence.
+ func uniqueNonEmptyStrings(in []string) []string {
+diff --git a/internal/web/service/inbound_util_test.go b/internal/web/service/inbound_util_test.go
+index 5775087a..69196aca 100644
+--- a/internal/web/service/inbound_util_test.go
++++ b/internal/web/service/inbound_util_test.go
+@@ -6,23 +6,6 @@ import (
+ 	"testing"
+ )
+ 
+-func TestNormalizeSubSortIndex(t *testing.T) {
+-	cases := []struct {
+-		in, want int
+-	}{
+-		{0, 1},
+-		{1, 1},
+-		{7, 7},
+-		{-1, -1},
+-		{-10, -10},
+-	}
+-	for _, tc := range cases {
+-		if got := normalizeSubSortIndex(tc.in); got != tc.want {
+-			t.Fatalf("normalizeSubSortIndex(%d) = %d, want %d", tc.in, got, tc.want)
+-		}
+-	}
+-}
+-
+ // A size near MaxInt used to overflow the capacity math and panic in make (CodeQL #119).
+ func TestChunkHugeSizeKeepsOneBatch(t *testing.T) {
+ 	strs := []string{"a", "b", "c"}
+diff --git a/internal/web/translation/ar-EG.json b/internal/web/translation/ar-EG.json
+index 58d2c5e4..1e0a42ff 100644
+--- a/internal/web/translation/ar-EG.json
++++ b/internal/web/translation/ar-EG.json
+@@ -425,7 +425,6 @@
+         "stream": "Stream",
+         "streamHelp": "غلاف كتلة stream في Xray:"
+       },
+-      "subSortIndex": "ترتيب الاشتراك",
+       "inboundInfo": "معلومات الإدخال",
+       "exportInbound": "تصدير الإدخال",
+       "import": "استيراد",
+@@ -666,10 +665,6 @@
+         "shareAddrStrategyHelp": "تحدد العنوان الذي يُكتب في روابط المشاركة المصدّرة ورموز QR ومخرجات الاشتراك.",
+         "shareAddr": "عنوان مشاركة مخصص",
+         "shareAddrHelp": "يُستخدم فقط عندما تكون استراتيجية عنوان المشاركة مخصصة. أدخل اسم مضيف أو عنوان IP بدون بروتوكول أو منفذ.",
+-        "subSortIndex": "ترتيب الروابط في الاشتراك",
+-        "subSortIndexHelp": "موضع روابط هذا الوارد في مخرجات الاشتراك (صفحة الاشتراك وتطبيقات العملاء). القيم الأقل تظهر أولاً، والقيم المتساوية تحافظ على ترتيب الإنشاء. لا يؤثر على قائمة الواردات في اللوحة.",
+-        "excludeFromSub": "استبعاد من الاشتراكات",
+-        "excludeFromSubHelp": "إخفاء روابط هذا الإدخال من مخرجات الاشتراك مع الإبقاء على الإدخال مفعّلاً ويعمل.",
+         "disableFlow": "تعطيل تدفق XTLS",
+         "disableFlowHelp": "استثناء هذا الـ inbound من الحقن التلقائي لـ xtls-rprx-vision، حتى عندما يكون النقل قادرًا على الـ flow (مثل inbound من نوع XHTTP عبر نفق مع تشفير VLESS). يحتفظ العملاء بـ Vision على باقي الـ inbounds القادرة ضمن نفس الاشتراك. لـ VLESS فقط.",
+         "shareAddrStrategyOptions": {
+diff --git a/internal/web/translation/en-US.json b/internal/web/translation/en-US.json
+index ed6f25d9..50cfdc66 100644
+--- a/internal/web/translation/en-US.json
++++ b/internal/web/translation/en-US.json
+@@ -425,7 +425,6 @@
+         "streamHelp": "Xray stream block wrapper:"
+       },
+       "advancedTitle": "Advanced Settings",
+-      "subSortIndex": "Sub order",
+       "inboundInfo": "Inbound Information",
+       "exportInbound": "Export Inbound",
+       "import": "Import",
+@@ -718,10 +717,6 @@
+         "shareAddrStrategyHelp": "Controls which address is written into exported share links, QR codes, and subscription output.",
+         "shareAddr": "Custom share address",
+         "shareAddrHelp": "Used only when the share address strategy is Custom. Enter a host or IP without a scheme or port.",
+-        "subSortIndex": "Subscription sort order",
+-        "subSortIndexHelp": "Position of this inbound's links in subscription output (sub page and client apps). Lower values come first; equal values keep creation order. Does not affect the panel inbound list.",
+-        "excludeFromSub": "Exclude from subscriptions",
+-        "excludeFromSubHelp": "Hide this inbound's links from subscription output while keeping the inbound enabled and operational.",
+         "disableFlow": "Disable XTLS flow",
+         "disableFlowHelp": "Opt this inbound out of automatic xtls-rprx-vision injection, even when its transport is flow-capable (e.g. a tunneled XHTTP inbound with VLESS encryption). Clients keep Vision on your other capable inbounds in the same subscription. VLESS only.",
+         "shareAddrStrategyOptions": {
+diff --git a/internal/web/translation/es-ES.json b/internal/web/translation/es-ES.json
+index fbcc7619..f059c127 100644
+--- a/internal/web/translation/es-ES.json
++++ b/internal/web/translation/es-ES.json
+@@ -425,7 +425,6 @@
+         "stream": "Stream",
+         "streamHelp": "Envoltorio del bloque stream de Xray:"
+       },
+-      "subSortIndex": "Orden sub",
+       "inboundInfo": "Información de entrada",
+       "exportInbound": "Exportación entrante",
+       "import": "Importar",
+@@ -717,10 +716,6 @@
+         "shareAddrStrategyHelp": "Controla qué dirección se escribe en los enlaces compartidos exportados, códigos QR y la salida de suscripción.",
+         "shareAddr": "Dirección compartida personalizada",
+         "shareAddrHelp": "Solo se usa cuando la estrategia de dirección para compartir es Personalizada. Introduce un host o IP sin esquema ni puerto.",
+-        "subSortIndex": "Orden en la suscripción",
+-        "subSortIndexHelp": "Posición de los enlaces de esta entrada en la salida de la suscripción (página de suscripción y apps cliente). Los valores más bajos van primero; con valores iguales se mantiene el orden de creación. No afecta a la lista de entradas del panel.",
+-        "excludeFromSub": "Excluir de las suscripciones",
+-        "excludeFromSubHelp": "Oculta los enlaces de esta entrada en la salida de suscripción manteniendo la entrada habilitada y operativa.",
+         "disableFlow": "Desactivar el flujo XTLS",
+         "disableFlowHelp": "Excluye este inbound de la inyección automática de xtls-rprx-vision, incluso cuando su transporte admite flow (p. ej. un inbound XHTTP tunelizado con cifrado VLESS). Los clientes mantienen Vision en tus demás inbounds compatibles de la misma suscripción. Solo VLESS.",
+         "shareAddrStrategyOptions": {
+diff --git a/internal/web/translation/fa-IR.json b/internal/web/translation/fa-IR.json
+index 6e790b04..f66d1670 100644
+--- a/internal/web/translation/fa-IR.json
++++ b/internal/web/translation/fa-IR.json
+@@ -425,7 +425,6 @@
+         "stream": "Stream",
+         "streamHelp": "ساختار بلوک stream در Xray:"
+       },
+-      "subSortIndex": "ترتیب اشتراک",
+       "inboundInfo": "اطلاعات ورودی",
+       "exportInbound": "استخراج ورودی",
+       "import": "افزودن",
+@@ -717,10 +716,6 @@
+         "shareAddrStrategyHelp": "مشخص می‌کند کدام آدرس در لینک‌های اشتراک‌گذاری خروجی، کدهای QR و خروجی اشتراک نوشته شود.",
+         "shareAddr": "آدرس اشتراک‌گذاری سفارشی",
+         "shareAddrHelp": "فقط زمانی استفاده می‌شود که راهبرد آدرس اشتراک‌گذاری روی سفارشی باشد. میزبان یا IP را بدون طرح و پورت وارد کنید.",
+-        "subSortIndex": "ترتیب در اشتراک",
+-        "subSortIndexHelp": "جایگاه لینک‌های این ورودی در خروجی اشتراک (صفحه اشتراک و برنامه‌های کلاینت). مقدار کمتر اول می‌آید و مقدارهای برابر ترتیب ایجاد را حفظ می‌کنند. روی فهرست ورودی‌های پنل تأثیری ندارد.",
+-        "excludeFromSub": "حذف از اشتراک‌ها",
+-        "excludeFromSubHelp": "لینک‌های این ورودی را از خروجی اشتراک پنهان می‌کند، در حالی که ورودی همچنان فعال و عملیاتی می‌ماند.",
+         "disableFlow": "غیرفعال‌کردن جریان XTLS",
+         "disableFlowHelp": "این inbound را از تزریق خودکار xtls-rprx-vision کنار بگذارید، حتی وقتی ترنسپورت آن از flow پشتیبانی می‌کند (مثلاً یک inbound از نوع XHTTP تونل‌شده با رمزنگاری VLESS). کلاینت‌ها Vision را روی سایر inboundهای سازگار در همان اشتراک حفظ می‌کنند. فقط برای VLESS.",
+         "shareAddrStrategyOptions": {
+diff --git a/internal/web/translation/id-ID.json b/internal/web/translation/id-ID.json
+index bc95dc0a..1ae121c9 100644
+--- a/internal/web/translation/id-ID.json
++++ b/internal/web/translation/id-ID.json
+@@ -425,7 +425,6 @@
+         "stream": "Stream",
+         "streamHelp": "Pembungkus blok stream Xray:"
+       },
+-      "subSortIndex": "Urutan sub",
+       "inboundInfo": "Informasi Inbound",
+       "exportInbound": "Ekspor Masuk",
+       "import": "Impor",
+@@ -666,10 +665,6 @@
+         "shareAddrStrategyHelp": "Menentukan alamat yang ditulis ke tautan berbagi yang diekspor, kode QR, dan keluaran langganan.",
+         "shareAddr": "Alamat berbagi kustom",
+         "shareAddrHelp": "Hanya digunakan saat strategi alamat berbagi adalah Kustom. Masukkan host atau IP tanpa skema atau port.",
+-        "subSortIndex": "Urutan dalam langganan",
+-        "subSortIndexHelp": "Posisi tautan inbound ini dalam keluaran langganan (halaman langganan dan aplikasi klien). Nilai lebih kecil tampil lebih dulu; nilai sama mempertahankan urutan pembuatan. Tidak memengaruhi daftar inbound di panel.",
+-        "excludeFromSub": "Kecualikan dari langganan",
+-        "excludeFromSubHelp": "Sembunyikan tautan inbound ini dari keluaran langganan sambil tetap menjaga inbound tetap aktif dan beroperasi.",
+         "disableFlow": "Nonaktifkan flow XTLS",
+         "disableFlowHelp": "Kecualikan inbound ini dari injeksi otomatis xtls-rprx-vision, meskipun transport-nya mendukung flow (mis. inbound XHTTP yang dituneling dengan enkripsi VLESS). Klien tetap memakai Vision pada inbound lain yang mendukung dalam langganan yang sama. Hanya VLESS.",
+         "shareAddrStrategyOptions": {
+diff --git a/internal/web/translation/ja-JP.json b/internal/web/translation/ja-JP.json
+index 7a7c8021..4c18a958 100644
+--- a/internal/web/translation/ja-JP.json
++++ b/internal/web/translation/ja-JP.json
+@@ -425,7 +425,6 @@
+         "stream": "Stream",
+         "streamHelp": "Xray stream ブロックのラッパー:"
+       },
+-      "subSortIndex": "サブ並び順",
+       "inboundInfo": "インバウンド情報",
+       "exportInbound": "インバウンドルールをエクスポート",
+       "import": "インポート",
+@@ -717,10 +716,6 @@
+         "shareAddrStrategyHelp": "エクスポートされる共有リンク、QRコード、サブスクリプション出力に書き込むアドレスを制御します。",
+         "shareAddr": "カスタム共有アドレス",
+         "shareAddrHelp": "共有アドレス戦略がカスタムの場合のみ使用されます。スキームやポートを含めずにホスト名またはIPを入力してください。",
+-        "subSortIndex": "サブスクリプションでの並び順",
+-        "subSortIndexHelp": "サブスクリプション出力（サブスクリプションページおよびクライアントアプリ）におけるこのインバウンドのリンクの位置。値が小さいほど先頭に表示され、同じ値の場合は作成順が維持されます。パネルのインバウンド一覧には影響しません。",
+-        "excludeFromSub": "サブスクリプションから除外",
+-        "excludeFromSubHelp": "このインバウンドを有効なまま運用しつつ、サブスクリプション出力からリンクを隠します。",
+         "disableFlow": "XTLS フローを無効化",
+         "disableFlowHelp": "トランスポートが flow に対応している場合でも（例: VLESS 暗号化付きのトンネル化された XHTTP インバウンド）、このインバウンドを xtls-rprx-vision の自動付与から除外します。クライアントは同じサブスクリプション内の他の対応インバウンドでは Vision を維持します。VLESS のみ。",
+         "shareAddrStrategyOptions": {
+diff --git a/internal/web/translation/pt-BR.json b/internal/web/translation/pt-BR.json
+index dba34991..e1e2bc82 100644
+--- a/internal/web/translation/pt-BR.json
++++ b/internal/web/translation/pt-BR.json
+@@ -425,7 +425,6 @@
+         "stream": "Stream",
+         "streamHelp": "Wrapper do bloco stream do Xray:"
+       },
+-      "subSortIndex": "Ordem sub",
+       "inboundInfo": "Informações do Inbound",
+       "exportInbound": "Exportar Inbound",
+       "import": "Importar",
+@@ -717,10 +716,6 @@
+         "shareAddrStrategyHelp": "Controla qual endereço é gravado nos links de compartilhamento exportados, códigos QR e na saída de assinatura.",
+         "shareAddr": "Endereço de compartilhamento personalizado",
+         "shareAddrHelp": "Usado apenas quando a estratégia de endereço de compartilhamento é Personalizada. Informe um host ou IP sem esquema nem porta.",
+-        "subSortIndex": "Ordem na assinatura",
+-        "subSortIndexHelp": "Posição dos links desta entrada na saída da assinatura (página de assinatura e aplicativos cliente). Valores menores vêm primeiro; valores iguais mantêm a ordem de criação. Não afeta a lista de entradas do painel.",
+-        "excludeFromSub": "Excluir das assinaturas",
+-        "excludeFromSubHelp": "Oculta os links deste inbound na saída de assinatura, mantendo o inbound habilitado e operacional.",
+         "disableFlow": "Desativar o flow XTLS",
+         "disableFlowHelp": "Exclui este inbound da injeção automática de xtls-rprx-vision, mesmo quando o transporte suporta flow (ex.: um inbound XHTTP tunelado com criptografia VLESS). Os clientes mantêm o Vision nos seus outros inbounds compatíveis da mesma assinatura. Somente VLESS.",
+         "shareAddrStrategyOptions": {
+diff --git a/internal/web/translation/ru-RU.json b/internal/web/translation/ru-RU.json
+index 8ab6ca7f..5c429c96 100644
+--- a/internal/web/translation/ru-RU.json
++++ b/internal/web/translation/ru-RU.json
+@@ -426,7 +426,6 @@
+         "streamHelp": "Обёртка блока stream Xray:"
+       },
+       "advancedTitle": "Дополнительные настройки",
+-      "subSortIndex": "Порядок",
+       "inboundInfo": "Информация о подключении",
+       "exportInbound": "Экспорт подключений",
+       "import": "Импортировать",
+@@ -719,10 +718,6 @@
+         "shareAddrStrategyHelp": "Определяет, какой адрес записывать в экспортируемые ссылки, QR-коды и выдачу подписки.",
+         "shareAddr": "Пользовательский адрес для ссылок",
+         "shareAddrHelp": "Используется только когда стратегия адреса для ссылок — пользовательская. Укажите хост или IP без схемы и порта.",
+-        "subSortIndex": "Порядок в подписке",
+-        "subSortIndexHelp": "Позиция ссылок этого входящего в выдаче подписки (страница подписки и клиентские приложения). Меньшие значения идут первыми; при равных значениях сохраняется порядок создания. Не влияет на список входящих в панели.",
+-        "excludeFromSub": "Исключить из подписок",
+-        "excludeFromSubHelp": "Скрывает ссылки этого inbound из вывода подписки, оставляя inbound включённым и рабочим.",
+         "disableFlow": "Отключить поток XTLS",
+         "disableFlowHelp": "Исключить этот inbound из автоматического добавления xtls-rprx-vision, даже если его транспорт поддерживает flow (например, туннелированный XHTTP inbound с шифрованием VLESS). Клиенты сохраняют Vision на других подходящих inbound в той же подписке. Только VLESS.",
+         "shareAddrStrategyOptions": {
+diff --git a/internal/web/translation/tr-TR.json b/internal/web/translation/tr-TR.json
+index 02482258..b2aa7e2b 100644
+--- a/internal/web/translation/tr-TR.json
++++ b/internal/web/translation/tr-TR.json
+@@ -425,7 +425,6 @@
+         "stream": "Akış (Stream)",
+         "streamHelp": "Xray stream bloğunun sarmalayıcısı:"
+       },
+-      "subSortIndex": "Sıralama",
+       "inboundInfo": "Gelen Bağlantı Bilgileri",
+       "exportInbound": "Gelen Bağlantını Dışa Aktar",
+       "import": "İçe Aktar",
+@@ -666,10 +665,6 @@
+         "shareAddrStrategyHelp": "Dışa aktarılan paylaşım bağlantılarına, QR kodlarına ve abonelik çıktısına hangi adresin yazılacağını belirler.",
+         "shareAddr": "Özel paylaşım adresi",
+         "shareAddrHelp": "Yalnızca paylaşım adresi stratejisi Özel olduğunda kullanılır. Şema veya port olmadan bir ana makine ya da IP girin.",
+-        "subSortIndex": "Abonelikte sıralama",
+-        "subSortIndexHelp": "Bu gelen bağlantının linklerinin abonelik çıktısındaki (abonelik sayfası ve istemci uygulamaları) konumu. Küçük değerler önce gelir; eşit değerlerde oluşturulma sırası korunur. Paneldeki gelen bağlantı listesini etkilemez.",
+-        "excludeFromSub": "Aboneliklerden hariç tut",
+-        "excludeFromSubHelp": "Bu inbound bağlantılarını abonelik çıktısından gizler; inbound etkin ve çalışır durumda kalır.",
+         "disableFlow": "XTLS akışını devre dışı bırak",
+         "disableFlowHelp": "Taşıması flow destekliyor olsa bile (ör. VLESS şifrelemeli, tünellenmiş bir XHTTP inbound) bu inbound'u otomatik xtls-rprx-vision eklemenin dışında tut. İstemciler aynı abonelikteki diğer uygun inbound'larda Vision'ı korur. Yalnızca VLESS.",
+         "shareAddrStrategyOptions": {
+diff --git a/internal/web/translation/uk-UA.json b/internal/web/translation/uk-UA.json
+index f21d413c..3de4ac78 100644
+--- a/internal/web/translation/uk-UA.json
++++ b/internal/web/translation/uk-UA.json
+@@ -425,7 +425,6 @@
+         "stream": "Stream",
+         "streamHelp": "Обгортка блоку stream Xray:"
+       },
+-      "subSortIndex": "Порядок",
+       "inboundInfo": "Інформація про підключення",
+       "exportInbound": "Експортувати вхідні",
+       "import": "Імпорт",
+@@ -666,10 +665,6 @@
+         "shareAddrStrategyHelp": "Визначає, яку адресу записувати в експортовані посилання поширення, QR-коди та вивід підписки.",
+         "shareAddr": "Користувацька адреса поширення",
+         "shareAddrHelp": "Використовується лише коли стратегія адреси поширення — користувацька. Введіть хост або IP без схеми та порту.",
+-        "subSortIndex": "Порядок у підписці",
+-        "subSortIndexHelp": "Позиція посилань цього вхідного у виводі підписки (сторінка підписки та клієнтські застосунки). Менші значення йдуть першими; за однакових значень зберігається порядок створення. Не впливає на список вхідних у панелі.",
+-        "excludeFromSub": "Виключити з підписок",
+-        "excludeFromSubHelp": "Приховує посилання цього inbound у виводі підписки, залишаючи inbound увімкненим і робочим.",
+         "disableFlow": "Вимкнути потік XTLS",
+         "disableFlowHelp": "Виключити цей inbound з автоматичного додавання xtls-rprx-vision, навіть якщо його транспорт підтримує flow (наприклад, тунельований XHTTP inbound із шифруванням VLESS). Клієнти зберігають Vision на інших сумісних inbound у тій самій підписці. Лише VLESS.",
+         "echSockopt": "ECH Sockopt",
+diff --git a/internal/web/translation/vi-VN.json b/internal/web/translation/vi-VN.json
+index 57450713..c6a085d0 100644
+--- a/internal/web/translation/vi-VN.json
++++ b/internal/web/translation/vi-VN.json
+@@ -425,7 +425,6 @@
+         "stream": "Stream",
+         "streamHelp": "Bao đóng khối stream của Xray:"
+       },
+-      "subSortIndex": "Thứ tự sub",
+       "inboundInfo": "Thông tin Inbound",
+       "exportInbound": "Xuất nhập khẩu",
+       "import": "Nhập",
+@@ -717,10 +716,6 @@
+         "shareAddrStrategyHelp": "Kiểm soát địa chỉ được ghi vào liên kết chia sẻ đã xuất, mã QR và nội dung đăng ký.",
+         "shareAddr": "Địa chỉ chia sẻ tùy chỉnh",
+         "shareAddrHelp": "Chỉ dùng khi chiến lược địa chỉ chia sẻ là Tùy chỉnh. Nhập host hoặc IP không kèm giao thức hoặc cổng.",
+-        "subSortIndex": "Thứ tự trong gói đăng ký",
+-        "subSortIndexHelp": "Vị trí liên kết của inbound này trong nội dung gói đăng ký (trang đăng ký và ứng dụng khách). Giá trị nhỏ hơn xếp trước; giá trị bằng nhau giữ thứ tự tạo. Không ảnh hưởng đến danh sách inbound trong bảng điều khiển.",
+-        "excludeFromSub": "Loại khỏi subscription",
+-        "excludeFromSubHelp": "Ẩn liên kết inbound này khỏi đầu ra subscription nhưng vẫn giữ inbound được bật và hoạt động.",
+         "disableFlow": "Tắt luồng XTLS",
+         "disableFlowHelp": "Loại inbound này khỏi việc tự động thêm xtls-rprx-vision, ngay cả khi transport của nó hỗ trợ flow (ví dụ một inbound XHTTP đi qua tunnel với mã hóa VLESS). Client vẫn giữ Vision trên các inbound tương thích khác trong cùng subscription. Chỉ dành cho VLESS.",
+         "shareAddrStrategyOptions": {
+diff --git a/internal/web/translation/zh-CN.json b/internal/web/translation/zh-CN.json
+index 0ef60282..11bb42b4 100644
+--- a/internal/web/translation/zh-CN.json
++++ b/internal/web/translation/zh-CN.json
+@@ -425,7 +425,6 @@
+         "stream": "Stream",
+         "streamHelp": "Xray stream 块包装："
+       },
+-      "subSortIndex": "订阅排序",
+       "inboundInfo": "入站信息",
+       "exportInbound": "导出入站规则",
+       "import": "导入",
+@@ -716,10 +715,6 @@
+         "shareAddrStrategyHelp": "控制导出分享链接、二维码和订阅输出时写入哪个地址。",
+         "shareAddr": "自定义分享地址",
+         "shareAddrHelp": "仅在分享地址策略为自定义时使用。填写不带协议和端口的域名或 IP。",
+-        "subSortIndex": "订阅排序",
+-        "subSortIndexHelp": "此入站的链接在订阅输出（订阅页面和客户端应用）中的位置。数值越小越靠前；数值相同时保持创建顺序。不影响面板中的入站列表。",
+-        "excludeFromSub": "从订阅中排除",
+-        "excludeFromSubHelp": "从订阅输出中隐藏此入站的链接，同时保持入站启用并继续工作。",
+         "disableFlow": "禁用 XTLS flow",
+         "disableFlowHelp": "让此入站跳过自动注入 xtls-rprx-vision，即使其传输支持 flow（例如启用 VLESS 加密的隧道化 XHTTP 入站）。客户端在同一订阅中的其他可用入站上仍保留 Vision。仅限 VLESS。",
+         "shareAddrStrategyOptions": {
+diff --git a/internal/web/translation/zh-TW.json b/internal/web/translation/zh-TW.json
+index e77b37ab..18cb732e 100644
+--- a/internal/web/translation/zh-TW.json
++++ b/internal/web/translation/zh-TW.json
+@@ -425,7 +425,6 @@
+         "stream": "Stream",
+         "streamHelp": "Xray stream 區塊包裝："
+       },
+-      "subSortIndex": "訂閱排序",
+       "inboundInfo": "入站資訊",
+       "exportInbound": "匯出入站規則",
+       "import": "匯入",
+@@ -717,10 +716,6 @@
+         "shareAddrStrategyHelp": "控制匯出分享連結、QR Code 和訂閱輸出時寫入哪個地址。",
+         "shareAddr": "自訂分享地址",
+         "shareAddrHelp": "僅在分享地址策略為自訂時使用。填寫不帶協定和連接埠的網域或 IP。",
+-        "subSortIndex": "訂閱排序",
+-        "subSortIndexHelp": "此入站的連結在訂閱輸出（訂閱頁面和客戶端應用）中的位置。數值越小越靠前；數值相同時保持建立順序。不影響面板中的入站清單。",
+-        "excludeFromSub": "從訂閱中排除",
+-        "excludeFromSubHelp": "從訂閱輸出中隱藏此入站的連結，同時保持入站啟用並繼續運作。",
+         "disableFlow": "停用 XTLS flow",
+         "disableFlowHelp": "讓此入站略過自動注入 xtls-rprx-vision，即使其傳輸支援 flow（例如啟用 VLESS 加密的通道化 XHTTP 入站）。用戶端在同一訂閱中的其他可用入站上仍保留 Vision。僅限 VLESS。",
+         "shareAddrStrategyOptions": {

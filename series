@@ -1,0 +1,8 @@
+0001-feat-strip-subscription-server-and-bot-integrations.patch
+0002-docs-remove-subscription-server-and-bot-documentatio.patch
+0003-feat-web-remove-sponsor-placements-and-sponsors-page.patch
+0004-fix-login-remove-animated-background-blobs.patch
+0005-feat-remove-multi-node-management.patch
+0006-docs-remove-stale-subscription-and-bundle-references.patch
+0007-feat-inbounds-remove-subscription-ordering-and-exclu.patch
+0008-chore-finish-v3.11.0-rebase-cleanup.patch

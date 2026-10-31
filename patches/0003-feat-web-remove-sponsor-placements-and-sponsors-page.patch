@@ -1,0 +1,2295 @@
+From 32b98c46b9e3e08fa1ca0c1f9e5821ac297d5317 Mon Sep 17 00:00:00 2001
+From: HolyCode User <noreply@holycode.local>
+Date: Thu, 22 Oct 2026 13:08:56 +0000
+Subject: [PATCH 3/8] feat(web)!: remove sponsor placements and sponsors page
+
+Drops the sponsor API, dashboard/login placements, sponsors page and navigation, along with their i18n keys and generated OpenAPI/docs. The feature is no longer part of this fork.
+---
+ .../docs/en/reference/api/authentication.mdx  |  13 +-
+ docs/public/openapi.json                      | 138 --------
+ frontend/public/openapi.json                  | 138 --------
+ frontend/src/api/queries/useSponsorsQuery.ts  |  23 --
+ frontend/src/api/queryKeys.ts                 |   1 -
+ .../command-palette/CommandPalette.tsx        |   1 -
+ .../src/components/sponsor/SponsorCard.css    | 244 --------------
+ .../sponsor/SponsorCard.stories.tsx           | 139 --------
+ .../src/components/sponsor/SponsorCard.tsx    |  89 -----
+ .../src/components/sponsor/SponsorSlot.tsx    |  42 ---
+ frontend/src/generated/examples.ts            |  33 --
+ frontend/src/generated/schemas.ts             |  84 -----
+ frontend/src/generated/types.ts               |  18 --
+ frontend/src/generated/zod.ts                 |  20 --
+ frontend/src/lib/sponsors.ts                  |  40 ---
+ frontend/src/pages/api-docs/endpoints.ts      |   7 -
+ frontend/src/pages/index/IndexPage.tsx        |   3 -
+ frontend/src/pages/login/LoginPage.css        |   4 -
+ frontend/src/pages/login/LoginPage.tsx        |   2 -
+ frontend/src/pages/sponsors/SponsorsPage.css  |  74 -----
+ frontend/src/pages/sponsors/SponsorsPage.tsx  |  94 ------
+ frontend/src/routes/panelRoutes.tsx           |   3 -
+ frontend/src/styles/page-shell.css            |   9 +-
+ frontend/src/test/sponsors.test.tsx           |  47 ---
+ frontend/vite.config.js                       |   2 +-
+ internal/web/controller/index.go              |  26 --
+ internal/web/routes_contract_test.go          |   3 +-
+ internal/web/service/panel/sponsor.go         | 245 --------------
+ internal/web/service/panel/sponsor_test.go    | 304 ------------------
+ internal/web/translation/en-US.json           |  10 -
+ tools/openapigen/main.go                      |   2 +-
+ 31 files changed, 7 insertions(+), 1851 deletions(-)
+ delete mode 100644 frontend/src/api/queries/useSponsorsQuery.ts
+ delete mode 100644 frontend/src/components/sponsor/SponsorCard.css
+ delete mode 100644 frontend/src/components/sponsor/SponsorCard.stories.tsx
+ delete mode 100644 frontend/src/components/sponsor/SponsorCard.tsx
+ delete mode 100644 frontend/src/components/sponsor/SponsorSlot.tsx
+ delete mode 100644 frontend/src/lib/sponsors.ts
+ delete mode 100644 frontend/src/pages/sponsors/SponsorsPage.css
+ delete mode 100644 frontend/src/pages/sponsors/SponsorsPage.tsx
+ delete mode 100644 frontend/src/test/sponsors.test.tsx
+ delete mode 100644 internal/web/service/panel/sponsor.go
+ delete mode 100644 internal/web/service/panel/sponsor_test.go
+
+diff --git a/docs/content/docs/en/reference/api/authentication.mdx b/docs/content/docs/en/reference/api/authentication.mdx
+index 16e2d7b4..cc691426 100644
+--- a/docs/content/docs/en/reference/api/authentication.mdx
++++ b/docs/content/docs/en/reference/api/authentication.mdx
+@@ -22,12 +22,6 @@ _openapi:
+         this — the middleware short-circuits CSRF for authenticated API
+         requests.
+       url: '#mint-a-csrf-token-for-the-current-session-the-spa-replays-it-in-the-x-csrf-token-header-on-unsafe-requests-bearer-token-callers-can-skip-this--the-middleware-short-circuits-csrf-for-authenticated-api-requests'
+-    - depth: 2
+-      title: Public. Active paid sponsor placements read from the project
+-        sponsors.json (cached for 1h); entries outside their from/until window
+-        are dropped. Logos are proxied by the panel at /sponsors/logo/{name}.
+-        Used by the login page and panel sponsor slots.
+-      url: '#public-active-paid-sponsor-placements-read-from-the-project-sponsorsjson-cached-for-1h-entries-outside-their-fromuntil-window-are-dropped-logos-are-proxied-by-the-panel-at-sponsorslogoname-used-by-the-login-page-and-panel-sponsor-slots'
+     - depth: 2
+       title: Returns whether 2FA is enabled on the panel — used by the login page to
+         decide whether to show the OTP field.
+@@ -45,11 +39,6 @@ _openapi:
+           this — the middleware short-circuits CSRF for authenticated API
+           requests.
+         id: mint-a-csrf-token-for-the-current-session-the-spa-replays-it-in-the-x-csrf-token-header-on-unsafe-requests-bearer-token-callers-can-skip-this--the-middleware-short-circuits-csrf-for-authenticated-api-requests
+-      - content: Public. Active paid sponsor placements read from the project
+-          sponsors.json (cached for 1h); entries outside their from/until window
+-          are dropped. Logos are proxied by the panel at /sponsors/logo/{name}.
+-          Used by the login page and panel sponsor slots.
+-        id: public-active-paid-sponsor-placements-read-from-the-project-sponsorsjson-cached-for-1h-entries-outside-their-fromuntil-window-are-dropped-logos-are-proxied-by-the-panel-at-sponsorslogoname-used-by-the-login-page-and-panel-sponsor-slots
+       - content: Returns whether 2FA is enabled on the panel — used by the login page to
+           decide whether to show the OTP field.
+         id: returns-whether-2fa-is-enabled-on-the-panel--used-by-the-login-page-to-decide-whether-to-show-the-otp-field
+@@ -63,7 +52,7 @@ export default function Layout(props) {
+   return (
+     <>
+       {props.children}
+-      <OpenAPIPage document="./public/openapi.json" webhooks={[]} operations={[{"path":"/login","method":"post"},{"path":"/logout","method":"post"},{"path":"/csrf-token","method":"get"},{"path":"/sponsors","method":"get"},{"path":"/getTwoFactorEnable","method":"post"}]} showTitle />
++      <OpenAPIPage document="./public/openapi.json" webhooks={[]} operations={[{"path":"/login","method":"post"},{"path":"/logout","method":"post"},{"path":"/csrf-token","method":"get"},{"path":"/getTwoFactorEnable","method":"post"}]} showTitle />
+     </>
+   );
+ }
+\ No newline at end of file
+diff --git a/docs/public/openapi.json b/docs/public/openapi.json
+index 86a85aca..cdfb0da6 100644
+--- a/docs/public/openapi.json
++++ b/docs/public/openapi.json
+@@ -4663,90 +4663,6 @@
+         ],
+         "type": "object"
+       },
+-      "Sponsor": {
+-        "description": "Sponsor is one paid placement published in the repo's sponsors.json.",
+-        "properties": {
+-          "enable": {
+-            "example": true,
+-            "nullable": true,
+-            "type": "boolean"
+-          },
+-          "from": {
+-            "example": "2026-10-01T00:00:00Z",
+-            "format": "date-time",
+-            "nullable": true,
+-            "type": "string"
+-          },
+-          "id": {
+-            "example": "acme-2026-10",
+-            "type": "string"
+-          },
+-          "link": {
+-            "example": "https://acme.example/?utm_source=3x-ui",
+-            "type": "string"
+-          },
+-          "logo": {
+-            "example": "/sponsors/logo/acme.png",
+-            "type": "string"
+-          },
+-          "name": {
+-            "example": "Acme VPS",
+-            "type": "string"
+-          },
+-          "slots": {
+-            "items": {
+-              "type": "string"
+-            },
+-            "type": "array"
+-          },
+-          "text": {
+-            "additionalProperties": {
+-              "type": "string"
+-            },
+-            "type": "object"
+-          },
+-          "title": {
+-            "additionalProperties": {
+-              "type": "string"
+-            },
+-            "type": "object"
+-          },
+-          "until": {
+-            "example": "2026-11-01T00:00:00Z",
+-            "format": "date-time",
+-            "type": "string"
+-          }
+-        },
+-        "required": [
+-          "id",
+-          "link",
+-          "name",
+-          "slots",
+-          "text",
+-          "title",
+-          "until"
+-        ],
+-        "type": "object"
+-      },
+-      "SponsorList": {
+-        "description": "SponsorList is the active sponsor set plus the contact link for new sponsors.",
+-        "properties": {
+-          "contact": {
+-            "example": "https://t.me/example",
+-            "type": "string"
+-          },
+-          "sponsors": {
+-            "items": {
+-              "$ref": "#/components/schemas/Sponsor"
+-            },
+-            "type": "array"
+-          }
+-        },
+-        "required": [
+-          "sponsors"
+-        ],
+-        "type": "object"
+-      },
+       "SubBalancer": {
+         "description": "SubBalancer is one extra JSON-subscription config document whose members are\nthe selected inbounds' proxy outbounds. SortOrder shares SubSortIndex semantics.",
+         "properties": {
+@@ -5228,60 +5144,6 @@
+         }
+       }
+     },
+-    "/sponsors": {
+-      "get": {
+-        "tags": [
+-          "Authentication"
+-        ],
+-        "summary": "Public. Active paid sponsor placements read from the project sponsors.json (cached for 1h); entries outside their from/until window are dropped. Logos are proxied by the panel at /sponsors/logo/{name}. Used by the login page and panel sponsor slots.",
+-        "operationId": "get_sponsors",
+-        "responses": {
+-          "200": {
+-            "description": "Successful response",
+-            "content": {
+-              "application/json": {
+-                "schema": {
+-                  "type": "object",
+-                  "properties": {
+-                    "success": {
+-                      "type": "boolean"
+-                    },
+-                    "msg": {
+-                      "type": "string"
+-                    },
+-                    "obj": {
+-                      "$ref": "#/components/schemas/SponsorList"
+-                    }
+-                  }
+-                },
+-                "example": {
+-                  "success": true,
+-                  "obj": {
+-                    "contact": "https://t.me/example",
+-                    "sponsors": [
+-                      {
+-                        "enable": true,
+-                        "from": "2026-10-01T00:00:00Z",
+-                        "id": "acme-2026-10",
+-                        "link": "https://acme.example/?utm_source=3x-ui",
+-                        "logo": "/sponsors/logo/acme.png",
+-                        "name": "Acme VPS",
+-                        "slots": [
+-                          ""
+-                        ],
+-                        "text": {},
+-                        "title": {},
+-                        "until": "2026-11-01T00:00:00Z"
+-                      }
+-                    ]
+-                  }
+-                }
+-              }
+-            }
+-          }
+-        }
+-      }
+-    },
+     "/getTwoFactorEnable": {
+       "post": {
+         "tags": [
+diff --git a/frontend/public/openapi.json b/frontend/public/openapi.json
+index 86a85aca..cdfb0da6 100644
+--- a/frontend/public/openapi.json
++++ b/frontend/public/openapi.json
+@@ -4663,90 +4663,6 @@
+         ],
+         "type": "object"
+       },
+-      "Sponsor": {
+-        "description": "Sponsor is one paid placement published in the repo's sponsors.json.",
+-        "properties": {
+-          "enable": {
+-            "example": true,
+-            "nullable": true,
+-            "type": "boolean"
+-          },
+-          "from": {
+-            "example": "2026-10-01T00:00:00Z",
+-            "format": "date-time",
+-            "nullable": true,
+-            "type": "string"
+-          },
+-          "id": {
+-            "example": "acme-2026-10",
+-            "type": "string"
+-          },
+-          "link": {
+-            "example": "https://acme.example/?utm_source=3x-ui",
+-            "type": "string"
+-          },
+-          "logo": {
+-            "example": "/sponsors/logo/acme.png",
+-            "type": "string"
+-          },
+-          "name": {
+-            "example": "Acme VPS",
+-            "type": "string"
+-          },
+-          "slots": {
+-            "items": {
+-              "type": "string"
+-            },
+-            "type": "array"
+-          },
+-          "text": {
+-            "additionalProperties": {
+-              "type": "string"
+-            },
+-            "type": "object"
+-          },
+-          "title": {
+-            "additionalProperties": {
+-              "type": "string"
+-            },
+-            "type": "object"
+-          },
+-          "until": {
+-            "example": "2026-11-01T00:00:00Z",
+-            "format": "date-time",
+-            "type": "string"
+-          }
+-        },
+-        "required": [
+-          "id",
+-          "link",
+-          "name",
+-          "slots",
+-          "text",
+-          "title",
+-          "until"
+-        ],
+-        "type": "object"
+-      },
+-      "SponsorList": {
+-        "description": "SponsorList is the active sponsor set plus the contact link for new sponsors.",
+-        "properties": {
+-          "contact": {
+-            "example": "https://t.me/example",
+-            "type": "string"
+-          },
+-          "sponsors": {
+-            "items": {
+-              "$ref": "#/components/schemas/Sponsor"
+-            },
+-            "type": "array"
+-          }
+-        },
+-        "required": [
+-          "sponsors"
+-        ],
+-        "type": "object"
+-      },
+       "SubBalancer": {
+         "description": "SubBalancer is one extra JSON-subscription config document whose members are\nthe selected inbounds' proxy outbounds. SortOrder shares SubSortIndex semantics.",
+         "properties": {
+@@ -5228,60 +5144,6 @@
+         }
+       }
+     },
+-    "/sponsors": {
+-      "get": {
+-        "tags": [
+-          "Authentication"
+-        ],
+-        "summary": "Public. Active paid sponsor placements read from the project sponsors.json (cached for 1h); entries outside their from/until window are dropped. Logos are proxied by the panel at /sponsors/logo/{name}. Used by the login page and panel sponsor slots.",
+-        "operationId": "get_sponsors",
+-        "responses": {
+-          "200": {
+-            "description": "Successful response",
+-            "content": {
+-              "application/json": {
+-                "schema": {
+-                  "type": "object",
+-                  "properties": {
+-                    "success": {
+-                      "type": "boolean"
+-                    },
+-                    "msg": {
+-                      "type": "string"
+-                    },
+-                    "obj": {
+-                      "$ref": "#/components/schemas/SponsorList"
+-                    }
+-                  }
+-                },
+-                "example": {
+-                  "success": true,
+-                  "obj": {
+-                    "contact": "https://t.me/example",
+-                    "sponsors": [
+-                      {
+-                        "enable": true,
+-                        "from": "2026-10-01T00:00:00Z",
+-                        "id": "acme-2026-10",
+-                        "link": "https://acme.example/?utm_source=3x-ui",
+-                        "logo": "/sponsors/logo/acme.png",
+-                        "name": "Acme VPS",
+-                        "slots": [
+-                          ""
+-                        ],
+-                        "text": {},
+-                        "title": {},
+-                        "until": "2026-11-01T00:00:00Z"
+-                      }
+-                    ]
+-                  }
+-                }
+-              }
+-            }
+-          }
+-        }
+-      }
+-    },
+     "/getTwoFactorEnable": {
+       "post": {
+         "tags": [
+diff --git a/frontend/src/api/queries/useSponsorsQuery.ts b/frontend/src/api/queries/useSponsorsQuery.ts
+deleted file mode 100644
+index c5126ac1..00000000
+--- a/frontend/src/api/queries/useSponsorsQuery.ts
++++ /dev/null
+@@ -1,23 +0,0 @@
+-import { useQuery } from '@tanstack/react-query';
+-
+-import { HttpUtil } from '@/utils';
+-import { keys } from '@/api/queryKeys';
+-import type { SponsorList } from '@/generated/types';
+-
+-const EMPTY: SponsorList = { sponsors: [] };
+-
+-async function fetchSponsors(): Promise<SponsorList> {
+-  const msg = await HttpUtil.get<SponsorList>('/sponsors', undefined, { silent: true });
+-  if (!msg?.success || !msg.obj) return EMPTY;
+-  return { contact: msg.obj.contact, sponsors: msg.obj.sponsors ?? [] };
+-}
+-
+-export function useSponsorsQuery() {
+-  const query = useQuery({
+-    queryKey: keys.sponsors(),
+-    queryFn: fetchSponsors,
+-    staleTime: 60 * 60 * 1000,
+-    retry: false,
+-  });
+-  return { data: query.data ?? EMPTY, fetched: query.isFetched };
+-}
+diff --git a/frontend/src/api/queryKeys.ts b/frontend/src/api/queryKeys.ts
+index afcfbd2f..78c65f37 100644
+--- a/frontend/src/api/queryKeys.ts
++++ b/frontend/src/api/queryKeys.ts
+@@ -1,5 +1,4 @@
+ export const keys = {
+-  sponsors: () => ['sponsors'] as const,
+   server: {
+     status: () => ['server', 'status'] as const,
+     fail2banStatus: () => ['server', 'fail2banStatus'] as const,
+diff --git a/frontend/src/components/command-palette/CommandPalette.tsx b/frontend/src/components/command-palette/CommandPalette.tsx
+index 266fccb3..f247c003 100644
+--- a/frontend/src/components/command-palette/CommandPalette.tsx
++++ b/frontend/src/components/command-palette/CommandPalette.tsx
+@@ -78,7 +78,6 @@ export const PALETTE_KEYWORDS: Record<string, string[]> = {
+   '/settings': ['settings', 'config', 'port', 'password', 'ssl', 'telegram'],
+   '/xray': ['xray', 'templates', 'balancer', 'dns'],
+   '/api-docs': ['api', 'api docs', 'swagger', 'rest api', 'endpoints'],
+-  '/sponsors': ['sponsors', 'sponsor', 'partners'],
+ };
+ 
+ export default function CommandPalette() {
+diff --git a/frontend/src/components/sponsor/SponsorCard.css b/frontend/src/components/sponsor/SponsorCard.css
+deleted file mode 100644
+index 0b331825..00000000
+--- a/frontend/src/components/sponsor/SponsorCard.css
++++ /dev/null
+@@ -1,244 +0,0 @@
+-.sponsor-card {
+-  position: relative;
+-  display: flex;
+-  align-items: stretch;
+-  min-width: 0;
+-  border: 1px solid var(--ant-color-border-secondary);
+-  border-radius: var(--ant-border-radius-lg, 8px);
+-  background: var(--bg-card, var(--ant-color-fill-quaternary));
+-  transition:
+-    border-color 0.2s,
+-    background 0.2s;
+-}
+-
+-.sponsor-card:hover {
+-  border-color: var(--ant-color-primary);
+-}
+-
+-.sponsor-main {
+-  display: flex;
+-  flex: 1;
+-  align-items: center;
+-  gap: 12px;
+-  min-width: 0;
+-  padding: 12px 16px;
+-  color: var(--ant-color-text);
+-  text-decoration: none;
+-}
+-
+-.sponsor-main:hover,
+-.sponsor-main:focus-visible {
+-  color: var(--ant-color-text);
+-  outline: none;
+-}
+-
+-.sponsor-logo {
+-  flex: 0 0 auto;
+-  width: 40px;
+-  height: 40px;
+-  border-radius: 8px;
+-  object-fit: contain;
+-  background: var(--ant-color-bg-elevated);
+-}
+-
+-.sponsor-logo-fallback {
+-  display: inline-flex;
+-  align-items: center;
+-  justify-content: center;
+-  font-weight: 600;
+-  font-size: 18px;
+-  color: var(--ant-color-primary);
+-  background: var(--ant-color-primary-bg);
+-}
+-
+-.sponsor-body {
+-  display: flex;
+-  flex: 1;
+-  flex-direction: column;
+-  gap: 2px;
+-  min-width: 0;
+-}
+-
+-.sponsor-head {
+-  display: flex;
+-  align-items: baseline;
+-  gap: 8px;
+-  min-width: 0;
+-}
+-
+-.sponsor-tag {
+-  flex: 0 0 auto;
+-  padding: 0 6px;
+-  border: 1px solid var(--ant-color-border);
+-  border-radius: 4px;
+-  font-size: 11px;
+-  line-height: 18px;
+-  color: var(--ant-color-text-tertiary);
+-}
+-
+-.sponsor-title {
+-  font-weight: 600;
+-  overflow-wrap: anywhere;
+-}
+-
+-.sponsor-text {
+-  font-size: 13px;
+-  color: var(--ant-color-text-secondary);
+-  overflow-wrap: anywhere;
+-}
+-
+-.sponsor-visit {
+-  flex: 0 0 auto;
+-  font-size: 13px;
+-  color: var(--ant-color-primary);
+-  white-space: nowrap;
+-}
+-
+-.sponsor-aside {
+-  display: flex;
+-  flex: 0 0 auto;
+-  flex-direction: column;
+-  align-items: flex-end;
+-  gap: 6px;
+-}
+-
+-.sponsor-close {
+-  flex: 0 0 auto;
+-  align-self: flex-start;
+-  width: 28px;
+-  height: 28px;
+-  margin: 6px 6px 0 0;
+-  padding: 0;
+-  border: none;
+-  border-radius: 6px;
+-  background: transparent;
+-  color: var(--ant-color-text-tertiary);
+-  cursor: pointer;
+-}
+-
+-.sponsor-close:hover,
+-.sponsor-close:focus-visible {
+-  color: var(--ant-color-text);
+-  background: var(--ant-color-fill-tertiary);
+-  outline: none;
+-}
+-
+-[dir='rtl'] .sponsor-close {
+-  margin: 6px 0 0 6px;
+-}
+-
+-.sponsor-card-compact .sponsor-main {
+-  display: grid;
+-  grid-template-columns: auto minmax(0, 1fr);
+-  align-items: center;
+-  gap: 4px 8px;
+-  padding: 8px 10px;
+-}
+-
+-.sponsor-card-compact .sponsor-body,
+-.sponsor-card-compact .sponsor-head {
+-  display: contents;
+-}
+-
+-.sponsor-card-compact .sponsor-logo {
+-  width: 28px;
+-  height: 28px;
+-}
+-
+-.sponsor-card-compact .sponsor-tag {
+-  justify-self: start;
+-}
+-
+-.sponsor-card-compact .sponsor-title,
+-.sponsor-card-compact .sponsor-text {
+-  display: -webkit-box;
+-  grid-column: 1 / -1;
+-  overflow: hidden;
+-  -webkit-box-orient: vertical;
+-}
+-
+-.sponsor-card-compact .sponsor-title {
+-  font-size: 13px;
+-  -webkit-line-clamp: 2;
+-}
+-
+-.sponsor-card-compact .sponsor-text {
+-  font-size: 12px;
+-  -webkit-line-clamp: 4;
+-}
+-
+-.sponsor-card-compact .sponsor-close {
+-  position: absolute;
+-  top: 4px;
+-  inset-inline-end: 4px;
+-  width: 22px;
+-  height: 22px;
+-  margin: 0;
+-  font-size: 11px;
+-}
+-
+-.sponsor-card-card {
+-  height: 100%;
+-}
+-
+-.sponsor-card-card .sponsor-main {
+-  flex-direction: column;
+-  align-items: flex-start;
+-  gap: 16px;
+-  padding: 24px;
+-}
+-
+-.sponsor-card-card .sponsor-logo {
+-  width: 72px;
+-  height: 72px;
+-  border-radius: 12px;
+-}
+-
+-.sponsor-card-card .sponsor-logo-fallback {
+-  font-size: 28px;
+-}
+-
+-.sponsor-card-card .sponsor-body {
+-  gap: 6px;
+-}
+-
+-.sponsor-card-card .sponsor-title {
+-  font-size: 17px;
+-  line-height: 1.4;
+-}
+-
+-.sponsor-card-card .sponsor-text {
+-  font-size: 14px;
+-  line-height: 1.6;
+-}
+-
+-.sponsor-card-card .sponsor-visit {
+-  margin-top: auto;
+-  font-size: 14px;
+-}
+-
+-@media (max-width: 576px) {
+-  .sponsor-card-banner .sponsor-main {
+-    flex-wrap: wrap;
+-    padding: 10px 12px;
+-  }
+-
+-  .sponsor-card-banner .sponsor-aside {
+-    flex-basis: 100%;
+-    flex-direction: row;
+-    align-items: center;
+-    padding-inline-start: 52px;
+-  }
+-}
+-
+-.sponsor-card-card {
+-  transition:
+-    border-color 0.2s,
+-    transform 0.2s,
+-    box-shadow 0.2s;
+-}
+-
+-.sponsor-card-card:hover {
+-  transform: translateY(-2px);
+-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+-}
+diff --git a/frontend/src/components/sponsor/SponsorCard.stories.tsx b/frontend/src/components/sponsor/SponsorCard.stories.tsx
+deleted file mode 100644
+index da8b8524..00000000
+--- a/frontend/src/components/sponsor/SponsorCard.stories.tsx
++++ /dev/null
+@@ -1,139 +0,0 @@
+-import type { Meta, StoryObj } from '@storybook/react-vite';
+-import { expect, within } from 'storybook/test';
+-
+-import type { Sponsor } from '@/generated/types';
+-import SponsorCard from './SponsorCard';
+-
+-const sponsor: Sponsor = {
+-  id: 'acme-2026-10',
+-  name: 'Acme VPS',
+-  slots: ['dashboard', 'page', 'login'],
+-  until: '2099-01-01T00:00:00Z',
+-  title: { en: 'Acme VPS — fast NVMe servers', fa: 'سرورهای سریع Acme' },
+-  text: { en: 'Deploy 3X-UI in 60 seconds. 20% off for panel users.' },
+-  link: 'https://acme.example/?utm_source=3x-ui',
+-};
+-
+-// Copy as long as the real sponsors.json entries; each story renders it at its slot's width.
+-const longSponsor: Sponsor = {
+-  ...sponsor,
+-  title: { en: 'Advertise here — reach 3X-UI server admins' },
+-  text: {
+-    en: 'Put your VPS, hosting or domain brand in front of the admins who use 3X-UI every day. Message us for slots and pricing.',
+-  },
+-};
+-
+-function part(root: HTMLElement, selector: string): HTMLElement {
+-  const el = root.querySelector<HTMLElement>(selector);
+-  if (!el) throw new Error(`missing ${selector}`);
+-  return el;
+-}
+-
+-async function expectInsideCard(root: HTMLElement, selector: string) {
+-  const card = part(root, '.sponsor-card').getBoundingClientRect();
+-  const box = part(root, selector).getBoundingClientRect();
+-  await expect(box.left).toBeGreaterThanOrEqual(card.left - 0.5);
+-  await expect(box.right).toBeLessThanOrEqual(card.right + 0.5);
+-}
+-
+-async function expectNotClipped(root: HTMLElement, selector: string) {
+-  const el = part(root, selector);
+-  await expect(el.scrollWidth).toBeLessThanOrEqual(el.clientWidth + 1);
+-  await expect(el.scrollHeight).toBeLessThanOrEqual(el.clientHeight + 1);
+-}
+-
+-const meta = {
+-  title: 'Sponsor/SponsorCard',
+-  component: SponsorCard,
+-  tags: ['autodocs'],
+-  parameters: {
+-    docs: {
+-      description: {
+-        component:
+-          'Paid sponsor placement fed by the project sponsors.json. Always labelled as a sponsor; links open in a new tab with rel="sponsored".',
+-      },
+-    },
+-  },
+-  argTypes: {
+-    sponsor: { description: 'Sponsor entry from GET /sponsors.' },
+-    variant: {
+-      description: 'banner (dashboard), compact (login) or card (Sponsors page).',
+-    },
+-    onClose: { description: 'When set, shows a close button (temporary dismiss).' },
+-  },
+-  args: { sponsor },
+-} satisfies Meta<typeof SponsorCard>;
+-
+-export default meta;
+-
+-type Story = StoryObj<typeof meta>;
+-
+-export const Banner: Story = {
+-  args: { variant: 'banner', onClose: () => {} },
+-  play: async ({ canvasElement }) => {
+-    const canvas = within(canvasElement);
+-    await expect(canvas.getByText('Sponsor')).toBeInTheDocument();
+-    await expect(canvas.getByRole('link')).toHaveAttribute('rel', 'noopener noreferrer sponsored');
+-  },
+-};
+-
+-export const Compact: Story = {
+-  args: { variant: 'compact', onClose: () => {} },
+-  render: (args) => (
+-    <div style={{ width: 334 }}>
+-      <SponsorCard {...args} />
+-    </div>
+-  ),
+-};
+-
+-export const Card: Story = {
+-  args: { variant: 'card' },
+-  render: (args) => (
+-    <div style={{ width: 320 }}>
+-      <SponsorCard {...args} />
+-    </div>
+-  ),
+-};
+-
+-export const BannerLongCopy: Story = {
+-  args: { variant: 'banner', sponsor: longSponsor, onClose: () => {} },
+-  render: (args) => (
+-    <div style={{ width: 360 }}>
+-      <SponsorCard {...args} />
+-    </div>
+-  ),
+-  play: async ({ canvasElement }) => {
+-    await expectNotClipped(canvasElement, '.sponsor-title');
+-  },
+-};
+-
+-export const LoginLongCopy: Story = {
+-  args: { variant: 'compact', sponsor: longSponsor, onClose: () => {} },
+-  render: (args) => (
+-    <div style={{ width: 334 }}>
+-      <SponsorCard {...args} />
+-    </div>
+-  ),
+-  play: async ({ canvasElement }) => {
+-    await expectNotClipped(canvasElement, '.sponsor-title');
+-    await expectNotClipped(canvasElement, '.sponsor-text');
+-    await expect(part(canvasElement, '.sponsor-main')).toHaveAttribute(
+-      'title',
+-      `${longSponsor.title.en}\n${longSponsor.text.en}`,
+-    );
+-  },
+-};
+-
+-export const PageLongCopy: Story = {
+-  args: { variant: 'card', sponsor: longSponsor },
+-  render: (args) => (
+-    <div style={{ width: 320 }}>
+-      <SponsorCard {...args} />
+-    </div>
+-  ),
+-  play: async ({ canvasElement }) => {
+-    await expectInsideCard(canvasElement, '.sponsor-title');
+-    await expectInsideCard(canvasElement, '.sponsor-text');
+-    await expectNotClipped(canvasElement, '.sponsor-title');
+-  },
+-};
+diff --git a/frontend/src/components/sponsor/SponsorCard.tsx b/frontend/src/components/sponsor/SponsorCard.tsx
+deleted file mode 100644
+index 8eb8c94c..00000000
+--- a/frontend/src/components/sponsor/SponsorCard.tsx
++++ /dev/null
+@@ -1,89 +0,0 @@
+-import { useState } from 'react';
+-import { useTranslation } from 'react-i18next';
+-import { CloseOutlined, ExportOutlined } from '@ant-design/icons';
+-
+-import { withBasePath } from '@/api/http-init';
+-import type { Sponsor } from '@/generated/types';
+-import { pickLocale } from '@/lib/sponsors';
+-import './SponsorCard.css';
+-
+-export type SponsorCardVariant = 'banner' | 'compact' | 'card';
+-
+-export interface SponsorCardProps {
+-  sponsor: Sponsor;
+-  variant?: SponsorCardVariant;
+-  onClose?: () => void;
+-}
+-
+-function SponsorLogo({ sponsor }: { sponsor: Sponsor }) {
+-  const [failedSrc, setFailedSrc] = useState('');
+-  if (sponsor.logo && failedSrc !== sponsor.logo) {
+-    return (
+-      <img
+-        className="sponsor-logo"
+-        src={withBasePath(sponsor.logo)}
+-        alt=""
+-        loading="lazy"
+-        onError={() => setFailedSrc(sponsor.logo ?? '')}
+-      />
+-    );
+-  }
+-  return (
+-    <span className="sponsor-logo sponsor-logo-fallback" aria-hidden="true">
+-      {sponsor.name.slice(0, 1).toUpperCase()}
+-    </span>
+-  );
+-}
+-
+-export default function SponsorCard({ sponsor, variant = 'banner', onClose }: SponsorCardProps) {
+-  const { t, i18n } = useTranslation();
+-  const lang = i18n.resolvedLanguage || i18n.language || 'en';
+-  const title = pickLocale(sponsor.title, lang) || sponsor.name;
+-  const text = pickLocale(sponsor.text, lang);
+-  const tag = t('pages.sponsors.tag');
+-
+-  return (
+-    <div className={`sponsor-card sponsor-card-${variant}`}>
+-      <a
+-        className="sponsor-main"
+-        href={sponsor.link}
+-        target="_blank"
+-        rel="noopener noreferrer sponsored"
+-        title={variant === 'compact' ? [title, text].filter(Boolean).join('\n') : undefined}
+-      >
+-        <SponsorLogo sponsor={sponsor} />
+-        <span className="sponsor-body" dir="auto">
+-          <span className="sponsor-head">
+-            {variant !== 'banner' && <span className="sponsor-tag">{tag}</span>}
+-            <span className="sponsor-title">{title}</span>
+-          </span>
+-          {text && <span className="sponsor-text">{text}</span>}
+-        </span>
+-        {variant === 'banner' && (
+-          <span className="sponsor-aside">
+-            <span className="sponsor-tag">{tag}</span>
+-            <span className="sponsor-visit">
+-              {t('pages.sponsors.visit')} <ExportOutlined aria-hidden />
+-            </span>
+-          </span>
+-        )}
+-        {variant === 'card' && (
+-          <span className="sponsor-visit">
+-            {t('pages.sponsors.visit')} <ExportOutlined aria-hidden />
+-          </span>
+-        )}
+-      </a>
+-      {onClose && (
+-        <button
+-          type="button"
+-          className="sponsor-close"
+-          aria-label={t('close')}
+-          title={t('close')}
+-          onClick={onClose}
+-        >
+-          <CloseOutlined aria-hidden />
+-        </button>
+-      )}
+-    </div>
+-  );
+-}
+diff --git a/frontend/src/components/sponsor/SponsorSlot.tsx b/frontend/src/components/sponsor/SponsorSlot.tsx
+deleted file mode 100644
+index 98c2f4fa..00000000
+--- a/frontend/src/components/sponsor/SponsorSlot.tsx
++++ /dev/null
+@@ -1,42 +0,0 @@
+-import { useState } from 'react';
+-
+-import { useSponsorsQuery } from '@/api/queries/useSponsorsQuery';
+-import {
+-  dismissSponsor,
+-  isSponsorDismissed,
+-  sponsorsForSlot,
+-  type SponsorSlot as Slot,
+-} from '@/lib/sponsors';
+-import SponsorCard, { type SponsorCardVariant } from './SponsorCard';
+-
+-interface SponsorSlotProps {
+-  slot: Slot;
+-  variant?: SponsorCardVariant;
+-  className?: string;
+-}
+-
+-export default function SponsorSlot({ slot, variant = 'banner', className }: SponsorSlotProps) {
+-  const { data } = useSponsorsQuery();
+-  const [, setDismissTick] = useState(0);
+-
+-  // Re-filtered each render so a close (dismissTick bump) re-reads localStorage.
+-  const visible = sponsorsForSlot(data.sponsors, slot).filter(
+-    (s) => !isSponsorDismissed(s.id, slot),
+-  );
+-
+-  if (visible.length === 0) return null;
+-  const sponsor = visible[0];
+-
+-  return (
+-    <div className={className}>
+-      <SponsorCard
+-        sponsor={sponsor}
+-        variant={variant}
+-        onClose={() => {
+-          dismissSponsor(sponsor.id, slot);
+-          setDismissTick((n) => n + 1);
+-        }}
+-      />
+-    </div>
+-  );
+-}
+diff --git a/frontend/src/generated/examples.ts b/frontend/src/generated/examples.ts
+index 6c8c5aca..861781bd 100644
+--- a/frontend/src/generated/examples.ts
++++ b/frontend/src/generated/examples.ts
+@@ -1153,39 +1153,6 @@ export const EXAMPLES: Record<string, unknown> = {
+     "key": "",
+     "value": ""
+   },
+-  "Sponsor": {
+-    "enable": true,
+-    "from": "2026-10-01T00:00:00Z",
+-    "id": "acme-2026-10",
+-    "link": "https://acme.example/?utm_source=3x-ui",
+-    "logo": "/sponsors/logo/acme.png",
+-    "name": "Acme VPS",
+-    "slots": [
+-      ""
+-    ],
+-    "text": {},
+-    "title": {},
+-    "until": "2026-11-01T00:00:00Z"
+-  },
+-  "SponsorList": {
+-    "contact": "https://t.me/example",
+-    "sponsors": [
+-      {
+-        "enable": true,
+-        "from": "2026-10-01T00:00:00Z",
+-        "id": "acme-2026-10",
+-        "link": "https://acme.example/?utm_source=3x-ui",
+-        "logo": "/sponsors/logo/acme.png",
+-        "name": "Acme VPS",
+-        "slots": [
+-          ""
+-        ],
+-        "text": {},
+-        "title": {},
+-        "until": "2026-11-01T00:00:00Z"
+-      }
+-    ]
+-  },
+   "SubBalancer": {
+     "createdAt": 1710000000000,
+     "enabled": true,
+diff --git a/frontend/src/generated/schemas.ts b/frontend/src/generated/schemas.ts
+index 8165b101..d542ea4e 100644
+--- a/frontend/src/generated/schemas.ts
++++ b/frontend/src/generated/schemas.ts
+@@ -4637,90 +4637,6 @@ export const SCHEMAS: Record<string, unknown> = {
+     ],
+     "type": "object"
+   },
+-  "Sponsor": {
+-    "description": "Sponsor is one paid placement published in the repo's sponsors.json.",
+-    "properties": {
+-      "enable": {
+-        "example": true,
+-        "nullable": true,
+-        "type": "boolean"
+-      },
+-      "from": {
+-        "example": "2026-10-01T00:00:00Z",
+-        "format": "date-time",
+-        "nullable": true,
+-        "type": "string"
+-      },
+-      "id": {
+-        "example": "acme-2026-10",
+-        "type": "string"
+-      },
+-      "link": {
+-        "example": "https://acme.example/?utm_source=3x-ui",
+-        "type": "string"
+-      },
+-      "logo": {
+-        "example": "/sponsors/logo/acme.png",
+-        "type": "string"
+-      },
+-      "name": {
+-        "example": "Acme VPS",
+-        "type": "string"
+-      },
+-      "slots": {
+-        "items": {
+-          "type": "string"
+-        },
+-        "type": "array"
+-      },
+-      "text": {
+-        "additionalProperties": {
+-          "type": "string"
+-        },
+-        "type": "object"
+-      },
+-      "title": {
+-        "additionalProperties": {
+-          "type": "string"
+-        },
+-        "type": "object"
+-      },
+-      "until": {
+-        "example": "2026-11-01T00:00:00Z",
+-        "format": "date-time",
+-        "type": "string"
+-      }
+-    },
+-    "required": [
+-      "id",
+-      "link",
+-      "name",
+-      "slots",
+-      "text",
+-      "title",
+-      "until"
+-    ],
+-    "type": "object"
+-  },
+-  "SponsorList": {
+-    "description": "SponsorList is the active sponsor set plus the contact link for new sponsors.",
+-    "properties": {
+-      "contact": {
+-        "example": "https://t.me/example",
+-        "type": "string"
+-      },
+-      "sponsors": {
+-        "items": {
+-          "$ref": "#/components/schemas/Sponsor"
+-        },
+-        "type": "array"
+-      }
+-    },
+-    "required": [
+-      "sponsors"
+-    ],
+-    "type": "object"
+-  },
+   "SubBalancer": {
+     "description": "SubBalancer is one extra JSON-subscription config document whose members are\nthe selected inbounds' proxy outbounds. SortOrder shares SubSortIndex semantics.",
+     "properties": {
+diff --git a/frontend/src/generated/types.ts b/frontend/src/generated/types.ts
+index a7e158e3..669e8fa0 100644
+--- a/frontend/src/generated/types.ts
++++ b/frontend/src/generated/types.ts
+@@ -1056,24 +1056,6 @@ export interface Setting {
+   value: string;
+ }
+ 
+-export interface Sponsor {
+-  enable?: boolean | null;
+-  from?: string | null;
+-  id: string;
+-  link: string;
+-  logo?: string;
+-  name: string;
+-  slots: string[];
+-  text: Record<string, string>;
+-  title: Record<string, string>;
+-  until: string;
+-}
+-
+-export interface SponsorList {
+-  contact?: string;
+-  sponsors: Sponsor[];
+-}
+-
+ export interface SubBalancer {
+   createdAt: number;
+   enabled: boolean;
+diff --git a/frontend/src/generated/zod.ts b/frontend/src/generated/zod.ts
+index 692a2f67..981fb8d7 100644
+--- a/frontend/src/generated/zod.ts
++++ b/frontend/src/generated/zod.ts
+@@ -1123,26 +1123,6 @@ export const SettingSchema = z.object({
+ });
+ export type Setting = z.infer<typeof SettingSchema>;
+ 
+-export const SponsorSchema = z.object({
+-  enable: z.boolean().nullable().optional(),
+-  from: z.string().nullable().optional(),
+-  id: z.string(),
+-  link: z.string(),
+-  logo: z.string().optional(),
+-  name: z.string(),
+-  slots: z.array(z.string()),
+-  text: z.record(z.string(), z.string()),
+-  title: z.record(z.string(), z.string()),
+-  until: z.string(),
+-});
+-export type Sponsor = z.infer<typeof SponsorSchema>;
+-
+-export const SponsorListSchema = z.object({
+-  contact: z.string().optional(),
+-  sponsors: z.array(z.lazy(() => SponsorSchema)),
+-});
+-export type SponsorList = z.infer<typeof SponsorListSchema>;
+-
+ export const SubBalancerSchema = z.object({
+   createdAt: z.number().int(),
+   enabled: z.boolean(),
+diff --git a/frontend/src/lib/sponsors.ts b/frontend/src/lib/sponsors.ts
+deleted file mode 100644
+index 403f38e0..00000000
+--- a/frontend/src/lib/sponsors.ts
++++ /dev/null
+@@ -1,40 +0,0 @@
+-import type { Sponsor } from '@/generated/types';
+-
+-export type SponsorSlot = 'dashboard' | 'page' | 'login';
+-
+-const DISMISS_KEY = 'xui.sponsor.dismissed';
+-export const SPONSOR_DISMISS_MS = 24 * 60 * 60 * 1000;
+-
+-export function pickLocale(map: Record<string, string> | undefined, lang: string): string {
+-  if (!map) return '';
+-  const short = lang.split('-')[0].toLowerCase();
+-  return map[lang] || map[short] || map.en || '';
+-}
+-
+-export function sponsorsForSlot(sponsors: Sponsor[], slot: SponsorSlot): Sponsor[] {
+-  return sponsors.filter((s) => s.slots.includes(slot));
+-}
+-
+-function readDismissed(): Record<string, number> {
+-  try {
+-    const parsed: unknown = JSON.parse(localStorage.getItem(DISMISS_KEY) || '{}');
+-    return parsed && typeof parsed === 'object' ? (parsed as Record<string, number>) : {};
+-  } catch {
+-    return {};
+-  }
+-}
+-
+-export function isSponsorDismissed(id: string, slot: SponsorSlot, now = Date.now()): boolean {
+-  const at = readDismissed()[`${id}:${slot}`];
+-  return typeof at === 'number' && now - at < SPONSOR_DISMISS_MS;
+-}
+-
+-export function dismissSponsor(id: string, slot: SponsorSlot, now = Date.now()) {
+-  const next = Object.fromEntries(
+-    Object.entries(readDismissed()).filter(([, at]) => now - at < SPONSOR_DISMISS_MS),
+-  );
+-  next[`${id}:${slot}`] = now;
+-  try {
+-    localStorage.setItem(DISMISS_KEY, JSON.stringify(next));
+-  } catch {}
+-}
+diff --git a/frontend/src/pages/api-docs/endpoints.ts b/frontend/src/pages/api-docs/endpoints.ts
+index 796b9031..a1cdbde6 100644
+--- a/frontend/src/pages/api-docs/endpoints.ts
++++ b/frontend/src/pages/api-docs/endpoints.ts
+@@ -109,13 +109,6 @@ export const sections: readonly Section[] = [
+           'Mint a CSRF token for the current session. The SPA replays it in the X-CSRF-Token header on unsafe requests. Bearer-token callers can skip this — the middleware short-circuits CSRF for authenticated API requests.',
+         response: '{\n  "success": true,\n  "obj": "csrf-token-string"\n}',
+       },
+-      {
+-        method: 'GET',
+-        path: '/sponsors',
+-        summary:
+-          'Public. Active paid sponsor placements read from the project sponsors.json (cached for 1h); entries outside their from/until window are dropped. Logos are proxied by the panel at /sponsors/logo/{name}. Used by the login page and panel sponsor slots.',
+-        responseSchema: 'SponsorList',
+-      },
+       {
+         method: 'POST',
+         path: '/getTwoFactorEnable',
+diff --git a/frontend/src/pages/index/IndexPage.tsx b/frontend/src/pages/index/IndexPage.tsx
+index c6d4fefb..c2457e2d 100644
+--- a/frontend/src/pages/index/IndexPage.tsx
++++ b/frontend/src/pages/index/IndexPage.tsx
+@@ -22,7 +22,6 @@ import { useStatusQuery } from '@/api/queries/useStatusQuery';
+ import { useMediaQuery } from '@/hooks/useMediaQuery';
+ import AppSidebar from '@/layouts/AppSidebar';
+ import { LazyMount } from '@/components/utility';
+-import SponsorSlot from '@/components/sponsor/SponsorSlot';
+ import { setMessageInstance } from '@/utils/messageBus';
+ import OverviewActionBar from './OverviewActionBar';
+ import VitalTile from './VitalTile';
+@@ -214,8 +213,6 @@ export default function IndexPage() {
+                     onOpenVersionSwitch={() => setVersionOpen(true)}
+                   />
+ 
+-                  <SponsorSlot slot="dashboard" />
+-
+                   {health && (
+                     <div className="ov-health" style={{ color: health.color }}>
+                       <span className="ov-health-mark" />
+diff --git a/frontend/src/pages/login/LoginPage.css b/frontend/src/pages/login/LoginPage.css
+index ecbaad84..2a72af26 100644
+--- a/frontend/src/pages/login/LoginPage.css
++++ b/frontend/src/pages/login/LoginPage.css
+@@ -411,7 +411,3 @@
+ .submit-row {
+   margin-bottom: 0;
+ }
+-
+-.login-sponsor {
+-  margin-top: 20px;
+-}
+diff --git a/frontend/src/pages/login/LoginPage.tsx b/frontend/src/pages/login/LoginPage.tsx
+index bc9b1c77..b6375f4b 100644
+--- a/frontend/src/pages/login/LoginPage.tsx
++++ b/frontend/src/pages/login/LoginPage.tsx
+@@ -26,7 +26,6 @@ import { FormProvider, useForm } from 'react-hook-form';
+ import { HttpUtil, LanguageManager } from '@/utils';
+ import { FormField, rhfZodValidate } from '@/components/form/rhf';
+ import { setMessageInstance } from '@/utils/messageBus';
+-import SponsorSlot from '@/components/sponsor/SponsorSlot';
+ import { pauseAnimationsUntilLeave, useTheme } from '@/hooks/useTheme';
+ import { LoginFormSchema, TwoFactorCodeSchema, type LoginFormValues } from '@/schemas/login';
+ import './LoginPage.css';
+@@ -254,7 +253,6 @@ export default function LoginPage() {
+                     </Form.Item>
+                   </Form>
+                 </FormProvider>
+-                <SponsorSlot slot="login" variant="compact" className="login-sponsor" />
+               </div>
+             )}
+           </div>
+diff --git a/frontend/src/pages/sponsors/SponsorsPage.css b/frontend/src/pages/sponsors/SponsorsPage.css
+deleted file mode 100644
+index 6ed958a5..00000000
+--- a/frontend/src/pages/sponsors/SponsorsPage.css
++++ /dev/null
+@@ -1,74 +0,0 @@
+-.sponsors-page .ant-layout,
+-.sponsors-page .ant-layout-content,
+-.sponsors-page .content-shell {
+-  background: transparent;
+-}
+-
+-.sponsors-page .content-area {
+-  padding: 24px;
+-}
+-
+-.sponsors-inner {
+-  max-width: 1200px;
+-}
+-
+-.sponsors-header {
+-  display: flex;
+-  flex-wrap: wrap;
+-  align-items: center;
+-  justify-content: space-between;
+-  gap: 16px;
+-  margin-bottom: 24px;
+-}
+-
+-.sponsors-page .sponsors-title {
+-  margin: 0 0 4px;
+-}
+-
+-.sponsors-title-icon {
+-  color: #faad14;
+-}
+-
+-.sponsors-yourbrand {
+-  display: flex;
+-  flex-direction: column;
+-  align-items: center;
+-  gap: 8px;
+-  padding: 40px 24px;
+-  border: 1.5px dashed var(--ant-color-border);
+-  border-radius: var(--ant-border-radius-lg, 8px);
+-  text-align: center;
+-  background: var(--bg-card, transparent);
+-}
+-
+-.sponsors-yourbrand-icon {
+-  display: inline-flex;
+-  align-items: center;
+-  justify-content: center;
+-  width: 56px;
+-  height: 56px;
+-  border-radius: 8px;
+-  font-size: 22px;
+-  color: var(--ant-color-primary);
+-  background: var(--ant-color-primary-bg);
+-}
+-
+-.sponsors-yourbrand-title {
+-  font-weight: 600;
+-  font-size: 15px;
+-  color: var(--ant-color-text);
+-}
+-
+-.sponsors-yourbrand-text {
+-  max-width: 420px;
+-  margin-bottom: 4px;
+-  font-size: 13px;
+-  color: var(--ant-color-text-secondary);
+-}
+-
+-@media (max-width: 768px) {
+-  .sponsors-page .content-area {
+-    padding: 12px;
+-    padding-top: 64px;
+-  }
+-}
+diff --git a/frontend/src/pages/sponsors/SponsorsPage.tsx b/frontend/src/pages/sponsors/SponsorsPage.tsx
+deleted file mode 100644
+index 6d52e78d..00000000
+--- a/frontend/src/pages/sponsors/SponsorsPage.tsx
++++ /dev/null
+@@ -1,94 +0,0 @@
+-import { useMemo } from 'react';
+-import { useTranslation } from 'react-i18next';
+-import { Button, Col, ConfigProvider, Layout, Row, Spin, Typography } from 'antd';
+-import { CrownOutlined, PlusOutlined } from '@ant-design/icons';
+-
+-import { useTheme } from '@/hooks/useTheme';
+-import AppSidebar from '@/layouts/AppSidebar';
+-import { useSponsorsQuery } from '@/api/queries/useSponsorsQuery';
+-import SponsorCard from '@/components/sponsor/SponsorCard';
+-import { sponsorsForSlot } from '@/lib/sponsors';
+-import './SponsorsPage.css';
+-
+-function BecomeButton({ contact, block }: { contact?: string; block?: boolean }) {
+-  const { t } = useTranslation();
+-  if (!contact) return null;
+-  return (
+-    <Button
+-      type="primary"
+-      icon={<CrownOutlined aria-hidden />}
+-      href={contact}
+-      target="_blank"
+-      rel="noopener noreferrer"
+-      block={block}
+-    >
+-      {t('pages.sponsors.become')}
+-    </Button>
+-  );
+-}
+-
+-function YourBrandCard({ contact }: { contact?: string }) {
+-  const { t } = useTranslation();
+-  return (
+-    <div className="sponsors-yourbrand">
+-      <span className="sponsors-yourbrand-icon">
+-        <PlusOutlined aria-hidden />
+-      </span>
+-      <div className="sponsors-yourbrand-title">{t('pages.sponsors.yourBrand')}</div>
+-      <div className="sponsors-yourbrand-text">{t('pages.sponsors.yourBrandText')}</div>
+-      <BecomeButton contact={contact} />
+-    </div>
+-  );
+-}
+-
+-export default function SponsorsPage() {
+-  const { t } = useTranslation();
+-  const { isDark, isUltra, antdThemeConfig } = useTheme();
+-  const { data, fetched } = useSponsorsQuery();
+-  const sponsors = sponsorsForSlot(data.sponsors, 'page');
+-
+-  const pageClass = useMemo(() => {
+-    const classes = ['sponsors-page'];
+-    if (isDark) classes.push('is-dark');
+-    if (isUltra) classes.push('is-ultra');
+-    return classes.join(' ');
+-  }, [isDark, isUltra]);
+-
+-  return (
+-    <ConfigProvider theme={antdThemeConfig}>
+-      <Layout className={pageClass}>
+-        <AppSidebar />
+-        <Layout className="content-shell">
+-          <Layout.Content className="content-area">
+-            <div className="sponsors-inner">
+-              <div className="sponsors-header">
+-                <div>
+-                  <Typography.Title level={3} className="sponsors-title">
+-                    <CrownOutlined aria-hidden className="sponsors-title-icon" />{' '}
+-                    {t('pages.sponsors.title')}
+-                  </Typography.Title>
+-                  <Typography.Text type="secondary">{t('pages.sponsors.intro')}</Typography.Text>
+-                </div>
+-                <BecomeButton contact={data.contact} />
+-              </div>
+-
+-              <Spin spinning={!fetched} delay={200}>
+-                {sponsors.length === 0 ? (
+-                  fetched && <YourBrandCard contact={data.contact} />
+-                ) : (
+-                  <Row gutter={[16, 16]}>
+-                    {sponsors.map((sponsor) => (
+-                      <Col key={sponsor.id} xs={24} lg={12}>
+-                        <SponsorCard sponsor={sponsor} variant="card" />
+-                      </Col>
+-                    ))}
+-                  </Row>
+-                )}
+-              </Spin>
+-            </div>
+-          </Layout.Content>
+-        </Layout>
+-      </Layout>
+-    </ConfigProvider>
+-  );
+-}
+diff --git a/frontend/src/routes/panelRoutes.tsx b/frontend/src/routes/panelRoutes.tsx
+index b003a11d..63ea3be8 100644
+--- a/frontend/src/routes/panelRoutes.tsx
++++ b/frontend/src/routes/panelRoutes.tsx
+@@ -3,7 +3,6 @@ import type { ComponentType } from 'react';
+ import {
+   ApiOutlined,
+   ClusterOutlined,
+-  CrownOutlined,
+   DashboardOutlined,
+   ExportOutlined,
+   GlobalOutlined,
+@@ -24,7 +23,6 @@ const HostsPage = lazy(() => import('@/pages/hosts/HostsPage'));
+ const SettingsPage = lazy(() => import('@/pages/settings/SettingsPage'));
+ const XrayPage = lazy(() => import('@/pages/xray/XrayPage'));
+ const ApiDocsPage = lazy(() => import('@/pages/api-docs/ApiDocsPage'));
+-const SponsorsPage = lazy(() => import('@/pages/sponsors/SponsorsPage'));
+ 
+ export interface PanelRoute {
+   path: string;
+@@ -47,7 +45,6 @@ export const PANEL_ROUTES: PanelRoute[] = [
+   { path: '/settings', titleKey: 'menu.settings', icon: SettingOutlined, component: SettingsPage },
+   { path: '/xray', titleKey: 'menu.xray', icon: ToolOutlined, component: XrayPage },
+   { path: '/api-docs', titleKey: 'menu.apiDocs', icon: ApiOutlined, component: ApiDocsPage },
+-  { path: '/sponsors', titleKey: 'menu.sponsors', icon: CrownOutlined, component: SponsorsPage },
+ ];
+ 
+ export const PANEL_ROUTE_PATHS = PANEL_ROUTES.map((route) => route.path);
+diff --git a/frontend/src/styles/page-shell.css b/frontend/src/styles/page-shell.css
+index 1125543e..2ebf2b02 100644
+--- a/frontend/src/styles/page-shell.css
++++ b/frontend/src/styles/page-shell.css
+@@ -5,8 +5,7 @@
+ .settings-page,
+ .nodes-page,
+ .groups-page,
+-.api-docs-page,
+-.sponsors-page {
++.api-docs-page {
+   --bg-page: #e6e8ec;
+   --bg-card: #ffffff;
+   min-height: 100vh;
+@@ -20,8 +19,7 @@
+ .settings-page.is-dark,
+ .nodes-page.is-dark,
+ .groups-page.is-dark,
+-.api-docs-page.is-dark,
+-.sponsors-page.is-dark {
++.api-docs-page.is-dark {
+   --bg-page: #1a1b1f;
+   --bg-card: #23252b;
+ }
+@@ -33,8 +31,7 @@
+ .settings-page.is-dark.is-ultra,
+ .nodes-page.is-dark.is-ultra,
+ .groups-page.is-dark.is-ultra,
+-.api-docs-page.is-dark.is-ultra,
+-.sponsors-page.is-dark.is-ultra {
++.api-docs-page.is-dark.is-ultra {
+   --bg-page: #000;
+   --bg-card: #101013;
+ }
+diff --git a/frontend/src/test/sponsors.test.tsx b/frontend/src/test/sponsors.test.tsx
+deleted file mode 100644
+index 9d5d469d..00000000
+--- a/frontend/src/test/sponsors.test.tsx
++++ /dev/null
+@@ -1,47 +0,0 @@
+-import { afterEach, describe, expect, test } from 'vitest';
+-
+-import { SPONSOR_DISMISS_MS, dismissSponsor, isSponsorDismissed, pickLocale } from '@/lib/sponsors';
+-
+-afterEach(() => {
+-  localStorage.clear();
+-});
+-
+-describe('pickLocale', () => {
+-  const map = { en: 'Hello', fa: 'سلام', 'zh-TW': '哈囉' };
+-
+-  test.each([
+-    ['fa-IR', 'سلام'],
+-    ['zh-TW', '哈囉'],
+-    ['zh-CN', 'Hello'],
+-    ['ru-RU', 'Hello'],
+-  ])('%s resolves to %s', (lang, want) => {
+-    expect(pickLocale(map, lang)).toBe(want);
+-  });
+-
+-  test('missing map yields empty string', () => {
+-    expect(pickLocale(undefined, 'en-US')).toBe('');
+-  });
+-});
+-
+-describe('sponsor dismissal', () => {
+-  const t0 = 1_800_000_000_000;
+-
+-  test('hides only the dismissed slot until the window elapses', () => {
+-    dismissSponsor('acme', 'login', t0);
+-    expect(isSponsorDismissed('acme', 'login', t0 + SPONSOR_DISMISS_MS - 1)).toBe(true);
+-    expect(isSponsorDismissed('acme', 'dashboard', t0)).toBe(false);
+-    expect(isSponsorDismissed('acme', 'login', t0 + SPONSOR_DISMISS_MS)).toBe(false);
+-  });
+-
+-  test('prunes expired entries on the next dismiss', () => {
+-    dismissSponsor('old', 'login', t0);
+-    dismissSponsor('new', 'login', t0 + SPONSOR_DISMISS_MS);
+-    const stored = JSON.parse(localStorage.getItem('xui.sponsor.dismissed') || '{}');
+-    expect(Object.keys(stored)).toEqual(['new:login']);
+-  });
+-
+-  test('corrupt storage is treated as nothing dismissed', () => {
+-    localStorage.setItem('xui.sponsor.dismissed', 'not json');
+-    expect(isSponsorDismissed('acme', 'login', t0)).toBe(false);
+-  });
+-});
+diff --git a/frontend/vite.config.js b/frontend/vite.config.js
+index cdae65f4..59a6c48c 100644
+--- a/frontend/vite.config.js
++++ b/frontend/vite.config.js
+@@ -285,7 +285,7 @@ export default defineConfig({
+     port: 5173,
+     strictPort: true,
+     proxy: {
+-      '^/(?:[^/]+/)?(login|logout|getTwoFactorEnable|csrf-token|sponsors|panel|server)(?:/|$)': makeBackendProxy(BACKEND_TARGET),
++      '^/(?:[^/]+/)?(login|logout|getTwoFactorEnable|csrf-token|panel|server)(?:/|$)': makeBackendProxy(BACKEND_TARGET),
+       '^/$': makeBackendProxy(BACKEND_TARGET),
+       '^/[^/]+/$': makeBackendProxy(BACKEND_TARGET),
+       '^/(?:[^/]+/)?ws$': {
+diff --git a/internal/web/controller/index.go b/internal/web/controller/index.go
+index 487fbf75..e166a8a5 100644
+--- a/internal/web/controller/index.go
++++ b/internal/web/controller/index.go
+@@ -5,7 +5,6 @@ import (
+ 	"time"
+ 
+ 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+-	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
+ 	"github.com/mhsanaei/3x-ui/v3/internal/web/middleware"
+ 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
+ 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/panel"
+@@ -27,7 +26,6 @@ type IndexController struct {
+ 
+ 	settingService service.SettingService
+ 	userService    panel.UserService
+-	panelService   panel.PanelService
+ }
+ 
+ // NewIndexController creates a new IndexController and initializes its routes.
+@@ -41,36 +39,12 @@ func NewIndexController(g *gin.RouterGroup) *IndexController {
+ func (a *IndexController) initRouter(g *gin.RouterGroup) {
+ 	g.GET("/", a.index)
+ 	g.GET("/csrf-token", a.csrfToken)
+-	g.GET("/sponsors", a.sponsors)
+-	g.GET("/sponsors/logo/:name", a.sponsorLogo)
+ 
+ 	g.POST("/login", middleware.CSRFMiddleware(getRemoteIp), a.login)
+ 	g.POST("/logout", middleware.CSRFMiddleware(getRemoteIp), a.logout)
+ 	g.POST("/getTwoFactorEnable", middleware.CSRFMiddleware(getRemoteIp), a.getTwoFactorEnable)
+ }
+ 
+-// sponsors is public so the login page can render its slot; failures stay silent.
+-func (a *IndexController) sponsors(c *gin.Context) {
+-	list, err := a.panelService.GetSponsors()
+-	if err != nil {
+-		logger.Debug("sponsors fetch failed:", err)
+-		c.JSON(http.StatusOK, entity.Msg{Success: false})
+-		return
+-	}
+-	jsonObj(c, list, nil)
+-}
+-
+-func (a *IndexController) sponsorLogo(c *gin.Context) {
+-	data, contentType, err := a.panelService.GetSponsorLogo(c.Param("name"))
+-	if err != nil {
+-		logger.Debug("sponsor logo failed:", err)
+-		c.Status(http.StatusNotFound)
+-		return
+-	}
+-	c.Header("Cache-Control", "public, max-age=3600")
+-	c.Data(http.StatusOK, contentType, data)
+-}
+-
+ // index handles the root route, redirecting logged-in users to the panel or showing the login page.
+ func (a *IndexController) index(c *gin.Context) {
+ 	if session.IsLogin(c) {
+diff --git a/internal/web/routes_contract_test.go b/internal/web/routes_contract_test.go
+index dccdcb42..723fafe1 100644
+--- a/internal/web/routes_contract_test.go
++++ b/internal/web/routes_contract_test.go
+@@ -23,7 +23,7 @@ and an entry for a removed route documents an endpoint that 404s. This test
+ constructs the real router and diffs it against the registry both ways.
+ 
+ Scope: everything under /panel/api/ plus the session-auth surface the
+-registry also documents (/login, /logout, /csrf-token, /sponsors,
++registry also documents (/login, /logout, /csrf-token,
+ /getTwoFactorEnable, /ws). SPA page routes are UI, not API, and stay out;
+ registry paths that start with "/{" describe the standalone subscription
+ server, which this engine does not serve.
+@@ -33,7 +33,6 @@ var contractExtraRoutes = map[string]bool{
+ 	"POST /login":              true,
+ 	"POST /logout":             true,
+ 	"GET /csrf-token":          true,
+-	"GET /sponsors":            true,
+ 	"POST /getTwoFactorEnable": true,
+ 	"GET /ws":                  true,
+ }
+diff --git a/internal/web/service/panel/sponsor.go b/internal/web/service/panel/sponsor.go
+deleted file mode 100644
+index 0df1d46d..00000000
+--- a/internal/web/service/panel/sponsor.go
++++ /dev/null
+@@ -1,245 +0,0 @@
+-package panel
+-
+-import (
+-	"context"
+-	"encoding/json"
+-	"errors"
+-	"fmt"
+-	"io"
+-	"net/http"
+-	"os"
+-	"path/filepath"
+-	"regexp"
+-	"slices"
+-	"strings"
+-	"sync"
+-	"time"
+-
+-	"github.com/mhsanaei/3x-ui/v3/internal/config"
+-	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+-	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
+-)
+-
+-// Sponsor is one paid placement published in the repo's sponsors.json.
+-type Sponsor struct {
+-	ID     string            `json:"id" example:"acme-2026-10"`
+-	Name   string            `json:"name" example:"Acme VPS"`
+-	Enable *bool             `json:"enable,omitempty" example:"true"`
+-	Slots  []string          `json:"slots"`
+-	From   *time.Time        `json:"from,omitempty" example:"2026-10-01T00:00:00Z"`
+-	Until  time.Time         `json:"until" example:"2026-11-01T00:00:00Z"`
+-	Logo   string            `json:"logo,omitempty" example:"/sponsors/logo/acme.png"`
+-	Title  map[string]string `json:"title"`
+-	Text   map[string]string `json:"text"`
+-	Link   string            `json:"link" example:"https://acme.example/?utm_source=3x-ui"`
+-}
+-
+-// SponsorList is the active sponsor set plus the contact link for new sponsors.
+-type SponsorList struct {
+-	Contact  string    `json:"contact,omitempty" example:"https://t.me/example"`
+-	Sponsors []Sponsor `json:"sponsors"`
+-}
+-
+-const (
+-	sponsorsTTL      = time.Hour
+-	sponsorsErrTTL   = 10 * time.Minute
+-	maxSponsorsBytes = 256 << 10
+-	maxLogoBytes     = 256 << 10
+-	localSponsorsDir = "../sponsors/3X"
+-	sponsorLogoPath  = "/sponsors/logo/"
+-)
+-
+-// ErrSponsorLogoUnknown rejects logo names not used by an active sponsor.
+-var ErrSponsorLogoUnknown = errors.New("unknown sponsor logo")
+-
+-type sponsorLogo struct {
+-	data        []byte
+-	contentType string
+-	err         error
+-	retryAt     time.Time
+-}
+-
+-var (
+-	sponsorsURL     = "https://raw.githubusercontent.com/MHSanaei/sponsors/refs/heads/main/3X/sponsors.json"
+-	sponsorLogoBase = "https://raw.githubusercontent.com/MHSanaei/sponsors/refs/heads/main/3X/logos/"
+-	sponsorNow      = time.Now
+-
+-	// The panel proxies logos from sponsorLogoBase: CSP stays 'self' and no third party sees admin IPs.
+-	sponsorLogoRe = regexp.MustCompile(`^[A-Za-z0-9_-][A-Za-z0-9._-]*\.(png|webp|jpg)$`)
+-	sponsorSlots  = map[string]bool{"dashboard": true, "page": true, "login": true}
+-
+-	sponsorsMu      sync.Mutex
+-	sponsorsRaw     *SponsorList
+-	sponsorsErr     error
+-	sponsorsRetryAt time.Time
+-
+-	logosMu sync.Mutex
+-	logos   = map[string]sponsorLogo{}
+-)
+-
+-// GetSponsors returns the currently active sponsors. The remote file is cached, but the
+-// window is re-checked on every call so a slot starts exactly at From and ends at Until.
+-func (s *PanelService) GetSponsors() (*SponsorList, error) {
+-	raw, err := cachedSponsors()
+-	if err != nil {
+-		return nil, err
+-	}
+-	return activeSponsors(raw, sponsorNow()), nil
+-}
+-
+-func cachedSponsors() (*SponsorList, error) {
+-	sponsorsMu.Lock()
+-	defer sponsorsMu.Unlock()
+-	now := sponsorNow()
+-	if !config.IsDebug() && now.Before(sponsorsRetryAt) {
+-		return sponsorsRaw, sponsorsErr
+-	}
+-	list, err := fetchSponsors()
+-	switch {
+-	case err == nil:
+-		sponsorsRaw, sponsorsErr, sponsorsRetryAt = list, nil, now.Add(sponsorsTTL)
+-	case sponsorsRaw != nil:
+-		// An upstream blip keeps the last good list, so paid slots do not blink out.
+-		logger.Debug("sponsors refresh failed, keeping last list:", err)
+-		sponsorsRetryAt = now.Add(sponsorsErrTTL)
+-	default:
+-		sponsorsErr, sponsorsRetryAt = err, now.Add(sponsorsErrTTL)
+-	}
+-	return sponsorsRaw, sponsorsErr
+-}
+-
+-// GetSponsorLogo returns the image bytes for a logo of a currently active sponsor.
+-func (s *PanelService) GetSponsorLogo(name string) ([]byte, string, error) {
+-	// Validated here, not only via list membership, so name can never carry a path or URL.
+-	if !sponsorLogoRe.MatchString(name) {
+-		return nil, "", ErrSponsorLogoUnknown
+-	}
+-	sponsors, err := s.GetSponsors()
+-	if err != nil {
+-		return nil, "", err
+-	}
+-	if !slices.ContainsFunc(sponsors.Sponsors, func(sp Sponsor) bool { return sp.Logo == sponsorLogoPath+name }) {
+-		return nil, "", ErrSponsorLogoUnknown
+-	}
+-	logosMu.Lock()
+-	defer logosMu.Unlock()
+-	now := sponsorNow()
+-	l, ok := logos[name]
+-	if ok && !config.IsDebug() && now.Before(l.retryAt) {
+-		return l.data, l.contentType, l.err
+-	}
+-	// Failures are cached too: this route is public and each miss is an outbound fetch.
+-	data, contentType, err := fetchSponsorLogo(name)
+-	switch {
+-	case err == nil:
+-		l = sponsorLogo{data: data, contentType: contentType, retryAt: now.Add(sponsorsTTL)}
+-	case l.data != nil:
+-		l.retryAt = now.Add(sponsorsErrTTL)
+-	default:
+-		l = sponsorLogo{err: err, retryAt: now.Add(sponsorsErrTTL)}
+-	}
+-	logos[name] = l
+-	return l.data, l.contentType, l.err
+-}
+-
+-func fetchSponsorLogo(name string) ([]byte, string, error) {
+-	data, err := readSponsorSource(sponsorLogoBase+name, filepath.Join(localSponsorsDir, "logos", name), maxLogoBytes)
+-	if err != nil {
+-		return nil, "", err
+-	}
+-	contentType := http.DetectContentType(data)
+-	switch contentType {
+-	case "image/png", "image/webp", "image/jpeg":
+-		return data, contentType, nil
+-	default:
+-		return nil, "", fmt.Errorf("sponsor logo %s has content type %s", name, contentType)
+-	}
+-}
+-
+-// readSponsorSource reads a sibling checkout of MHSanaei/sponsors under XUI_DEBUG so
+-// sponsor edits can be previewed locally before they are pushed.
+-func readSponsorSource(url, localPath string, limit int) ([]byte, error) {
+-	if !config.IsDebug() {
+-		return fetchLimited(url, limit)
+-	}
+-	data, err := os.ReadFile(localPath)
+-	if err != nil {
+-		return nil, err
+-	}
+-	if len(data) > limit {
+-		return nil, fmt.Errorf("%s exceeds %d bytes", localPath, limit)
+-	}
+-	return data, nil
+-}
+-
+-func fetchLimited(url string, limit int) ([]byte, error) {
+-	client := (&service.SettingService{}).NewProxiedHTTPClient(10 * time.Second)
+-	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
+-	if err != nil {
+-		return nil, err
+-	}
+-	resp, err := client.Do(req)
+-	if err != nil {
+-		return nil, err
+-	}
+-	defer resp.Body.Close()
+-	if resp.StatusCode != http.StatusOK {
+-		return nil, fmt.Errorf("fetch %s returned status %d", url, resp.StatusCode)
+-	}
+-	body, err := io.ReadAll(io.LimitReader(resp.Body, int64(limit)+1))
+-	if err != nil {
+-		return nil, err
+-	}
+-	if len(body) > limit {
+-		return nil, fmt.Errorf("%s exceeds %d bytes", url, limit)
+-	}
+-	return body, nil
+-}
+-
+-func fetchSponsors() (*SponsorList, error) {
+-	body, err := readSponsorSource(sponsorsURL, filepath.Join(localSponsorsDir, "sponsors.json"), maxSponsorsBytes)
+-	if err != nil {
+-		return nil, err
+-	}
+-	var list SponsorList
+-	if err := json.Unmarshal(body, &list); err != nil {
+-		return nil, err
+-	}
+-	return &list, nil
+-}
+-
+-func activeSponsors(raw *SponsorList, now time.Time) *SponsorList {
+-	out := &SponsorList{Sponsors: []Sponsor{}}
+-	if raw == nil {
+-		return out
+-	}
+-	if strings.HasPrefix(raw.Contact, "https://") {
+-		out.Contact = raw.Contact
+-	}
+-	for _, sp := range raw.Sponsors {
+-		// A missing enable counts as on, so a forgotten field never hides a paid slot.
+-		disabled := sp.Enable != nil && !*sp.Enable
+-		notStarted := sp.From != nil && now.Before(*sp.From)
+-		if disabled || notStarted || sp.ID == "" || !now.Before(sp.Until) || !strings.HasPrefix(sp.Link, "https://") {
+-			continue
+-		}
+-		// A bad logo name drops only the logo; the paid slot still renders with its initial.
+-		if sponsorLogoRe.MatchString(sp.Logo) {
+-			sp.Logo = sponsorLogoPath + sp.Logo
+-		} else {
+-			sp.Logo = ""
+-		}
+-		slots := make([]string, 0, len(sp.Slots))
+-		for _, slot := range sp.Slots {
+-			if sponsorSlots[slot] {
+-				slots = append(slots, slot)
+-			}
+-		}
+-		if len(slots) == 0 {
+-			continue
+-		}
+-		sp.Slots = slots
+-		out.Sponsors = append(out.Sponsors, sp)
+-	}
+-	return out
+-}
+diff --git a/internal/web/service/panel/sponsor_test.go b/internal/web/service/panel/sponsor_test.go
+deleted file mode 100644
+index c6bfe0c6..00000000
+--- a/internal/web/service/panel/sponsor_test.go
++++ /dev/null
+@@ -1,304 +0,0 @@
+-package panel
+-
+-import (
+-	"errors"
+-	"net/http"
+-	"net/http/httptest"
+-	"os"
+-	"path/filepath"
+-	"strings"
+-	"sync/atomic"
+-	"testing"
+-	"time"
+-
+-	"github.com/mhsanaei/3x-ui/v3/internal/config"
+-	"github.com/mhsanaei/3x-ui/v3/internal/database/dbtest"
+-)
+-
+-var sponsorTestNow = time.Date(2026, 10, 15, 0, 0, 0, 0, time.UTC)
+-
+-func validSponsor() Sponsor {
+-	return Sponsor{
+-		ID:    "acme",
+-		Name:  "Acme",
+-		Slots: []string{"dashboard"},
+-		Until: sponsorTestNow.Add(24 * time.Hour),
+-		Logo:  "acme.png",
+-		Link:  "https://acme.example/",
+-	}
+-}
+-
+-func TestActiveSponsorsFilters(t *testing.T) {
+-	cases := []struct {
+-		name   string
+-		mutate func(*Sponsor)
+-		kept   bool
+-	}{
+-		{"valid", func(*Sponsor) {}, true},
+-		{"expired", func(s *Sponsor) { s.Until = sponsorTestNow }, false},
+-		{"not started yet", func(s *Sponsor) { s.From = new(sponsorTestNow.Add(time.Hour)) }, false},
+-		{"starts exactly now", func(s *Sponsor) { s.From = new(sponsorTestNow) }, true},
+-		{"enable false with future until", func(s *Sponsor) { s.Enable = new(false) }, false},
+-		{"enable true without until", func(s *Sponsor) { s.Enable, s.Until = new(true), time.Time{} }, false},
+-		{"enable true with future until", func(s *Sponsor) { s.Enable = new(true) }, true},
+-		{"missing id", func(s *Sponsor) { s.ID = "" }, false},
+-		{"http link", func(s *Sponsor) { s.Link = "http://acme.example/" }, false},
+-		{"javascript link", func(s *Sponsor) { s.Link = "javascript:alert(1)" }, false},
+-		{"only unknown slots", func(s *Sponsor) { s.Slots = []string{"subpage"} }, false},
+-	}
+-	for _, tc := range cases {
+-		t.Run(tc.name, func(t *testing.T) {
+-			sp := validSponsor()
+-			tc.mutate(&sp)
+-			got := activeSponsors(&SponsorList{Sponsors: []Sponsor{sp}}, sponsorTestNow)
+-			if kept := len(got.Sponsors) == 1; kept != tc.kept {
+-				t.Fatalf("kept = %v, want %v", kept, tc.kept)
+-			}
+-		})
+-	}
+-}
+-
+-func TestActiveSponsorsLogoName(t *testing.T) {
+-	cases := []struct{ logo, want string }{
+-		{"acme.png", "/sponsors/logo/acme.png"},
+-		{"VPS.png", "/sponsors/logo/VPS.png"},
+-		{"../x.png", ""},
+-		{"https://evil.example/x.png", ""},
+-		{"..png", ""},
+-		{"logo.svg", ""},
+-		{"", ""},
+-	}
+-	for _, tc := range cases {
+-		t.Run(tc.logo, func(t *testing.T) {
+-			sp := validSponsor()
+-			sp.Logo = tc.logo
+-			got := activeSponsors(&SponsorList{Sponsors: []Sponsor{sp}}, sponsorTestNow)
+-			if len(got.Sponsors) != 1 {
+-				t.Fatalf("sponsor dropped for logo %q; want it kept", tc.logo)
+-			}
+-			if got.Sponsors[0].Logo != tc.want {
+-				t.Errorf("logo = %q, want %q", got.Sponsors[0].Logo, tc.want)
+-			}
+-		})
+-	}
+-}
+-
+-func TestActiveSponsorsResolvesLogoAndSlots(t *testing.T) {
+-	sp := validSponsor()
+-	sp.Slots = []string{"subpage", "sidebar", "login"}
+-	got := activeSponsors(&SponsorList{Contact: "javascript:x", Sponsors: []Sponsor{sp}}, sponsorTestNow)
+-	if len(got.Sponsors) != 1 {
+-		t.Fatalf("got %d sponsors, want 1", len(got.Sponsors))
+-	}
+-	if want := "/sponsors/logo/acme.png"; got.Sponsors[0].Logo != want {
+-		t.Errorf("logo = %q, want %q", got.Sponsors[0].Logo, want)
+-	}
+-	if s := got.Sponsors[0].Slots; len(s) != 1 || s[0] != "login" {
+-		t.Errorf("slots = %v, want [login]", s)
+-	}
+-	if got.Contact != "" {
+-		t.Errorf("contact = %q, want empty for non-https", got.Contact)
+-	}
+-}
+-
+-func setupSponsorServer(t *testing.T, body string) *atomic.Int32 {
+-	t.Helper()
+-	t.Setenv("XUI_DB_FOLDER", t.TempDir())
+-	dbtest.InitDB(t, config.GetDBPath())
+-
+-	var hits atomic.Int32
+-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+-		hits.Add(1)
+-		isLogo := strings.HasPrefix(r.URL.Path, "/media/")
+-		if (isLogo && failSponsorLogos.Load()) || (!isLogo && failSponsorList.Load()) {
+-			w.WriteHeader(http.StatusBadGateway)
+-			return
+-		}
+-		switch r.URL.Path {
+-		case "/media/acme.png":
+-			_, _ = w.Write(pngMagic)
+-		case "/media/fake.png":
+-			_, _ = w.Write([]byte("<svg onload=alert(1)>"))
+-		default:
+-			_, _ = w.Write([]byte(body))
+-		}
+-	}))
+-	t.Cleanup(srv.Close)
+-
+-	prevURL, prevBase, prevNow := sponsorsURL, sponsorLogoBase, sponsorNow
+-	sponsorsURL, sponsorLogoBase = srv.URL+"/sponsors.json", srv.URL+"/media/"
+-	resetSponsorCache()
+-	t.Cleanup(func() {
+-		sponsorsURL, sponsorLogoBase, sponsorNow = prevURL, prevBase, prevNow
+-		failSponsorList.Store(false)
+-		failSponsorLogos.Store(false)
+-		resetSponsorCache()
+-	})
+-	return &hits
+-}
+-
+-var failSponsorList, failSponsorLogos atomic.Bool
+-
+-func TestGetSponsorsKeepsLastListWhenRefreshFails(t *testing.T) {
+-	hits := setupSponsorServer(t, `{"sponsors":[{"id":"acme","slots":["page"],
+-		"until":"2099-01-01T00:00:00Z","link":"https://acme.example/"}]}`)
+-	now := sponsorTestNow
+-	sponsorNow = func() time.Time { return now }
+-	svc := &PanelService{}
+-	if got, err := svc.GetSponsors(); err != nil || len(got.Sponsors) != 1 {
+-		t.Fatalf("first call = %+v, %v; want 1 sponsor", got, err)
+-	}
+-
+-	failSponsorList.Store(true)
+-	now = now.Add(sponsorsTTL)
+-	got, err := svc.GetSponsors()
+-	if err != nil || len(got.Sponsors) != 1 || got.Sponsors[0].ID != "acme" {
+-		t.Fatalf("after failed refresh = %+v, %v; want the last good sponsor kept", got, err)
+-	}
+-	now = now.Add(sponsorsErrTTL - time.Second)
+-	if _, err := svc.GetSponsors(); err != nil {
+-		t.Fatal(err)
+-	}
+-	if n := hits.Load(); n != 2 {
+-		t.Fatalf("remote hits = %d, want 2 (failed refresh retried only after sponsorsErrTTL)", n)
+-	}
+-}
+-
+-func TestGetSponsorLogoCachesFailuresAndKeepsLastImage(t *testing.T) {
+-	hits := setupSponsorServer(t, `{"sponsors":[
+-		{"id":"acme","slots":["page"],"until":"2099-01-01T00:00:00Z","link":"https://a.example/","logo":"acme.png"},
+-		{"id":"fake","slots":["page"],"until":"2099-01-01T00:00:00Z","link":"https://f.example/","logo":"fake.png"}]}`)
+-	now := sponsorTestNow
+-	sponsorNow = func() time.Time { return now }
+-	svc := &PanelService{}
+-
+-	const wantErr = "sponsor logo fake.png has content type text/plain; charset=utf-8"
+-	for range 2 {
+-		if _, _, err := svc.GetSponsorLogo("fake.png"); err == nil || err.Error() != wantErr {
+-			t.Fatalf("fake.png err = %v, want %q", err, wantErr)
+-		}
+-	}
+-	if n := hits.Load(); n != 2 {
+-		t.Fatalf("remote hits = %d, want 2 (list + one fake.png fetch; the failure must be cached)", n)
+-	}
+-
+-	if _, _, err := svc.GetSponsorLogo("acme.png"); err != nil {
+-		t.Fatal(err)
+-	}
+-	failSponsorLogos.Store(true)
+-	now = now.Add(sponsorsTTL)
+-	data, ctype, err := svc.GetSponsorLogo("acme.png")
+-	if err != nil || ctype != "image/png" || string(data) != string(pngMagic) {
+-		t.Fatalf("acme.png after failed refresh = %q, %q, %v; want the last good image", data, ctype, err)
+-	}
+-}
+-
+-func resetSponsorCache() {
+-	sponsorsMu.Lock()
+-	defer sponsorsMu.Unlock()
+-	sponsorsRaw, sponsorsErr, sponsorsRetryAt = nil, nil, time.Time{}
+-	logosMu.Lock()
+-	defer logosMu.Unlock()
+-	logos = map[string]sponsorLogo{}
+-}
+-
+-var pngMagic = []byte("\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR")
+-
+-func TestGetSponsorLogo(t *testing.T) {
+-	hits := setupSponsorServer(t, `{"sponsors":[
+-		{"id":"acme","slots":["page"],"until":"2099-01-01T00:00:00Z","link":"https://a.example/","logo":"acme.png"},
+-		{"id":"fake","slots":["page"],"until":"2099-01-01T00:00:00Z","link":"https://f.example/","logo":"fake.png"},
+-		{"id":"old","slots":["page"],"until":"2000-01-01T00:00:00Z","link":"https://o.example/","logo":"old.png"}]}`)
+-	svc := &PanelService{}
+-
+-	data, ctype, err := svc.GetSponsorLogo("acme.png")
+-	if err != nil || ctype != "image/png" || string(data) != string(pngMagic) {
+-		t.Fatalf("acme.png = %q, %q, %v; want png bytes", data, ctype, err)
+-	}
+-	before := hits.Load()
+-	if _, _, err := svc.GetSponsorLogo("acme.png"); err != nil {
+-		t.Fatal(err)
+-	}
+-	if hits.Load() != before {
+-		t.Fatalf("second logo fetch hit the remote; want cached")
+-	}
+-
+-	for _, name := range []string{"old.png", "other.png", "../sponsors.json"} {
+-		if _, _, err := svc.GetSponsorLogo(name); !errors.Is(err, ErrSponsorLogoUnknown) {
+-			t.Errorf("%s: err = %v, want ErrSponsorLogoUnknown", name, err)
+-		}
+-	}
+-	_, _, err = svc.GetSponsorLogo("fake.png")
+-	if want := "sponsor logo fake.png has content type text/plain; charset=utf-8"; err == nil || err.Error() != want {
+-		t.Errorf("fake.png: err = %v, want %q", err, want)
+-	}
+-}
+-
+-func TestGetSponsorsCachesAndExpiresWhileCached(t *testing.T) {
+-	hits := setupSponsorServer(t, `{"sponsors":[{"id":"acme","slots":["page"],
+-		"until":"2026-10-15T00:30:00Z","link":"https://acme.example/"}]}`)
+-	now := sponsorTestNow
+-	sponsorNow = func() time.Time { return now }
+-	svc := &PanelService{}
+-
+-	got, err := svc.GetSponsors()
+-	if err != nil || len(got.Sponsors) != 1 {
+-		t.Fatalf("first call = %+v, %v; want 1 sponsor", got, err)
+-	}
+-	now = now.Add(45 * time.Minute)
+-	got, err = svc.GetSponsors()
+-	if err != nil || len(got.Sponsors) != 0 {
+-		t.Fatalf("after until = %+v, %v; want 0 sponsors", got, err)
+-	}
+-	if n := hits.Load(); n != 1 {
+-		t.Fatalf("remote hits = %d, want 1 (cached within TTL)", n)
+-	}
+-	now = now.Add(sponsorsTTL)
+-	if _, err := svc.GetSponsors(); err != nil {
+-		t.Fatal(err)
+-	}
+-	if n := hits.Load(); n != 2 {
+-		t.Fatalf("remote hits after TTL = %d, want 2", n)
+-	}
+-}
+-
+-func TestGetSponsorsRejectsOversizeBody(t *testing.T) {
+-	setupSponsorServer(t, `{"contact":"`+strings.Repeat("a", maxSponsorsBytes)+`"}`)
+-	_, err := (&PanelService{}).GetSponsors()
+-	want := sponsorsURL + " exceeds 262144 bytes"
+-	if err == nil || err.Error() != want {
+-		t.Fatalf("err = %v, want %q", err, want)
+-	}
+-}
+-
+-func TestGetSponsorsDebugReadsLocalCheckout(t *testing.T) {
+-	hits := setupSponsorServer(t, `{"sponsors":[]}`)
+-	t.Setenv("XUI_DEBUG", "true")
+-	root := t.TempDir()
+-	local := filepath.Join(root, "sponsors", "3X")
+-	if err := os.MkdirAll(local, 0o700); err != nil {
+-		t.Fatal(err)
+-	}
+-	if err := os.Mkdir(filepath.Join(root, "3x-ui"), 0o700); err != nil {
+-		t.Fatal(err)
+-	}
+-	t.Chdir(filepath.Join(root, "3x-ui"))
+-	write := func(id string) {
+-		t.Helper()
+-		body := `{"sponsors":[{"id":"` + id + `","slots":["page"],"until":"2099-01-01T00:00:00Z","link":"https://a.example/"}]}`
+-		if err := os.WriteFile(filepath.Join(local, "sponsors.json"), []byte(body), 0o600); err != nil {
+-			t.Fatal(err)
+-		}
+-	}
+-	svc := &PanelService{}
+-	for _, id := range []string{"first", "edited"} {
+-		write(id)
+-		got, err := svc.GetSponsors()
+-		if err != nil || len(got.Sponsors) != 1 || got.Sponsors[0].ID != id {
+-			t.Fatalf("GetSponsors() = %+v, %v; want local sponsor %q", got, err, id)
+-		}
+-	}
+-	if n := hits.Load(); n != 0 {
+-		t.Fatalf("remote hits = %d, want 0 in debug mode", n)
+-	}
+-}
+diff --git a/internal/web/translation/en-US.json b/internal/web/translation/en-US.json
+index 38a3c675..ed6f25d9 100644
+--- a/internal/web/translation/en-US.json
++++ b/internal/web/translation/en-US.json
+@@ -120,7 +120,6 @@
+     "outbounds": "Outbounds",
+     "apiDocs": "API Docs",
+     "donate": "Donate",
+-    "sponsors": "Sponsors",
+     "docs": "Documentation",
+     "openMenu": "Open menu",
+     "pinSidebar": "Pin sidebar",
+@@ -2493,15 +2492,6 @@
+       "routingScript": "Routing Script",
+       "routingScriptDesc": "Path to a .lua file defining HandleRoute, absolute or relative to the Xray bin folder. The script then picks every route and Xray ignores all routing rules, the panel's api rule included: send the api inbound to the api outbound or traffic stats and live client changes stop. Xray will not start if the file is missing or invalid.",
+       "routingScriptActive": "A routing script is set under {section}, so Xray ignores these rules."
+-    },
+-    "sponsors": {
+-      "title": "Sponsors",
+-      "intro": "Companies that support 3X-UI development. Sponsored links open in a new tab.",
+-      "become": "Become a sponsor",
+-      "tag": "Sponsor",
+-      "visit": "Visit",
+-      "yourBrand": "Your brand here",
+-      "yourBrandText": "Put your company in front of thousands of server admins who open 3X-UI every day."
+     }
+   },
+   "tgbot": {
+diff --git a/tools/openapigen/main.go b/tools/openapigen/main.go
+index 3a551795..d1bfa99d 100644
+--- a/tools/openapigen/main.go
++++ b/tools/openapigen/main.go
+@@ -118,7 +118,7 @@ func run(root, outDir string) error {
+ 		},
+ 		{
+ 			Path:        resolveRel(root, "internal/web/service/panel"),
+-			StructAllow: setOf("ApiTokenView", "PanelUpdateStatus", "Sponsor", "SponsorList"),
++			StructAllow: setOf("ApiTokenView", "PanelUpdateStatus"),
+ 		},
+ 		{
+ 			Path:        resolveRel(root, "internal/web/controller"),

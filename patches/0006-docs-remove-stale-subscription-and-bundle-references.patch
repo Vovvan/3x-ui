@@ -1,0 +1,211 @@
+From d335d8197df087bb10f6ed10df034844f7444153 Mon Sep 17 00:00:00 2001
+From: HolyCode User <noreply@holycode.local>
+Date: Sun, 25 Oct 2026 00:56:42 +0000
+Subject: [PATCH 6/8] docs: remove stale subscription and bundle references
+
+The subscription server, subpage bundle, nodes page and encrypt-tokens CLI are gone. Align the agent guides, frontend docs, architecture map and nearby code comments with the fork.
+---
+ CLAUDE.md                             |  4 ++--
+ docs/architecture.md                  |  2 +-
+ frontend/CLAUDE.md                    |  5 ++---
+ frontend/README.md                    | 15 +++++++--------
+ frontend/src/lib/xray/inbound-link.ts |  3 +--
+ internal/util/link/outbound.go        |  2 +-
+ internal/web/global/global.go         |  2 +-
+ internal/web/locale/locale.go         |  2 +-
+ internal/web/service/client_link.go   |  3 +--
+ internal/web/service/setting.go       |  2 +-
+ internal/xray/dnsconf/dnsconf.go      |  2 +-
+ 11 files changed, 19 insertions(+), 23 deletions(-)
+
+diff --git a/CLAUDE.md b/CLAUDE.md
+index 24c9ad37..24fd46fb 100644
+--- a/CLAUDE.md
++++ b/CLAUDE.md
+@@ -31,7 +31,7 @@ file locations when it can answer in one hop.
+   built into `internal/web/dist/` (gitignored) and embedded via `embed.FS`.
+ 
+ ## Repo map
+-- `main.go` — entry point + `x-ui` CLI (run, migrate, migrate-db, encrypt-tokens, setting, cert).
++- `main.go` — entry point + `x-ui` CLI (run, migrate, migrate-db, setting, cert).
+ - `internal/config/` — env parsing (XUI_DEBUG, XUI_LOG_LEVEL, XUI_LOG_FOLDER,
+   XUI_BIN_FOLDER, XUI_SKIP_HSTS, XUI_PORT, XUI_DB_*).
+ - `internal/database/` + `internal/database/model/` — GORM schema (~24 models;
+@@ -71,7 +71,7 @@ file locations when it can answer in one hop.
+   `frontend/scripts/build-openapi.mjs`.
+ - `docs/` — separate Next.js/Fumadocs site (pnpm, own CI in `docs-ci.yml`,
+   outside `make verify`). Holds a THIRD independent implementation of
+-  link/subscription generation in `docs/lib/xray/` — check it whenever
++  share-link generation in `docs/lib/xray/` — check it whenever
+   share-link or install-command output changes.
+ 
+ ## Hard rules (non-negotiable)
+diff --git a/docs/architecture.md b/docs/architecture.md
+index 92abb4fe..6bc8f2bb 100644
+--- a/docs/architecture.md
++++ b/docs/architecture.md
+@@ -210,7 +210,7 @@ periodic traffic resets (hourly/daily/weekly/monthly). See §5.4.
+ │   │   ├── job/               # Cron job structs (one file per job — see §5.4)
+ │   │   ├── middleware/        # Gin middleware: security.go (headers/HSTS), bodylimit.go,
+ │   │   │                      #   domainValidator.go, validate.go (CSRF), config_envelope.go
+-│   │   ├── global/           # Global singletons: web server + sub server handles, restart hook
++│   │   ├── global/           # Global singletons: web server handle, restart hook
+ │   │   ├── network/          # Custom net listeners (e.g. proxy-protocol aware)
+ │   │   ├── session/          # Session/cookie helpers
+ │   │   ├── websocket/        # WS hub implementation
+diff --git a/frontend/CLAUDE.md b/frontend/CLAUDE.md
+index cf0ac210..8e5d3507 100644
+--- a/frontend/CLAUDE.md
++++ b/frontend/CLAUDE.md
+@@ -5,12 +5,11 @@ Frontend agent guide. Full detail: `frontend/README.md` and the root
+ 
+ ## What this is
+ React 19 + Ant Design 6 + Vite 8 + TypeScript. The Vite config is
+-`vite.config.js` (plain JS). Three bundles, each emitted into
++`vite.config.js` (plain JS). Two bundles, each emitted into
+ `internal/web/dist/` and embedded into the Go binary:
+ - `index.html` — admin panel SPA (entry `src/main.tsx`; react-router under
+   `/panel`, lazy routes).
+ - `login.html` — login + 2FA (`src/entries/login.tsx`).
+-- `subpage.html` — public subscription viewer (`src/entries/subpage.tsx`).
+ The `@` import alias maps to `src/`.
+ 
+ ## Data flow
+@@ -59,7 +58,7 @@ The `@` import alias maps to `src/`.
+    title and the command palette all read that one list;
+    `src/test/navigation-contract.test.tsx` holds it to the router and to the
+    translation bundle.
+-Only standalone bundles (login/subpage) need a new `.html` + `src/entries/*` +
++Only standalone bundles (login) need a new `.html` + `src/entries/*` +
+ `rollupOptions.input` (in `vite.config.js`) + a Go controller route.
+ 
+ ## Commands
+diff --git a/frontend/README.md b/frontend/README.md
+index 77e32aee..fc0d3080 100644
+--- a/frontend/README.md
++++ b/frontend/README.md
+@@ -1,10 +1,9 @@
+ # 3x-ui frontend
+ 
+-React 19 + Ant Design 6 + TypeScript + Vite 8. Three SPA bundles —
+-`index.html` (admin panel SPA, all `/panel/*` routes), `login.html`
+-(login + 2FA), and `subpage.html` (public subscription viewer). All
+-three are built into `../internal/web/dist/` and embedded into the Go binary
+-via `embed.FS`.
++React 19 + Ant Design 6 + TypeScript + Vite 8. Two SPA bundles —
++`index.html` (admin panel SPA, all `/panel/*` routes) and `login.html`
++(login + 2FA). Both are built into `../internal/web/dist/` and embedded into
++the Go binary via `embed.FS`.
+ 
+ State is split between local `useState`, TanStack Query for server
+ state, and `useTheme` / `useWebSocket` contexts. Form validation,
+@@ -87,7 +86,7 @@ normal network requests.
+ 
+ ```
+ frontend/
+-├── index.html, login.html, subpage.html  # 3 Vite entries
++├── index.html, login.html                # 2 Vite entries
+ ├── tsconfig.json
+ ├── .oxlintrc.json                        # oxlint config (replaces the ESLint flat config)
+ ├── .oxfmtrc.json                         # oxfmt config (Prettier-compatible settings)
+@@ -105,8 +104,8 @@ frontend/
+     ├── main.tsx         # Shared root for the admin SPA (index.html)
+     ├── routes.tsx       # react-router routes mounted under /panel/
+     ├── pages/           # One folder per route, page component + helpers
+-    │   ├── index/, login/, inbounds/, clients/, xray/, nodes/,
+-    │   ├── settings/, api-docs/, sub/
++    │   ├── index/, login/, inbounds/, clients/, xray/, groups/, hosts/,
++    │   ├── settings/, api-docs/
+     ├── layouts/         # AdminLayout (sidebar + header + outlet)
+     ├── components/      # Cross-page React components (+ co-located *.stories.tsx)
+     ├── hooks/           # useClients, useTheme, useWebSocket, …
+diff --git a/frontend/src/lib/xray/inbound-link.ts b/frontend/src/lib/xray/inbound-link.ts
+index 8db942f6..e19b13da 100644
+--- a/frontend/src/lib/xray/inbound-link.ts
++++ b/frontend/src/lib/xray/inbound-link.ts
+@@ -836,8 +836,7 @@ function udpHopPorts(stream: NonNullable<Inbound['streamSettings']>): string {
+ 
+ // Hysteria share link: hysteria2://<auth>@<host>:<port>?<query>#<remark>.
+ // The scheme is always hysteria2 — xray-core builds version 2 only, so the
+-// settings schema pins it there and the subscription server emits the same
+-// scheme. Salamander obfuscation pulls its password from
++// settings schema pins it there and the panel emits the same scheme. Salamander obfuscation pulls its password from
+ // finalmask.udp[type=salamander] when present; the broader finalmask payload
+ // still rides under `fm` like the other links.
+ //
+diff --git a/internal/util/link/outbound.go b/internal/util/link/outbound.go
+index c543dbfc..c764c076 100644
+--- a/internal/util/link/outbound.go
++++ b/internal/util/link/outbound.go
+@@ -1095,7 +1095,7 @@ func firstParam(p url.Values, keys ...string) string {
+ 	return ""
+ }
+ 
+-// realityPerRequestParams are picked per request by subscription servers (3x-ui randomizes
++// realityPerRequestParams are picked per request by clients (3x-ui randomizes
+ // sid/sni, older releases spx too), so they must not split one server into new identities.
+ var realityPerRequestParams = map[string]bool{"sid": true, "sni": true, "spx": true}
+ 
+diff --git a/internal/web/global/global.go b/internal/web/global/global.go
+index 57ff6f10..524cf699 100644
+--- a/internal/web/global/global.go
++++ b/internal/web/global/global.go
+@@ -1,4 +1,4 @@
+-// Package global provides global variables and interfaces for accessing web and subscription servers.
++// Package global provides the web server handle and in-process restart hook.
+ package global
+ 
+ import (
+diff --git a/internal/web/locale/locale.go b/internal/web/locale/locale.go
+index f9972f58..9a634c9e 100644
+--- a/internal/web/locale/locale.go
++++ b/internal/web/locale/locale.go
+@@ -131,7 +131,7 @@ func LocalizerMiddleware() gin.HandlerFunc {
+ 		if i18nBundle == nil {
+ 			i18nBundle = i18n.NewBundle(language.MustParse("en-US"))
+ 			i18nBundle.RegisterUnmarshalFunc("json", json.Unmarshal)
+-			// Try lazy-load from disk when running sub server without InitLocalizer
++			// Try lazy-load from disk when the panel starts without InitLocalizer
+ 			if err := loadTranslationsFromDisk(i18nBundle); err != nil {
+ 				logger.Warning("i18n lazy load failed:", err)
+ 			}
+diff --git a/internal/web/service/client_link.go b/internal/web/service/client_link.go
+index 0bdabc95..9b3bfce8 100644
+--- a/internal/web/service/client_link.go
++++ b/internal/web/service/client_link.go
+@@ -537,8 +537,7 @@ func (s *ClientService) ListForInbound(tx *gorm.DB, inboundId int) ([]model.Clie
+ }
+ 
+ // ListForInboundBySubId is ListForInbound narrowed to one subscription id —
+-// both filter columns are indexed, so the subscription server resolves a
+-// subscriber's clients without touching the inbound's settings JSON.
++// both filter columns are indexed, so the lookup avoids the inbound settings JSON.
+ func (s *ClientService) ListForInboundBySubId(tx *gorm.DB, inboundId int, subId string) ([]model.Client, error) {
+ 	if tx == nil {
+ 		tx = database.GetDB()
+diff --git a/internal/web/service/setting.go b/internal/web/service/setting.go
+index 8fa4e6c8..173fc66c 100644
+--- a/internal/web/service/setting.go
++++ b/internal/web/service/setting.go
+@@ -1034,7 +1034,7 @@ func validateRemoteRoutingURLSetting(name string, value *string) error {
+ 	return nil
+ }
+ 
+-// The same parser the sub server uses, so a value can never be saved as valid
++// The same parser the panel uses, so a value can never be saved as valid
+ // and then silently ignored at request time.
+ func (s *SettingService) UpdateSecret(key string, value string) error {
+ 	switch key {
+diff --git a/internal/xray/dnsconf/dnsconf.go b/internal/xray/dnsconf/dnsconf.go
+index 5ebcf255..043966b9 100644
+--- a/internal/xray/dnsconf/dnsconf.go
++++ b/internal/xray/dnsconf/dnsconf.go
+@@ -46,7 +46,7 @@ func Parse(raw string) (map[string]any, error) {
+ // run: it resolves geosite tokens from geodata files the panel may not have.
+ func validate(block map[string]any) (err error) {
+ 	// Third-party parser fed by a panel setting: a panic must degrade to
+-	// "unusable value", never take the panel or sub server down.
++	// "unusable value", never take the panel down.
+ 	defer func() {
+ 		if panicValue := recover(); panicValue != nil {
+ 			err = fmt.Errorf("invalid DNS config: %v", panicValue)
