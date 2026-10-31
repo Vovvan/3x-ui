@@ -1,0 +1,114 @@
+name: Patch verify (strip-sub-bots)
+
+on:
+  workflow_dispatch:
+    inputs:
+      base:
+        description: Upstream tag or commit the patch series is based on
+        required: true
+        default: v3.11.0
+      patch_ref:
+        description: Branch holding PATCH-BASE, series and patches/
+        required: true
+        default: patches/strip-sub-bots
+      full_tests:
+        description: Run the full Go test suite
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout patch archive
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.patch_ref }}
+          path: patch-repo
+          fetch-depth: 0
+
+      - name: Validate patch base
+        working-directory: patch-repo
+        run: |
+          set -euo pipefail
+          test -f PATCH-BASE
+          expected=$(awk '{print $1}' PATCH-BASE)
+          if [ "$expected" != "${{ inputs.base }}" ]; then
+            echo "PATCH-BASE is $expected, requested ${{ inputs.base }}" >&2
+            exit 1
+          fi
+          test -s series
+          while read -r patch; do
+            test -f "patches/$patch"
+          done < series
+
+      - name: Checkout pristine upstream
+        uses: actions/checkout@v7
+        with:
+          repository: MHSanaei/3x-ui
+          ref: ${{ inputs.base }}
+          path: target
+          fetch-depth: 0
+
+      - name: Apply patch series
+        working-directory: target
+        run: |
+          set -euo pipefail
+          git config user.name "strip-sub-bots patch ci"
+          git config user.email "patch-ci@users.noreply.github.com"
+          while read -r patch; do
+            echo "Applying $patch"
+            git am -3 "$GITHUB_WORKSPACE/patch-repo/patches/$patch"
+          done < "$GITHUB_WORKSPACE/patch-repo/series"
+
+      - name: Setup Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: target/go.mod
+          cache: true
+          cache-dependency-path: target/go.sum
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: target/.nvmrc
+          cache: npm
+          cache-dependency-path: target/frontend/package-lock.json
+
+      - name: Stub embedded frontend
+        working-directory: target
+        run: mkdir -p internal/web/dist && touch internal/web/dist/.gitkeep
+
+      - name: Install frontend dependencies
+        working-directory: target/frontend
+        run: npm ci
+
+      - name: Regenerate OpenAPI and schemas
+        working-directory: target/frontend
+        run: npm run gen
+
+      - name: Check generated files are current
+        working-directory: target
+        run: git diff --exit-code -- frontend/src/generated frontend/public/openapi.json
+
+      - name: Typecheck and build frontend
+        working-directory: target/frontend
+        run: |
+          npm run typecheck
+          npm run build
+
+      - name: Build Go packages
+        working-directory: target
+        env:
+          CGO_ENABLED: "1"
+        run: go build ./...
+
+      - name: Run full Go test suite
+        if: ${{ inputs.full_tests }}
+        working-directory: target
+        env:
+          CGO_ENABLED: "1"
+        run: go test -shuffle=on -count=1 -timeout 45m ./...
