@@ -1,0 +1,114 @@
+name: fork-ci
+
+on:
+  push:
+    branches:
+      - fork/strip-sub-bots
+  pull_request:
+    branches:
+      - fork/strip-sub-bots
+  workflow_dispatch:
+    inputs:
+      run_full_tests:
+        description: Run the full go test ./... suite
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fork-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: build linux/amd64
+    runs-on: ubuntu-latest
+    env:
+      GOOS: linux
+      GOARCH: amd64
+      CGO_ENABLED: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          check-latest: true
+          cache: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Typecheck frontend
+        working-directory: frontend
+        run: npm run typecheck
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Show toolchain
+        run: go version
+
+      - name: Build
+        run: |
+          mkdir -p build
+          go build \
+            -trimpath \
+            -buildvcs=false \
+            -ldflags="-X github.com/mhsanaei/3x-ui/v3/internal/config.buildCommit=${GITHUB_SHA::8} -X github.com/mhsanaei/3x-ui/v3/internal/config.buildDate=$(date -u +%Y-%m-%dT%H:%M:%SZ) -s -w" \
+            -o build/x-ui \
+            .
+
+      - name: Inspect binary
+        run: |
+          file build/x-ui
+          ls -lh build/x-ui
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v7
+        with:
+          name: x-ui-linux-amd64
+          path: build/x-ui
+          if-no-files-found: error
+          retention-days: 7
+
+  test:
+    name: full test suite
+    needs: build
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_full_tests }}
+    runs-on: ubuntu-latest
+    env:
+      CGO_ENABLED: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          check-latest: true
+          cache: true
+
+      - name: Stub embedded frontend
+        run: mkdir -p internal/web/dist && touch internal/web/dist/.gitkeep
+
+      - name: Test
+        run: go test -shuffle=on -count=1 -timeout 45m ./...
