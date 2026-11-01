@@ -30,6 +30,8 @@ jobs:
       GOARCH: amd64
       GOAMD64: v1
       CGO_ENABLED: "1"
+      CGO_CFLAGS: "-O2 -g -march=x86-64 -mtune=generic"
+      CGO_CXXFLAGS: "-O2 -g -march=x86-64 -mtune=generic"
     steps:
       - name: Checkout
         uses: actions/checkout@v7
