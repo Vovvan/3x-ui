@@ -24,7 +24,7 @@ concurrency:
 jobs:
   build:
     name: build linux/amd64
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       GOOS: linux
       GOARCH: amd64
@@ -94,7 +94,7 @@ jobs:
     name: full test suite
     needs: build
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_full_tests }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       CGO_ENABLED: "1"
     steps:
