@@ -1334,7 +1334,7 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 	// Secure client ID
 	for _, client := range clients {
 		switch inbound.Protocol {
-		case "trojan", "masque":
+		case "trojan", "masque", "mixed":
 			if client.Password == "" {
 				return inbound, false, common.NewError("empty client ID")
 			}
@@ -1739,7 +1739,7 @@ func (s *InboundService) validateUpdatedInboundClients(inbound, existing *model.
 			if client.Auth == "" {
 				return common.NewError("empty client ID")
 			}
-		case model.MASQUE:
+		case model.MASQUE, model.Mixed:
 			if client.Password == "" {
 				return common.NewError("empty client ID")
 			}

@@ -250,7 +250,7 @@ func InboundUserOps(oldIb, newIb *InboundConfig) (*HotDiff, bool) {
 	return diff, true
 }
 
-var userDiffableProtocols = map[string]struct{}{"vless": {}, "vmess": {}, "trojan": {}, "hysteria": {}, "masque": {}, "shadowsocks": {}}
+var userDiffableProtocols = map[string]struct{}{"vless": {}, "vmess": {}, "trojan": {}, "hysteria": {}, "masque": {}, "shadowsocks": {}, "mixed": {}}
 
 // diffInboundUsers emits per-user AlterInbound ops when two same-tag inbounds
 // differ only in settings.clients, so the handler (and its listener) survives.
@@ -417,7 +417,7 @@ func inboundUsesTproxy(ib *InboundConfig) bool {
 // full restart here is the same defensive choice already made above for
 // REALITY and TPROXY.
 func inboundUsesSocksAccounts(ib *InboundConfig) bool {
-	if ib == nil || ib.Protocol != "socks" || len(ib.Settings) == 0 {
+	if ib == nil || (ib.Protocol != "socks" && ib.Protocol != "mixed") || len(ib.Settings) == 0 {
 		return false
 	}
 	var settings struct {

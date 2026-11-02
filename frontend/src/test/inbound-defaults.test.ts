@@ -160,6 +160,17 @@ describe('createDefault*InboundSettings factories', () => {
     expect(MixedInboundSettingsSchema.parse(s)).toEqual(s);
   });
 
+  it('mixed keeps dynamic clients beside static accounts', () => {
+    const s = {
+      auth: 'password',
+      accounts: [{ user: 'static', pass: 'static-pass' }],
+      clients: [{ email: 'ivy@example.test', password: 'pw-ivy', level: 0 }],
+      udp: false,
+      ip: '127.0.0.1',
+    };
+    expect(MixedInboundSettingsSchema.parse(s)).toEqual(s);
+  });
+
   it('tunnel', () => {
     const s = createDefaultTunnelInboundSettings();
     expect(s).toMatchSnapshot();

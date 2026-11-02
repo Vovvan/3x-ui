@@ -181,6 +181,10 @@ func TestXrayAPI_E2E_Users(t *testing.T) {
 				"clients": []any{map[string]any{"password": ssKey(32, 9), "email": "seed-ss2022"}},
 			},
 		},
+		map[string]any{
+			"listen": "127.0.0.1", "port": freePort(t), "protocol": "mixed", "tag": "mixed-in",
+			"settings": map[string]any{"auth": "password", "udp": false, "accounts": []any{}},
+		},
 	})
 
 	tests := []struct {
@@ -215,6 +219,11 @@ func TestXrayAPI_E2E_Users(t *testing.T) {
 		{
 			name: "shadowsocks 2022", protocol: "shadowsocks", tag: "ss2022-in",
 			user:                  panelUser("e2e-ss2022", map[string]any{"password": ssKey(32, 40), "cipher": "2022-blake3-aes-256-gcm"}),
+			rejectsDuplicateEmail: true,
+		},
+		{
+			name: "mixed", protocol: "mixed", tag: "mixed-in",
+			user:                  panelUser("e2e-mixed", map[string]any{"password": "e2e-pw"}),
 			rejectsDuplicateEmail: true,
 		},
 	}
@@ -293,6 +302,10 @@ func TestXrayAPI_E2E_ShadowsocksAccountTypeGuess(t *testing.T) {
 				"method": "2022-blake3-aes-256-gcm", "password": ssKey(32, 1), "network": "tcp,udp",
 				"clients": []any{map[string]any{"password": ssKey(32, 9), "email": "seed-ss2022"}},
 			},
+		},
+		map[string]any{
+			"listen": "127.0.0.1", "port": freePort(t), "protocol": "mixed", "tag": "mixed-in",
+			"settings": map[string]any{"auth": "password", "udp": false, "accounts": []any{}},
 		},
 	})
 
@@ -454,4 +467,64 @@ func TestXrayAPI_E2E_TestRoutePortRange(t *testing.T) {
 	if _, err := c.api.TestRoute(RouteTestRequest{Domain: "example.com", Port: 65535}); err != nil {
 		t.Fatalf("TestRoute rejected the valid port 65535: %v", err)
 	}
+}
+
+// The modified mixed handler must authenticate a dynamically added panel user
+// over its HTTP fallback and attribute the traffic to that email.
+func TestXrayAPI_E2E_MixedUserAuthAndTraffic(t *testing.T) {
+	const payload = 64 * 1024
+
+	backendLn, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	backend := &http.Server{Handler: http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write(make([]byte, payload))
+	})}
+	go func() { _ = backend.Serve(backendLn) }()
+	t.Cleanup(func() { _ = backend.Close() })
+
+	proxyPort := freePort(t)
+	c := startE2ECore(t, []any{
+		map[string]any{
+			"listen": "127.0.0.1", "port": proxyPort, "protocol": "mixed", "tag": "mixed-in",
+			"settings": map[string]any{"auth": "password", "udp": false, "accounts": []any{}},
+		},
+	})
+	user := panelUser("e2e-mixed", map[string]any{"password": "e2e-pw"})
+	if err := c.api.AddUser("mixed", "mixed-in", user); err != nil {
+		t.Fatalf("AddUser: %v", err)
+	}
+	if _, _, err := c.api.GetTraffic(); err != nil {
+		t.Fatalf("GetTraffic (baseline): %v", err)
+	}
+
+	proxyURL, err := url.Parse(fmt.Sprintf("http://e2e-mixed:e2e-pw@127.0.0.1:%d", proxyPort))
+	if err != nil {
+		t.Fatal(err)
+	}
+	client := &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyURL)}}
+	resp, err := client.Get(fmt.Sprintf("http://%s/", backendLn.Addr().String()))
+	if err != nil {
+		t.Fatalf("proxied request: %v", err)
+	}
+	n, err := io.Copy(io.Discard, resp.Body)
+	resp.Body.Close()
+	if err != nil {
+		t.Fatalf("reading the proxied response: %v", err)
+	}
+	if n != payload {
+		t.Fatalf("proxied %d bytes, want %d", n, payload)
+	}
+	time.Sleep(500 * time.Millisecond)
+	_, clients, err := c.api.GetTraffic()
+	if err != nil {
+		t.Fatalf("GetTraffic: %v", err)
+	}
+	for _, ct := range clients {
+		if ct.Email == "e2e-mixed" && ct.Down >= payload {
+			return
+		}
+	}
+	t.Fatalf("mixed traffic was not attributed to e2e-mixed; reported clients: %+v", clients)
 }

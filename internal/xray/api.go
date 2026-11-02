@@ -34,6 +34,7 @@ import (
 	"github.com/xtls/xray-core/proxy/masque"
 	"github.com/xtls/xray-core/proxy/shadowsocks"
 	"github.com/xtls/xray-core/proxy/shadowsocks_2022"
+	"github.com/xtls/xray-core/proxy/socks"
 	"github.com/xtls/xray-core/proxy/trojan"
 	"github.com/xtls/xray-core/proxy/vless"
 	"github.com/xtls/xray-core/proxy/vmess"
@@ -730,6 +731,31 @@ func buildUserAccount(protocolName string, user map[string]any) (*serial.TypedMe
 		return serial.ToTypedMessage(&shadowsocks.Account{
 			Password:   password,
 			CipherType: ssCipherType,
+		}), nil
+	case "mixed":
+		password, err := getRequiredUserString(user, "password")
+		if err != nil {
+			return nil, err
+		}
+		if password == "" {
+			return nil, common.NewError("mixed: password must not be empty")
+		}
+		username, err := getOptionalUserString(user, "username")
+		if err != nil {
+			return nil, err
+		}
+		if username == "" {
+			username, err = getRequiredUserString(user, "email")
+			if err != nil {
+				return nil, err
+			}
+		}
+		if username == "" {
+			return nil, common.NewError("mixed: username must not be empty")
+		}
+		return serial.ToTypedMessage(&socks.Account{
+			Username: username,
+			Password: password,
 		}), nil
 	case "hysteria":
 		auth, err := getRequiredUserString(user, "auth")

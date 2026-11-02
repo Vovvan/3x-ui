@@ -10,6 +10,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawgnet"
@@ -281,6 +282,10 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 					entry["flow"] = flow
 				}
 			case model.Shadowsocks:
+				if c.Password != "" {
+					entry["password"] = c.Password
+				}
+			case model.Mixed:
 				if c.Password != "" {
 					entry["password"] = c.Password
 				}
@@ -1394,12 +1399,72 @@ func (s *XrayService) RestartXray(isForce bool) error {
 	if err != nil {
 		return err
 	}
+	seedMixedUsers(xrayConfig, process.GetAPIPort())
 
 	if err := publishTuicRelayReadiness(xrayConfig); err != nil {
 		return err
 	}
 
 	return nil
+}
+
+// mixedUserOps lists the clients the modified mixed handler registers only
+// through the API; config.accounts is seeded at start, settings.clients is not.
+func mixedUserOps(cfg *xray.Config) []xray.UserOp {
+	if cfg == nil {
+		return nil
+	}
+	var ops []xray.UserOp
+	for i := range cfg.InboundConfigs {
+		ib := &cfg.InboundConfigs[i]
+		if ib.Protocol != string(model.Mixed) {
+			continue
+		}
+		var settings struct {
+			Clients []map[string]any `json:"clients"`
+		}
+		if err := json.Unmarshal(ib.Settings, &settings); err != nil {
+			continue
+		}
+		for _, client := range settings.Clients {
+			email, _ := client["email"].(string)
+			password, _ := client["password"].(string)
+			if email == "" || password == "" {
+				continue
+			}
+			ops = append(ops, xray.UserOp{Tag: ib.Tag, Protocol: ib.Protocol, Email: email, User: client})
+		}
+	}
+	return ops
+}
+
+// seedMixedUsers retries briefly because process.Start returns before the API
+// listener accepts calls; a failed seed otherwise leaves clients offline.
+func seedMixedUsers(cfg *xray.Config, apiPort int) {
+	ops := mixedUserOps(cfg)
+	if len(ops) == 0 {
+		return
+	}
+	api := &xray.XrayAPI{}
+	if err := api.Init(apiPort); err != nil {
+		logger.Warning("seed mixed users: init API failed:", err)
+		return
+	}
+	defer api.Close()
+	deadline := time.Now().Add(5 * time.Second)
+	for _, op := range ops {
+		for {
+			err := api.AddUser(op.Protocol, op.Tag, op.User)
+			if err == nil || xray.IsUserExistsErr(err) {
+				break
+			}
+			if time.Now().After(deadline) {
+				logger.Warning("seed mixed user [", op.Email, "] on [", op.Tag, "] failed:", err)
+				break
+			}
+			time.Sleep(100 * time.Millisecond)
+		}
+	}
 }
 
 // restartToDropClients reports whether a diff that strands clients must be

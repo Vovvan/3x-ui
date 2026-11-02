@@ -426,7 +426,7 @@ func (s *ClientService) fillProtocolDefaultsAgainstExisting(c *model.Client, ib 
 		if c.ID == "" {
 			c.ID = uuid.NewString()
 		}
-	case model.Trojan, model.MASQUE:
+	case model.Trojan, model.MASQUE, model.Mixed:
 		if c.Password == "" {
 			c.Password = strings.ReplaceAll(uuid.NewString(), "-", "")
 		}
