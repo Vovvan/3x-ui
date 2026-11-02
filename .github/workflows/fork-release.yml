@@ -65,11 +65,20 @@ jobs:
             .
           file build/x-ui
 
+      - name: Fetch runtime binaries
+        run: ./DockerInit.sh amd64
+
       - name: Package
         run: |
           cp build/x-ui build_assets/x-ui/x-ui
           cp README.md LICENSE build_assets/x-ui/
           cp x-ui.sh x-ui.service.debian x-ui.service.arch x-ui.service.rhel build_assets/x-ui/
+          mkdir -p build_assets/x-ui/bin
+          cp -a build/bin/. build_assets/x-ui/bin/
+          rm -f build_assets/x-ui/bin/LICENSE build_assets/x-ui/bin/README.md
+          test -x build_assets/x-ui/bin/xray-linux-amd64
+          test -x build_assets/x-ui/bin/mtg-linux-amd64
+          test -s build_assets/x-ui/bin/geoip.dat
 
           tar -czf x-ui-linux-amd64.tar.gz -C build_assets x-ui
           {
